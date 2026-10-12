@@ -6,7 +6,7 @@ Seekto turns a lecture into something you can ask. Load a lecture with its trans
 
 It's free and open source, runs entirely in your browser, and needs no account. Nothing you load is uploaded.
 
-**[Try it →](https://SEEKTO_PAGES_URL/)**
+**[Try it →](https://enrjgy-tech.github.io/seekto/)**
 
 ## What works today
 
@@ -37,7 +37,7 @@ Students first, in every subject. Also anyone learning from lectures and talks: 
 ## Run it locally
 
 ```sh
-git clone https://github.com/SEEKTO_REPO.git
+git clone https://github.com/enrjgy-tech/seekto.git
 cd seekto
 npm test          # engine tests, including retrieval checks on the sample lecture
 npm run build     # builds the static site into ./site
