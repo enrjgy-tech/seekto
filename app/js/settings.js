@@ -5,6 +5,8 @@ import { all, put, clearAll } from "./store.js";
 import { PROVIDERS, isReady, chat } from "../engine/index.js";
 import { devicesListHtml, wireForget } from "./connect.js";
 import { onStatus } from "./devices.js";
+import { renderAccount } from "./account.js";
+import { disconnect } from "./cloud.js";
 
 const GROUPS = [
   ["No AI", ["none"]],
@@ -33,6 +35,7 @@ export function render(main) {
           <div class="row"><button class="btn" id="saveModel">Save</button><button class="btn ghost" id="testModel">Test connection</button><span id="testResult" class="note-small"></span></div>
         </div>
       </section>
+      <section class="panel" id="accountPanel"></section>
       <section class="panel">
         <h2>Devices</h2>
         <p class="sub">Connect your phone, laptop and other devices with a short code. They sync directly with each other.</p>
@@ -102,7 +105,9 @@ export function render(main) {
   $("#speak").addEventListener("change", (e) => updateSettings({ speak: e.target.checked }));
   const drawDevices = () => { const box = $("#setDevices"); if (!box) return; box.innerHTML = devicesListHtml(); wireForget(box, drawDevices); };
   drawDevices();
-  const off = onStatus(drawDevices);
+  const offDevices = onStatus(drawDevices);
+  const offAccount = renderAccount($("#accountPanel"));
+  const off = () => { offDevices(); offAccount(); };
   $("#setConnect").addEventListener("click", () => window.dispatchEvent(new Event("seekto:connect")));
   $("#saveSignal").addEventListener("click", () => { updateSettings({ signalServer: $("#signal").value.trim() || "https://ntfy.sh" }); toast("Saved. Reload to use it."); });
   $("#backup").addEventListener("click", async () => {
@@ -123,8 +128,9 @@ export function render(main) {
   $("#wipe").addEventListener("click", async (e) => {
     if (e.target.dataset.sure !== "1") { e.target.dataset.sure = "1"; e.target.textContent = "Tap again to delete everything"; return; }
     await clearAll();
+    disconnect({ forgetKey: true });
     await loadAll();
-    toast("Everything was deleted from this device");
+    toast("Everything was deleted from this device. Your storage copy, if you have one, is untouched.");
     e.target.dataset.sure = ""; e.target.textContent = "Delete everything";
   });
   return off;

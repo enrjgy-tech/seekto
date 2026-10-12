@@ -19,3 +19,26 @@ jobs:
       - run: npm test
       - run: npm run check:packs
       - run: npm run build
+
+  storage-sql:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Supabase-like roles
+        run: |
+          psql -v ON_ERROR_STOP=1 -c "create role anon nologin; create role authenticated nologin; grant usage on schema public to anon, authenticated; alter default privileges in schema public grant all on tables to anon, authenticated; alter default privileges in schema public grant all on sequences to anon, authenticated;"
+      - name: Setup script runs, twice
+        run: psql -v ON_ERROR_STOP=1 -f app/supabase.sql && psql -v ON_ERROR_STOP=1 -f app/supabase.sql
+      - name: Storage checks
+        run: psql -v ON_ERROR_STOP=1 -f engine/test/sql/storage.test.sql

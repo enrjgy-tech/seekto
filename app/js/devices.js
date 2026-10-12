@@ -9,8 +9,9 @@
 //    Paired devices share a secret and reconnect on their own, proving the secret each time.
 import { state, saveNote, saveEvent, saveProject, deleteNote, deleteEvent, deleteProject } from "./state.js";
 import { all, put, get, audioIds } from "./store.js";
+import { account } from "./cloud.js";
 import {
-  makeCode, normalizeCode, isValidCode, randomId, manifest, outgoing, incoming, frames, makeAssembler, deviceName, proof, channelBinding, STORES,
+  makeCode, normalizeCode, isValidCode, randomId, manifest, outgoing, incoming, frames, makeAssembler, deviceName, proof, channelBinding, matchCode, STORES,
 } from "../engine/index.js";
 
 const ICE = [{ urls: "stun:stun.l.google.com:19302" }, { urls: "stun:stun.cloudflare.com:3478" }];
@@ -218,6 +219,18 @@ function startSync(link) {
     const list = paired().map((p) => (p.id === link.peer.id ? { ...p, lastSync: Date.now() } : p));
     savePaired(list);
   });
+  link.on("account-request", async () => {
+    const a = account();
+    if (!a?.key) return link.send({ type: "account-deny", reason: `${me().name} doesn't have an account set up.` });
+    const code = await linkCode(link);
+    let answered = false;
+    const respond = (ok) => {
+      if (answered) return;
+      answered = true;
+      link.send(ok ? { type: "account-grant", account: { key: a.key, url: a.url, apiKey: a.apiKey } } : { type: "account-deny", reason: `${me().name} said no.` });
+    };
+    window.dispatchEvent(new CustomEvent("seekto:account-request", { detail: { name: link.peer.name, code, respond } }));
+  });
   localData().then(({ data, tombs, audio }) => link.send({ type: "manifest", manifest: manifest(data, tombs, audio) }));
 }
 
@@ -226,14 +239,40 @@ async function applyRecords(link, msg) {
   const plan = incoming(data, tombs, msg.payload);
   for (const { store, record } of plan.put) await SAVE[store](record, { remote: true });
   for (const { store, id } of plan.remove) await DELETE[store](id, { remote: true });
-  for (const t of plan.tombstones) await put("deleted", t);
+  for (const t of plan.tombstones) {
+    await put("deleted", t);
+    window.dispatchEvent(new CustomEvent("seekto:changed", { detail: { deleted: t, from: "peer" } }));
+  }
   const count = plan.put.length + plan.remove.length;
   if (count) window.dispatchEvent(new CustomEvent("seekto:synced", { detail: { from: link.peer.name, count } }));
 }
 
+// The 4-digit code both ends of a connection show, from the connection's own fingerprints.
+function linkCode(link) {
+  return matchCode(channelBinding(link.pc.localDescription?.sdp, link.pc.remoteDescription?.sdp));
+}
+
+/**
+ * Ask a connected device for its account (key and storage). Returns { code, result }: show the
+ * code, and `result` resolves with { key, url, apiKey } once the other device taps Allow.
+ */
+export async function requestAccount(peerId) {
+  const link = links.get(peerId);
+  if (!link?.open || !link.authed) throw new Error("That device isn't connected right now. Open Seekto on it and try again.");
+  const code = await linkCode(link);
+  const result = new Promise((resolve, reject) => {
+    link.on("account-grant", (m) => resolve(m.account));
+    link.on("account-deny", (m) => reject(new Error(m.reason || "The other device said no.")));
+    setTimeout(() => reject(new Error("No answer from the other device.")), 120000);
+  });
+  link.send({ type: "account-request" });
+  return { code, result };
+}
+
 // Live changes go to every open link.
 window.addEventListener("seekto:changed", async (e) => {
-  const { store, record, deleted } = e.detail;
+  const { store, record, deleted, from } = e.detail;
+  if (from === "peer") return; // came from a device; don't echo it back
   for (const link of links.values()) {
     if (!link.open || !link.authed) continue;
     if (deleted) { link.send({ type: "records", payload: { records: {}, deleted: [deleted] } }); continue; }

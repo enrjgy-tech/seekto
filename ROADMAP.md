@@ -14,6 +14,7 @@ Seekto is built in public. This is the plan, not a promise of dates.
 - [x] Practice tests in both directions, with exports for Quizlet, Anki, CSV (Google Forms, Kahoot) and Moodle
 - [x] AI model choice: none, Ollama on your computer, OpenRouter free or paid models, OpenAI, Anthropic, or any OpenAI-compatible service
 - [x] Backup and restore
+- [x] Your own account with no sign-up: a 24-character key, end-to-end encryption, and storage in a Supabase project you own (Seekto hosts nothing)
 - [x] Connect devices with a 6-letter code: direct encrypted sync of notes, recordings, calendar and assignments, with Allow on first pairing and automatic reconnects
 
 ## Next
@@ -23,6 +24,7 @@ Seekto is built in public. This is the plan, not a promise of dates.
 - **Live school sync:** Canvas and Google Classroom connections that keep deadlines up to date without exporting files.
 - **Direct test upload** to connected sites (Canvas quizzes, Google Forms, Quizlet).
 - **Phone app polish:** install as an app, record with the screen off.
+- **More storage choices:** the storage layer is one small interface (register, put, changes, get, forget); S3-compatible storage, WebDAV or a synced folder can be added by pull request when people ask for them.
 - **Sync on hard networks:** an optional relay for networks that block direct connections, and a QR code as well as the typed code.
 - **Spaced review** that schedules your practice tests before each exam.
 

@@ -16,56 +16,59 @@ export async function loadAll() {
   state.projects = projects.sort((a, b) => b.createdAt - a.createdAt);
 }
 
-// Every change is announced so paired devices can sync it. Changes that arrive from
-// another device are saved with { remote: true } so they aren't sent straight back.
+// Every change is announced so paired devices and your storage can sync it. Changes that arrive
+// from elsewhere are saved with { remote: true, from: "peer" | "cloud" }: they keep their own
+// timestamps, and the announcement says where they came from so they aren't sent straight back.
 function announce(detail) {
   window.dispatchEvent(new CustomEvent("seekto:changed", { detail }));
 }
 
-async function tombstone(store, id, remote) {
+const origin = (remote, from) => (remote ? from || "peer" : undefined);
+
+async function tombstone(store, id, remote, from) {
   const t = { id, store, at: Date.now() };
   await put("deleted", t);
-  if (!remote) announce({ deleted: t });
+  announce({ deleted: t, from: origin(remote, from) });
 }
 
-export async function saveNote(note, { remote = false } = {}) {
-  if (!remote) note.updatedAt = Date.now();
-  await put("notes", note);
-  if (!remote) announce({ store: "notes", record: note });
+async function saveRecord(store, record, remote, from) {
+  if (!remote) record.updatedAt = Date.now();
+  await put(store, record);
+  announce({ store, record, from: origin(remote, from) });
+}
+
+export async function saveNote(note, { remote = false, from } = {}) {
+  await saveRecord("notes", note, remote, from);
   state.notes = [note, ...state.notes.filter((n) => n.id !== note.id)].sort((a, b) => b.createdAt - a.createdAt);
 }
 
-export async function deleteNote(id, { remote = false } = {}) {
+export async function deleteNote(id, { remote = false, from } = {}) {
   const note = state.notes.find((n) => n.id === id);
   await remove("notes", id);
   if (note?.audioId) await remove("audio", note.audioId);
-  await tombstone("notes", id, remote);
+  await tombstone("notes", id, remote, from);
   state.notes = state.notes.filter((n) => n.id !== id);
 }
 
-export async function saveEvent(event, { remote = false } = {}) {
-  if (!remote) event.updatedAt = Date.now();
-  await put("events", event);
-  if (!remote) announce({ store: "events", record: event });
+export async function saveEvent(event, { remote = false, from } = {}) {
+  await saveRecord("events", event, remote, from);
   state.events = [...state.events.filter((e) => e.id !== event.id), event].sort((a, b) => a.date.localeCompare(b.date));
 }
 
-export async function deleteEvent(id, { remote = false } = {}) {
+export async function deleteEvent(id, { remote = false, from } = {}) {
   await remove("events", id);
-  await tombstone("events", id, remote);
+  await tombstone("events", id, remote, from);
   state.events = state.events.filter((e) => e.id !== id);
 }
 
-export async function saveProject(project, { remote = false } = {}) {
-  if (!remote) project.updatedAt = Date.now();
-  await put("projects", project);
-  if (!remote) announce({ store: "projects", record: project });
+export async function saveProject(project, { remote = false, from } = {}) {
+  await saveRecord("projects", project, remote, from);
   state.projects = [project, ...state.projects.filter((p) => p.id !== project.id)].sort((a, b) => b.createdAt - a.createdAt);
 }
 
-export async function deleteProject(id, { remote = false } = {}) {
+export async function deleteProject(id, { remote = false, from } = {}) {
   await remove("projects", id);
-  await tombstone("projects", id, remote);
+  await tombstone("projects", id, remote, from);
   state.projects = state.projects.filter((p) => p.id !== id);
 }
 

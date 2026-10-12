@@ -11,6 +11,7 @@ import * as research from "./research.js";
 import * as settings from "./settings.js";
 import { initDevices, onStatus, connected, paired } from "./devices.js";
 import { openConnect } from "./connect.js";
+import { startCloud, askToShareAccount } from "./account.js";
 import { toast } from "./ui.js";
 
 const views = {
@@ -60,6 +61,7 @@ function updateDevicePill() {
 }
 
 $("#connectBtn").addEventListener("click", () => openConnect());
+window.addEventListener("seekto:account-request", (e) => askToShareAccount(e.detail));
 window.addEventListener("seekto:connect", () => openConnect());
 onStatus(updateDevicePill);
 
@@ -78,3 +80,4 @@ await loadAll();
 render();
 initDevices();
 updateDevicePill();
+startCloud();
