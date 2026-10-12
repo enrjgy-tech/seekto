@@ -3,8 +3,13 @@
 import { $, html, raw, toast } from "./ui.js";
 import { state, today, noteText, updateSettings } from "./state.js";
 import { go } from "./nav.js";
-import { classify, answerLocally, searchNotes, describeDay, isReady, chat as askModel } from "../engine/index.js";
+import { classify, answerLocally, searchNotes, describeDay, isReady, chat as askModel, findDefinitions } from "../engine/index.js";
 import { openQuiz } from "./quiz.js";
+import { words, mode, setMode } from "./profile.js";
+import { loadSample, hasSamples } from "./sample.js";
+import { isMeeting, meetingParts } from "./capture.js";
+import { openFollowUp } from "./meeting.js";
+import { friendlyDate } from "./ui.js";
 import { speak, listenOnce, canListen } from "./voice.js";
 
 const HISTORY_KEY = "seekto.chat";
@@ -18,16 +23,16 @@ function saveHistory() {
   try { sessionStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(-40))); } catch { /* not available */ }
 }
 
-const SUGGESTIONS = ["What's due this week?", "When is my next test?", "Quiz me", "Start recording"];
 
 function stepsHtml() {
   const s = state.settings;
-  const steps = [
-    ["record", "Record a class", "Notes, marks and dates are saved by themselves.", state.notes.some((n) => n.kind === "recording")],
-    ["calendar", "Add your school calendar", "Import from Canvas, Google Classroom or any .ics file.", state.events.some((e) => e.source === "import")],
-    ["ask", "Ask me anything", "“When is my math test?” or “Quiz me on chapter 5.”", history.some((m) => m.role === "user")],
-    ["settings", "Choose an AI model (optional)", "On your computer, free cloud or paid cloud.", isReady(s)],
-  ];
+  const done = {
+    sample: hasSamples(),
+    record: state.notes.some((n) => n.kind === "recording" && !n.sample),
+    calendar: state.events.some((e) => e.source === "import"),
+    settings: isReady(s),
+  };
+  const steps = words().steps.map(([go, title, text]) => [go, title, text, done[go]]);
   return steps.map(([go, title, text, done]) => html`<button class="step" data-step="${go}"><b>${title}</b><span>${text}</span>${raw(done ? '<span class="done">Done</span>' : "")}</button>`).join("");
 }
 
@@ -37,9 +42,15 @@ export function render(main) {
       <div class="view">
         <section class="welcome" id="welcome">
           <div class="view-head"><h1>${greeting()}</h1><span class="row phone-only"><button class="btn ghost small" id="phoneDevices">Devices</button><button class="btn ghost small" id="phoneSettings">Settings</button></span></div>
-          <p class="sub">I'm Seekto, your study assistant. I keep your class notes, your calendar and your assignments in one place, and I help you study.</p>
+          <div class="row" style="align-items:center;gap:10px;margin:-4px 0 6px"><span class="note-small">I'm using Seekto for</span>
+            <div class="seg" role="group" aria-label="Use Seekto for">${raw(["learning", "work"].map((m) => html`<button type="button" data-pickmode="${m}" aria-pressed="${m === mode()}">${m === "learning" ? "Learning" : "Work"}</button>`).join(""))}</div></div>
+          <p class="sub">I'm Seekto. ${words().intro}</p>
           <div class="steps">${raw(stepsHtml())}</div>
         </section>
+        <div class="chat-bar" id="chatBar" hidden>
+          <div class="seg" role="group" aria-label="Use Seekto for">${raw(["learning", "work"].map((m) => html`<button type="button" data-pickmode="${m}" aria-pressed="${m === mode()}">${m === "learning" ? "Learning" : "Work"}</button>`).join(""))}</div>
+          <button class="btn ghost small" id="newChat">New chat</button>
+        </div>
         <div class="msgs" id="msgs" aria-live="polite"></div>
       </div>
     </div>
@@ -48,22 +59,27 @@ export function render(main) {
       <div class="suggest" id="suggest" style="max-width:880px;margin:0 auto 10px"></div>
       <form id="chatForm">
         <label for="chatInput" class="label" style="position:absolute;left:-9999px">Message</label>
-        <input id="chatInput" type="text" autocomplete="off" placeholder="Ask about your classes, deadlines or notes">
+        <input id="chatInput" type="text" autocomplete="off" placeholder="${words().placeholder}">
         <button type="button" class="iconbtn" id="talkBtn" aria-pressed="false" title="Talk mode" aria-label="Talk mode"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
         <button class="btn">Send</button>
       </form>
     </div>`;
 
-  $("#suggest").innerHTML = SUGGESTIONS.map((s) => html`<button type="button">${s}</button>`).join("");
+  $("#suggest").innerHTML = words().suggestions.map((s) => html`<button type="button">${s}</button>`).join("");
   $("#suggest").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) send(b.textContent); });
   $("#chatForm").addEventListener("submit", (e) => { e.preventDefault(); const v = $("#chatInput").value.trim(); if (v) { $("#chatInput").value = ""; send(v); } });
   $("#welcome").addEventListener("click", (e) => {
+    const m = e.target.closest("[data-pickmode]");
+    if (m) return setMode(m.dataset.pickmode);
     const b = e.target.closest("[data-step]");
     if (!b) return;
     if (b.dataset.step === "ask") $("#chatInput").focus();
+    else if (b.dataset.step === "sample") runSample(mode());
     else go(b.dataset.step);
   });
   $("#talkBtn").addEventListener("click", toggleTalk);
+  $("#chatBar").addEventListener("click", (e) => { const m = e.target.closest("[data-pickmode]"); if (m) setMode(m.dataset.pickmode); });
+  $("#newChat").addEventListener("click", () => { history = []; saveHistory(); window.dispatchEvent(new Event("seekto:render")); });
   $("#phoneSettings").addEventListener("click", () => go("settings"));
   $("#phoneDevices").addEventListener("click", () => window.dispatchEvent(new Event("seekto:connect")));
   drawHistory();
@@ -82,6 +98,7 @@ function drawHistory() {
   const box = $("#msgs");
   if (!box) return;
   $("#welcome").hidden = history.length > 0;
+  $("#chatBar").hidden = history.length === 0;
   box.innerHTML = history.map(messageHtml).join("");
   box.querySelectorAll("[data-action]").forEach((b) => b.addEventListener("click", () => runAction(JSON.parse(b.dataset.action))));
   const scroll = $("#chatScroll");
@@ -98,6 +115,45 @@ function messageHtml(m) {
 function runAction(a) {
   if (a.go) return go(a.go);
   if (a.quiz !== undefined) return startQuiz(a.quiz);
+  if (a.sample) return runSample(a.sample);
+  if (a.followup) { const n = state.notes.find((x) => x.id === a.followup); if (n) openFollowUp(n); }
+  if (a.ask) return send(a.ask);
+}
+
+async function runSample(kind) {
+  const { note, decisions, actions } = await loadSample(kind);
+  const events = state.events.filter((e) => e.noteId === note.id);
+  if (kind === "work") {
+    const lines = [
+      `I loaded a sample meeting, "${note.title}". From what was said, I found ${decisions.length} decision${decisions.length === 1 ? "" : "s"} and ${actions.length} action items.`,
+      "",
+      "Decisions:",
+      ...decisions.map((d) => `• ${d.text}`),
+      "",
+      "Action items:",
+      ...actions.map((a) => `• ${a.owner === "Me" ? "You" : a.owner || "Someone"}: ${a.task}${a.due ? ` (${friendlyDate(a.due)})` : ""}`),
+      "",
+      events.length ? `The ${events.length} with dates are on your calendar:` : "",
+    ];
+    return reply({ text: lines.join("\n").trim(), items: events, actions: [{ label: "Draft the follow-up email", followup: note.id }, { label: "Open the meeting", go: `note/${note.id}` }, { label: "What are my action items?", ask: "What are my action items?" }] });
+  }
+  return reply({
+    text: `I loaded a sample biology class, "${note.title}". While the teacher talked, I wrote the transcript, found ${findDefinitions(note.text).length} definitions to quiz you on, and put ${events.length === 1 ? "this date" : `these ${events.length} dates`} on your calendar:`,
+    items: events,
+    actions: [{ label: "Quiz me on it", quiz: "Biology" }, { label: "When is my next test?", ask: "When is my next test?" }, { label: "Open the class notes", go: `note/${note.id}` }],
+  });
+}
+
+function actionItemsReply() {
+  const meetings = state.notes.filter(isMeeting);
+  const all = meetings.flatMap((n) => meetingParts(n).actions.map((a) => ({ ...a, note: n })));
+  if (!all.length) {
+    return reply({ text: meetings.length ? "I didn't find action items in your meetings." : "You don't have any meeting notes yet. Record a meeting, or try the sample.", actions: [{ label: "Try a sample meeting", sample: "work" }, { label: "Record a meeting", go: "record" }] });
+  }
+  const sorted = all.sort((a, b) => (a.due || "9999").localeCompare(b.due || "9999"));
+  const mine = sorted.filter((a) => a.owner === "Me");
+  const lines = sorted.slice(0, 12).map((a) => `• ${a.owner === "Me" ? "You" : a.owner || "Someone"}: ${a.task}${a.due ? ` (${friendlyDate(a.due)})` : ""}`);
+  return reply({ text: `${mine.length ? `${mine.length} of these are yours. ` : ""}Action items from your meetings:\n${lines.join("\n")}`, actions: [{ label: "Draft a follow-up email", followup: sorted[0].note.id }] });
 }
 
 function notesFor(topic) {
@@ -130,6 +186,13 @@ async function send(text) {
   const parsed = classify(text);
 
   if (parsed.intent === "record") { await reply({ text: "Opening the recorder." }); return go("record"); }
+  if (parsed.intent === "actions") return actionItemsReply();
+  if (parsed.intent === "follow-up") {
+    const latest = state.notes.find(isMeeting);
+    if (!latest) return reply({ text: "I need a meeting first. Record one, or try the sample.", actions: [{ label: "Try a sample meeting", sample: "work" }] });
+    openFollowUp(latest);
+    return reply({ text: `Here's a follow-up email for "${latest.title}". Check it before you send it.`, actions: [{ label: "Open it again", followup: latest.id }] });
+  }
   if (parsed.intent === "quiz") {
     const notes = notesFor(parsed.topic);
     await reply({ text: notes.length ? `Starting a quiz from ${notes.length} note${notes.length > 1 ? "s" : ""}${parsed.topic ? ` on ${parsed.topic}` : ""}.` : "I need some notes first." });
@@ -181,9 +244,12 @@ function systemPrompt(question) {
   const hits = searchNotes(state.notes.map((n) => ({ ...n, text: noteText(n) })), question, 6);
   const notes = hits.map((h) => `- [${h.note.title}, ${h.note.date}] ${h.line}`).join("\n") || "(no matching notes)";
   const events = state.events.filter((e) => e.date >= today()).slice(0, 12).map((e) => `- ${e.date}: ${e.title}`).join("\n") || "(nothing upcoming)";
-  return `You are Seekto, a friendly study assistant for a student. Today is ${today()}.
-Use the student's own notes and calendar when they are relevant, and say when something isn't in their notes.
-Keep answers short, clear and easy to say out loud. Help the student understand, plan and improve their own work; don't write graded assignments for them.
+  const who = mode() === "work"
+    ? "a friendly assistant for someone at work. You help with meetings, decisions, action items and deadlines"
+    : "a friendly study assistant for a student. Help the student understand, plan and improve their own work; don't write graded assignments for them";
+  return `You are Seekto, ${who}. Today is ${today()}.
+Use their own notes and calendar when they are relevant, and say when something isn't in their notes.
+Keep answers short, clear and easy to say out loud.
 
 Relevant lines from their notes:
 ${notes}

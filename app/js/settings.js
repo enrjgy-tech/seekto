@@ -6,6 +6,8 @@ import { PROVIDERS, isReady, chat } from "../engine/index.js";
 import { devicesListHtml, wireForget } from "./connect.js";
 import { onStatus } from "./devices.js";
 import { renderAccount } from "./account.js";
+import { setMode } from "./profile.js";
+import { hasSamples, removeSamples } from "./sample.js";
 import { disconnect } from "./cloud.js";
 
 const GROUPS = [
@@ -22,6 +24,11 @@ export function render(main) {
   main.innerHTML = html`
     <div class="view">
       <h1>Settings</h1>
+      <section class="panel">
+        <h2>Use Seekto for</h2>
+        <div class="seg" role="group" aria-label="Use Seekto for">${raw(["learning", "work"].map((m) => html`<button type="button" data-setmode="${m}" aria-pressed="${m === (s.mode || "learning")}">${m === "learning" ? "Learning" : "Work"}</button>`).join(""))}</div>
+        <p class="note-small">Learning is for classes, assignments and tests. Work is for meetings, decisions and action items. Everything else is the same, and you can switch any time.</p>
+      </section>
       <section class="panel">
         <h2>AI model</h2>
         <p class="sub">Seekto works without AI: recording, notes, the calendar, quizzes from definitions and answers from your notes. An AI model adds open questions, summaries, better quizzes, research plans and briefs. Your key stays on this device and is sent only to the service you choose.</p>
@@ -54,6 +61,7 @@ export function render(main) {
         <h2>Your data</h2>
         <p class="sub">Everything is stored in this browser on this device. Back it up to move it to another device.</p>
         <div class="row">
+          ${raw(hasSamples() ? `<button class="btn ghost" id="noSamples">Remove the samples</button>` : "")}
           <button class="btn ghost" id="backup">Download backup</button>
           <label class="btn ghost" style="cursor:pointer">Restore backup<input type="file" id="restore" accept=".json" hidden></label>
           <button class="btn danger" id="wipe">Delete everything</button>
@@ -102,6 +110,8 @@ export function render(main) {
       out.textContent = err.message;
     }
   });
+  main.querySelectorAll("[data-setmode]").forEach((b) => b.addEventListener("click", () => setMode(b.dataset.setmode)));
+  $("#noSamples")?.addEventListener("click", async (e) => { await removeSamples(); e.target.remove(); toast("Samples removed"); });
   $("#speak").addEventListener("change", (e) => updateSettings({ speak: e.target.checked }));
   const drawDevices = () => { const box = $("#setDevices"); if (!box) return; box.innerHTML = devicesListHtml(); wireForget(box, drawDevices); };
   drawDevices();

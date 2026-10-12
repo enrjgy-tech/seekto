@@ -11,6 +11,8 @@ export function classify(message) {
   const text = String(message).trim();
   const lower = text.toLowerCase().replace(/[?!.]+$/, "");
   let m;
+  if (/\baction items?\b|\bmy (?:tasks|to-?dos)\b|\bwhat do i (?:need|have) to do\b|\bwho (?:is doing|owns|has) what\b/.test(lower)) return { intent: "actions" };
+  if (/\bfollow[- ]?up (?:email|note|message)\b|\brecap email\b|\b(?:draft|write) (?:an? |the )?(?:follow[- ]?up|recap|email)\b/.test(lower)) return { intent: "follow-up" };
   if ((m = lower.match(new RegExp(`\\bwhen(?:'s| is| are)?\\s+(?:my|the|our)?\\s*(?:next\\s+)?(.*?)\\s*\\b(${TEST_WORDS})s?\\b`)))) {
     return { intent: "next-test", subject: m[1].trim() || null };
   }

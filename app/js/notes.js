@@ -9,6 +9,8 @@ import {
   findEvents, searchNotes, toISO, fromISO, isReady, chat, stem, tokens,
 } from "../engine/index.js";
 import { openQuiz } from "./quiz.js";
+import { isMeeting, addDates } from "./capture.js";
+import { meetingPanelHtml, openFollowUp } from "./meeting.js";
 
 let filter = "All";
 let query = "";
@@ -43,7 +45,8 @@ export function renderList(main) {
     </div>`;
   $("#goRecord").addEventListener("click", () => go("record"));
   $("#newNote").addEventListener("click", async () => {
-    const note = { id: uid("note"), kind: "typed", createdAt: Date.now(), date: today(), title: "Untitled note", subject: "General", topic: "", text: "", cues: [], marks: [], mine: [] };
+    const work = state.settings.mode === "work";
+    const note = { id: uid("note"), kind: "typed", createdAt: Date.now(), date: today(), title: work ? "Meeting notes" : "Untitled note", subject: work ? "Meeting" : "General", topic: "", text: "", cues: [], marks: [], mine: [], ...(work ? { mode: "work" } : {}) };
     await saveNote(note);
     go(`note/${note.id}`);
   });
@@ -78,7 +81,7 @@ function drawList() {
     <div class="cards">${raw(list.map((n) => html`
       <button class="card" data-id="${n.id}">
         <b>${n.title}</b>
-        <span class="meta"><span>${friendlyDate(n.date)}</span><span>${n.subject || "General"}</span>${raw(n.duration ? `<span>${formatTime(n.duration)}</span>` : "")}${raw(n.marks?.length ? `<span>${n.marks.length} lost</span>` : "")}${raw(n.eventCount ? `<span>${n.eventCount} dates</span>` : "")}</span>
+        <span class="meta"><span>${friendlyDate(n.date)}</span><span>${n.subject || "General"}</span>${raw(n.duration ? `<span>${formatTime(n.duration)}</span>` : "")}${raw(n.marks?.length ? `<span>${n.marks.length} lost</span>` : "")}${raw(n.eventCount ? `<span>${n.eventCount} date${n.eventCount > 1 ? "s" : ""}</span>` : "")}</span>
         <p>${preview(n)}</p>
       </button>`).join(""))}</div>`).join("");
   $$(".card", box).forEach((c) => c.addEventListener("click", () => go(`note/${c.dataset.id}`)));
@@ -128,7 +131,7 @@ export async function renderDetail(main, id) {
       </div>
       <input type="text" id="title" value="${note.title}" aria-label="Title" style="font-size:22px;font-weight:700;border:0;padding:0;background:none">
       <div class="row note-small"><span>${friendlyDate(note.date)}</span>
-        <select id="subject" style="width:auto;padding:3px 8px">${raw(["General", "Math", "English", "Biology", "Chemistry", "Physics", "History", "Computer Science", "Economics", "Psychology", "Other"].map((s) => html`<option ${s === note.subject ? "selected" : ""}>${s}</option>`).join(""))}</select>
+        <select id="subject" style="width:auto;padding:3px 8px">${raw(["General", "Meeting", "Math", "English", "Biology", "Chemistry", "Physics", "History", "Computer Science", "Economics", "Psychology", "Other"].map((s) => html`<option ${s === note.subject ? "selected" : ""}>${s}</option>`).join(""))}</select>
         ${raw(note.topic ? html`<span>Topic: ${note.topic}</span>` : "")}</div>
       <div class="detail">
         <section class="panel">
@@ -137,6 +140,7 @@ export async function renderDetail(main, id) {
           ${raw(!typed && !note.cues?.length ? `<div class="field"><span class="label">No transcript yet</span><p class="note-small">Add a caption file (.vtt or .srt) or paste a transcript with times.</p><textarea id="pasteT" rows="4" placeholder="0:00&#10;Today we start chapter 5…"></textarea><div class="row"><button class="btn small" id="useT">Use transcript</button><label class="btn ghost small" style="cursor:pointer">Caption file<input type="file" id="capFile" accept=".vtt,.srt,.txt" hidden></label></div></div>` : "")}
         </section>
         <section class="panel">
+          ${raw(isMeeting(note) ? `<div id="meetingBox" style="display:grid;gap:8px">${meetingPanelHtml(note)}</div>` : "")}
           <form id="askForm" class="row"><input type="text" id="ask" placeholder="Ask this note" style="flex:1"><button class="btn">Ask</button></form>
           <div id="answers" class="items" style="display:grid;gap:8px"></div>
           <span class="label">Dates in this note</span>
@@ -159,12 +163,11 @@ export async function renderDetail(main, id) {
   $("#quiz").addEventListener("click", () => openQuiz({ notes: [note], title: `Quiz: ${note.title}` }));
   $("#export").addEventListener("click", () => download(`${note.title.replace(/[^\w-]+/g, "-")}.md`, toMarkdown(note), "text/markdown"));
   $("#summary").addEventListener("click", () => summarize(note));
+  main.querySelector("[data-followup]")?.addEventListener("click", () => openFollowUp(note));
   $("#findDates").addEventListener("click", async () => {
-    const found = findEvents(noteText(note), { ref: new Date(note.createdAt), subject: note.subject === "General" ? null : note.subject }).filter((e) => !hasEvent(e));
-    for (const e of found) await saveEvent({ id: uid("event"), ...e, subject: note.subject, source: "recording", noteId: note.id });
-    note.eventCount = state.events.filter((e) => e.noteId === note.id).length;
+    const added = await addDates(note);
     await saveNote(note);
-    toast(found.length ? `Added ${found.length} date${found.length > 1 ? "s" : ""}` : "No new dates found");
+    toast(added ? `Added ${added} date${added > 1 ? "s" : ""}` : "No new dates found");
     drawEvents(note);
   });
 
@@ -175,11 +178,11 @@ export async function renderDetail(main, id) {
       timer = setTimeout(async () => {
         note.text = e.target.value;
         finishNote(note);
-        const found = findEvents(note.text, { ref: new Date(), subject: note.subject === "General" ? null : note.subject }).filter((ev) => !hasEvent(ev));
-        for (const ev of found) await saveEvent({ id: uid("event"), ...ev, subject: note.subject, source: "note", noteId: note.id });
-        if (found.length) { toast(`Added ${found.length} date${found.length > 1 ? "s" : ""} to your calendar`); drawEvents(note); }
-        note.eventCount = state.events.filter((ev) => ev.noteId === note.id).length;
+        const added = await addDates(note);
+        if (added) { toast(`Added ${added} date${added > 1 ? "s" : ""} to your calendar`); drawEvents(note); }
         await saveNote(note);
+        const box = $("#meetingBox");
+        if (box) { box.innerHTML = meetingPanelHtml(note); box.querySelector("[data-followup]")?.addEventListener("click", () => openFollowUp(note)); }
       }, 1200);
     });
   }

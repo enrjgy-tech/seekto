@@ -9,6 +9,8 @@ import * as notes from "./notes.js";
 import * as calendar from "./calendar.js";
 import * as research from "./research.js";
 import * as settings from "./settings.js";
+import * as shared from "./shared.js";
+import { applyChrome } from "./profile.js";
 import { initDevices, onStatus, connected, paired } from "./devices.js";
 import { openConnect } from "./connect.js";
 import { startCloud, askToShareAccount } from "./account.js";
@@ -23,12 +25,19 @@ const views = {
   research: research.renderList,
   project: research.renderDetail,
   settings: settings.render,
+  shared: shared.render,
 };
 
 let cleanup = null;
 
+function route() {
+  const hash = location.hash.slice(1);
+  if (hash.startsWith("s=")) return ["shared", hash.slice(2)]; // a shared practice test
+  return (hash || "chat").split("/");
+}
+
 function render() {
-  const [name, param] = (location.hash.slice(1) || "chat").split("/");
+  const [name, param] = route();
   const view = views[name] ? name : "chat";
   const top = { note: "notes", project: "research" }[view] || view;
   for (const b of $$("[data-go]")) {
@@ -40,7 +49,7 @@ function render() {
   main.innerHTML = "";
   main.className = view === "chat" ? "chat" : "";
   main.scrollTop = 0;
-  cleanup = views[view](main, param ? decodeURIComponent(param) : undefined) || null;
+  cleanup = views[view](main, param ? (view === "shared" ? param : decodeURIComponent(param)) : undefined) || null;
   updateModelPill();
 }
 
@@ -77,7 +86,13 @@ window.addEventListener("seekto:synced", async (e) => {
 });
 
 await loadAll();
+applyChrome();
 render();
 initDevices();
 updateDevicePill();
 startCloud();
+
+// Keep a copy of the app for offline use (not on localhost, so development always sees fresh files).
+if ("serviceWorker" in navigator && !/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) {
+  navigator.serviceWorker.register("sw.js").catch(() => {});
+}

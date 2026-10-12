@@ -1,7 +1,7 @@
 {
   "name": "Seekto",
   "short_name": "Seekto",
-  "description": "Your study assistant: record classes, organized notes, a calendar that fills itself, research and practice tests.",
+  "description": "Turn classes and meetings into notes, deadlines, action items and practice tests. Private, no account, works without AI.",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#0a0a0b",

@@ -1,0 +1,23 @@
+name: Seekto missed something
+description: A date, deadline, decision or action item Seekto didn't catch (or caught wrong)
+labels: ["phrase", "good first issue"]
+body:
+  - type: textarea
+    id: sentence
+    attributes:
+      label: What was said or typed
+      description: The exact sentence, like "the lab's due the Monday after break" or "Jordan's on point for the budget by Friday"
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What Seekto should have found
+      description: For example "an assignment due Monday, Nov 30" or "an action item for Jordan, due Friday"
+    validations:
+      required: true
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Learning or Work
+      options: ["Learning", "Work"]

@@ -4,10 +4,15 @@ Thanks for helping. Small, focused pull requests are easiest to review.
 
 ## Good first contributions
 
-- **Testing:** try the app on your phone, Chromebook or school laptop and open an issue with what broke.
-- **Date detection:** add a sentence a teacher might say to `engine/test/study.test.js` that Seekto gets wrong, then fix it in `engine/src/dates.js`.
-- **Packs:** add a lecture transcript from a source that allows it. See [packs/README.md](packs/README.md).
+Each of these takes an evening or less, and every one makes Seekto better for real people.
+
+- **Teach Seekto a phrase it misses.** Someone says "the essay's due the Monday after break" or "Jordan's on point for the budget" and Seekto doesn't catch it. Add the sentence as a test in `engine/test/` (dates in `study.test.js` or `engine.test.js`, meetings in `meetings.test.js`), then make it pass in `engine/src/dates.js` or `engine/src/meetings.js`. No coding yet? Use the **"Seekto missed something"** issue form and someone else can pick it up.
+- **Add a storage adapter.** Storage is one small interface in `app/js/cloud.js` (`register`, `put`, `changes`, `get`, `forget`). An S3-compatible, WebDAV or local-folder adapter is a self-contained project.
+- **Test it where students and teams really are:** school Chromebooks, budget Android phones, iPhones, locked-down office laptops. Open an issue with what broke.
 - **Accessibility:** keyboard use, screen readers, contrast and reduced motion.
+- **Packs:** add a lecture transcript from a source that allows it. See [packs/README.md](packs/README.md).
+
+Issues labelled `good first issue` are kept small and explained, and the launch plan is in [docs/LAUNCH.md](docs/LAUNCH.md).
 
 ## Before you open a pull request
 
@@ -17,7 +22,7 @@ npm run check:packs
 npm run build
 ```
 
-All three run in CI and must pass.
+All three run in CI and must pass. CI also runs `app/supabase.sql` against Postgres and checks it as the browser's role.
 
 ## Ground rules
 

@@ -54,10 +54,19 @@ function schedule(p) {
   const steps = p.type === "Study for a test"
     ? [[0.25, "Gather notes and make a practice test"], [0.6, "Practice test, review what you missed"], [0.9, "Final review"]]
     : [[0.2, "Research and collect sources"], [0.4, "Outline mapped to the rubric"], [0.7, "First draft"], [0.9, "Revise against the rubric"]];
-  return steps.map(([f, label]) => {
+  // One step per day where the time allows; when it doesn't, steps on the same day are merged.
+  const out = [];
+  for (const [f, label] of steps) {
+    let day = Math.max(0, Math.min(days - 1, Math.round(days * f)));
+    const prev = out[out.length - 1];
+    if (prev && day <= prev.day) day = prev.day + 1;
+    if (prev && day > days - 1) { prev.labels.push(label.toLowerCase()); continue; }
+    out.push({ day, labels: [label] });
+  }
+  return out.map(({ day, labels }) => {
     const d = fromISO(today());
-    d.setDate(d.getDate() + Math.max(0, Math.min(days - 1, Math.round(days * f))));
-    return { date: toISO(d), title: `${p.title}: ${label}` };
+    d.setDate(d.getDate() + day);
+    return { date: toISO(d), title: `${p.title}: ${labels.join(", then ")}` };
   });
 }
 

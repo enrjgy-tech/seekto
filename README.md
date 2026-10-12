@@ -1,75 +1,71 @@
 # Seekto
 
-**Your study assistant. Record class, and Seekto keeps your notes, your deadlines and your studying in one place.**
+**Turn what you hear into notes, deadlines and practice. For classes and meetings. Private, no account, works without AI.**
 
-Seekto is a free, open-source study assistant that runs in your browser. Talk to it or type to it:
+![Seekto turning a sample class into calendar dates and a quiz, then a sample meeting into decisions, action items and a follow-up email](docs/media/demo.gif)
 
-- **"When is my math test?"** It checks your calendar.
-- **"What's due this week?"** It lists what's coming up.
-- **"Quiz me on chapter 5."** It makes a practice test from your notes and grades your answers, typed or spoken.
-- **"What is mitosis?"** It finds the answer in your notes.
+**[Open Seekto →](https://enrjgy-tech.github.io/seekto/)** and press **Try a sample**. No microphone, account or AI key needed.
 
-**[Try it →](https://enrjgy-tech.github.io/seekto/)**
+## What makes it different
 
-## What it does
+- **It listens for what you need to do.** When a teacher says "the quiz is on Friday", it's on your calendar. When someone says "Maria will send the deck by Friday", it's an action item with an owner and a date. This works without any AI model, from tested rules in [`engine/`](engine/src).
+- **Your data stays yours.** Everything is stored in your browser. Connect your phone and laptop with a 6-letter code and they sync directly, encrypted. Optional storage goes to a Supabase project *you* own, end-to-end encrypted with a key only you hold. Seekto has no server and no accounts to hack.
+- **Any AI, or none.** Use it as is, or add Ollama on your own computer, free models on OpenRouter, or OpenAI or Anthropic with your own key.
 
-- **Record a class.** Audio stays on your device. You get a live transcript where your browser supports it, "lost here" marks and quick typed notes, all stamped to the second.
-- **Notes that organize themselves,** by date, subject and topic. Search everything, replay the teacher at any line, and ask a note questions.
-- **A calendar that fills itself.** When a teacher says "the quiz is on Friday" or you type "essay due October 20th", it goes on your calendar. Import your Canvas, Google Classroom, Moodle or Blackboard calendar as an .ics file.
-- **Research & assignments.** Paste the rubric and it becomes a checklist and a schedule back from the due date. See your related notes, add YouTube videos as sources and ask them questions, and get a plan or research brief with an AI model.
-- **Practice tests,** both ways: term to meaning and meaning to term. Export to Quizlet, Anki, Google Forms or Kahoot (CSV), or Moodle (GIFT).
-- **Connect your devices with a code.** Choose "Connect a device" on your computer to show a 6-letter code, type it on your phone, tap Allow, and they stay in sync: notes, recordings, calendar and assignments. Record on your phone, study on your computer.
-- **Your own account, no sign-up.** Turn on storage and Seekto gives you an account key, a 24-character code that is your whole account: no email, no password. Your data is encrypted on your device with that key and kept in a free Supabase project you own, so devices stay in sync even when they're not on at the same time. Seekto never hosts anyone's data.
-- **Talk mode.** Ask out loud, hear the answer, and get quizzed by voice.
-- **Your choice of AI, or none.** Everything above works without AI. Add a model for open questions, summaries, better quizzes and research briefs:
-  - **on your computer:** Ollama, private and free;
-  - **free cloud:** OpenRouter's free models;
-  - **paid cloud:** OpenAI, Anthropic, or any OpenAI-compatible service.
+## For learning
 
-  Keys stay on your device and go only to the service you choose.
+- **Record a class.** Live transcript, "lost here" marks and quick notes stamped to the second. Audio stays on your device.
+- **Ask about it.** "When is my math test?", "What's due this week?", "What is mitosis?" Type or talk.
+- **Practice.** Seekto makes practice tests from your notes, both ways (term to meaning, meaning to term), and grades typed or spoken answers. Export to Quizlet, Anki, Google Forms, Kahoot or Moodle.
+- **Share a test with your class.** One link opens the test for anyone, with nothing to install. The questions travel inside the link itself, so they're never stored on a server.
+- **Assignments.** Paste the rubric to get a checklist and a schedule back from the due date, with your related notes and YouTube sources beside it. Import your Canvas, Google Classroom, Moodle or Blackboard calendar.
 
-It works best on a computer. On a phone, it's built around recording, with quick questions and your calendar.
+## For work
 
-## Privacy
+- **Record a meeting.** A consent check comes first, every time.
+- **Decisions and action items.** Who does what, by when, pulled out as people talk. Dated items go on your calendar.
+- **Follow-up email.** A recap with decisions and action items, ready to check and send from your own email app. Seekto never sends anything for you.
+- **Ask about it.** "What are my action items?", "Draft a follow-up email."
 
-Your notes, recordings and calendar are stored in your browser on your device. There's no account and no Seekto server. Live transcripts use your browser's speech service; in Chrome and Edge that is processed online by the browser maker. Always follow your school's rules and ask before recording a class.
+Switch between Learning and Work at any time. Notes, search, talk mode, device sync and AI choice are shared.
 
-**Connected devices** sync directly with each other over an encrypted WebRTC connection, not through a Seekto server. To find each other they use a public message service, [ntfy.sh](https://ntfy.sh) by default (you can set your own ntfy server in Settings). Only connection setup passes through it: device names, random device ids and network addresses. A new device needs the code and a tap on Allow on the device showing it; after that, paired devices prove a shared secret each time they reconnect. AI keys are never synced.
+## Privacy, in short
 
-**Your account and storage** are optional. The account key never leaves your devices except when you hand it to another device yourself (by typing it, or with Allow on a connected device after checking a 4-digit match code). Before anything is sent to your storage, it is encrypted on the device (AES-GCM, with keys derived from the account key by HKDF) and bound to its item id and version, so the storage can't read it, swap items, or pass an old copy off as new. The storage sees an account id, opaque item ids, version numbers, sizes and timing, nothing else. Its tables are closed to direct access; the app only uses a few functions that check a per-account write token, stored as a hash. If you lose the key and all your devices, nobody can recover the data. Changing the key encrypts everything again and deletes the old copy, so a lost device loses access. The setup script is [`app/supabase.sql`](app/supabase.sql). Devices on networks that block direct connections (some school networks) may not be able to connect; using the same Wi-Fi helps.
+Everything you create stays in your browser unless you turn on sync. Device sync goes directly between your devices; a public message service (ntfy.sh, or your own) only helps them find each other. Storage sync is end-to-end encrypted in a database you own. AI is off until you choose a provider, and then only what you ask about is sent to it. Fonts and code are served with the app, with no trackers or analytics. The details, including what each service can see, are in [docs/PRIVACY.md](docs/PRIVACY.md).
+
+Live transcripts use your browser's speech service (online in Chrome and Edge). Follow your school's and workplace's rules about recording.
 
 ## Run it locally
 
 ```sh
 git clone https://github.com/enrjgy-tech/seekto.git
 cd seekto
-npm test          # engine tests: dates, calendars, quizzes, the assistant, AI requests, search, sync, encryption
+npm test          # engine tests: dates, meetings, calendars, quizzes, share links, sync, encryption
 npm run build     # builds the static site into ./site
 npm run serve     # serves ./site locally
 ```
 
-No dependencies. Node 20 or newer.
+No dependencies and no build step for the app. Node 20 or newer for the tests.
 
 ## How it's built
 
-- `app/`: the web app (plain HTML, CSS and JavaScript modules, no build step).
-- `engine/`: the tested logic the app uses:
-  - finding dates and deadlines in speech and text;
-  - reading and writing .ics calendars;
-  - subject and topic detection;
-  - definitions and quizzes;
-  - answer checking;
-  - understanding questions like "when is my test";
-  - transcript search;
-  - pairing codes and the rules for syncing devices;
-  - account keys and end-to-end encryption for your own storage;
+- **`app/`**: the web app in plain HTML, CSS and JavaScript modules. It installs as an app and opens offline after the first visit.
+- **`engine/`**: the tested logic, usable on its own:
+  - dates and deadlines in speech and text;
+  - decisions and action items in meetings;
+  - definitions, quizzes and answer checking;
+  - share links;
+  - .ics calendars;
+  - questions like "when is my test";
+  - device pairing and sync rules;
+  - account keys and end-to-end encryption;
   - requests to each AI provider.
-- `packs/`: prepared lecture transcripts with their licenses, for research sources.
+- **`app/supabase.sql`**: the storage you can bring, checked in CI against Postgres.
 
 ## Contributing
 
-Contributions are welcome, especially testing on phones and Chromebooks, accessibility, and better date and topic detection. Start with [CONTRIBUTING.md](CONTRIBUTING.md) and the [roadmap](ROADMAP.md).
+There are good first issues for every skill level: teach Seekto a date phrase or a meeting phrase it misses (each is one test and one rule), add a storage adapter, test it on your phone or Chromebook, or improve accessibility. See [CONTRIBUTING.md](CONTRIBUTING.md), the [roadmap](ROADMAP.md) and the [launch plan](docs/LAUNCH.md).
 
 ## License
 
-[MIT](LICENSE).
+Code: [MIT](LICENSE). Geist fonts: [SIL Open Font License](app/fonts/OFL.txt).

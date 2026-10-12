@@ -8,3 +8,5 @@ export { PROVIDERS, isReady, buildRequest, readReply, chat } from "./llm.js";
 export { classify, answerLocally, searchNotes, describeDay } from "./assistant.js";
 export { makeCode, normalizeCode, isValidCode, randomId, manifest, outgoing, incoming, chunk, frames, makeAssembler, channelBinding, deviceName, proof, STORES } from "./sync.js";
 export { makeAccountKey, normalizeAccountKey, formatAccountKey, isValidAccountKey, deriveAccount, itemId, sealItem, openItem, sealBytes, openBytes, matchCode } from "./vault.js";
+export { findDecisions, findActionItems, followUpEmail } from "./meetings.js";
+export { encodeShare, decodeShare, cleanShared, sharedToText } from "./share.js";

@@ -1,10 +1,12 @@
 // Record a class: audio stays on the device, a live transcript where the browser supports it,
 // "lost here" marks and typed notes stamped to the second. Dates it hears go to the calendar.
 import { $, html, raw, toast, esc } from "./ui.js";
-import { state, saveNote, saveEvent, hasEvent } from "./state.js";
+import { state, saveNote } from "./state.js";
+import { words, mode } from "./profile.js";
+import { addDates } from "./capture.js";
 import { put, uid } from "./store.js";
 import { go } from "./nav.js";
-import { formatTime, detectSubject, detectTopic, findEvents, toISO } from "../engine/index.js";
+import { formatTime, detectSubject, detectTopic, toISO } from "../engine/index.js";
 import { transcribe, canListen } from "./voice.js";
 
 const SUBJECTS = ["Auto-detect", "Math", "English", "Biology", "Chemistry", "Physics", "History", "Computer Science", "Economics", "Psychology", "Other"];
@@ -18,21 +20,22 @@ const elapsed = () => (rec.active ? (Date.now() - rec.startedAt) / 1000 : 0);
 export function render(main) {
   main.innerHTML = html`
     <div class="view">
-      <div class="view-head"><h1>Record a class</h1></div>
+      <div class="view-head"><h1>${words().recordTitle}</h1></div>
       <section class="panel recorder">
         <div class="row" style="justify-content:center">
-          <label class="field" style="min-width:220px"><span class="label">Subject</span>
-            <select id="recSubject">${raw(SUBJECTS.map((s) => html`<option ${s === rec.subject ? "selected" : ""}>${s}</option>`).join(""))}</select></label>
+          ${raw(mode() === "work" ? "" : html`<label class="field" style="min-width:220px"><span class="label">Subject</span>
+            <select id="recSubject">${raw(SUBJECTS.map((s) => html`<option ${s === rec.subject ? "selected" : ""}>${s}</option>`).join(""))}</select></label>`)}
           <label class="field" style="min-width:220px"><span class="label">Title (optional)</span>
             <input type="text" id="recTitle" placeholder="Seekto names it for you" value="${rec.title}"></label>
         </div>
         <div class="timer mono" id="recTimer">${formatTime(elapsed())}</div>
-        <button class="recbtn ${rec.active ? "on" : ""}" id="recBtn" aria-pressed="${rec.active}">${rec.active ? "Stop" : "Record"}</button>
+        ${raw(words().needConsent && !rec.active ? `<label class="row note-small" style="justify-content:center;gap:8px"><input type="checkbox" id="consent" style="width:auto"> Everyone in this meeting knows it's being recorded</label>` : "")}
+        <button class="recbtn ${rec.active ? "on" : ""}" id="recBtn" aria-pressed="${rec.active}" ${raw(words().needConsent && !rec.active ? "disabled" : "")}>${rec.active ? "Stop" : "Record"}</button>
         <div class="row" id="recTools" ${raw(rec.active ? "" : "hidden")} style="justify-content:center">
           <button class="btn ghost" id="markBtn">Lost here</button>
           <form id="mineForm" class="row"><input type="text" id="mineInput" placeholder="Type a note, press Enter" style="min-width:240px"></form>
         </div>
-        <p class="note-small" id="recHelp">${canListen ? "Audio stays on this device. The live transcript uses your browser's speech service (in Chrome and Edge it is processed online)." : "This browser can record but can't transcribe live. Audio stays on this device; add a transcript later from the note."} Follow your school's rules and ask before recording.</p>
+        <p class="note-small" id="recHelp">${canListen ? "Audio stays on this device. The live transcript uses your browser's speech service (in Chrome and Edge it is processed online)." : "This browser can record but can't transcribe live. Audio stays on this device; add a transcript later from the note."} ${words().consent}</p>
       </section>
       <section class="panel" id="livePanel" ${raw(rec.active || rec.cues.length ? "" : "hidden")}>
         <span class="label">Live transcript</span>
@@ -50,7 +53,8 @@ export function render(main) {
     $("#mineInput").value = "";
     drawLive();
   });
-  $("#recSubject").addEventListener("change", (e) => (rec.subject = e.target.value));
+  $("#recSubject")?.addEventListener("change", (e) => (rec.subject = e.target.value));
+  $("#consent")?.addEventListener("change", (e) => ($("#recBtn").disabled = !e.target.checked));
   $("#recTitle").addEventListener("input", (e) => (rec.title = e.target.value));
   drawLive();
   clearInterval(tick);
@@ -111,7 +115,8 @@ async function stop() {
 
   const createdAt = Date.now();
   const text = rec.cues.map((c) => c.text).join(" ");
-  const chosen = rec.subject === "Auto-detect" ? null : rec.subject;
+  const work = mode() === "work";
+  const chosen = work ? "Meeting" : rec.subject === "Auto-detect" ? null : rec.subject;
   const subject = chosen || detectSubject(text) || "General";
   const topic = text ? detectTopic(text) : "Recording";
   const audioId = uid("audio");
@@ -119,14 +124,13 @@ async function stop() {
   const note = {
     id: uid("note"), kind: "recording", createdAt, date: toISO(new Date(createdAt)), duration,
     title: rec.title.trim() || `${subject === "General" ? "" : `${subject}: `}${topic}`,
-    subject, topic, cues: rec.cues, marks: rec.marks, mine: rec.mine, text, audioId,
+    subject, topic, cues: rec.cues, marks: rec.marks, mine: rec.mine, text, audioId, ...(work ? { mode: "work" } : {}),
   };
-  const found = findEvents(text, { ref: new Date(createdAt), subject: subject === "General" ? null : subject }).filter((e) => !hasEvent(e));
-  for (const e of found) await saveEvent({ id: uid("event"), ...e, subject, source: "recording", noteId: note.id });
-  note.eventCount = found.length;
+  if (work && !rec.title.trim()) note.title = `Meeting: ${topic}`;
+  const added = await addDates(note);
   await saveNote(note);
   Object.assign(rec, { title: "", cues: [], marks: [], mine: [], interim: "", chunks: [] });
-  toast(found.length ? `Saved. Added ${found.length} date${found.length > 1 ? "s" : ""} to your calendar.` : "Saved to your notes.");
+  toast(added ? `Saved. Added ${added} date${added > 1 ? "s" : ""} to your calendar.` : "Saved to your notes.");
   go(`note/${note.id}`);
 }
 

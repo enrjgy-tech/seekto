@@ -46,3 +46,11 @@ test("searches notes and describes days", () => {
   assert.equal(searchNotes(notes, "nucleus")[0].note.id, "n1");
   assert.equal(describeDay("2026-10-13", today), "tomorrow");
 });
+
+test("understands meeting questions", () => {
+  assert.equal(classify("What are my action items?").intent, "actions");
+  assert.equal(classify("what do I need to do").intent, "actions");
+  assert.equal(classify("Draft a follow-up email").intent, "follow-up");
+  assert.equal(classify("write the recap email").intent, "follow-up");
+  assert.equal(classify("What's due this week?").intent, "due");
+});
