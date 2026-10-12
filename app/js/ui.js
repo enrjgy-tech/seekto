@@ -48,7 +48,10 @@ export async function copy(text, ok = "Copied") {
   }
 }
 
-export function openOverlay(content) {
+let onOverlayClose = null;
+export function openOverlay(content, onClose = null) {
+  onOverlayClose?.();
+  onOverlayClose = onClose;
   const root = $("#overlay");
   root.innerHTML = `<div class="overlay" role="dialog" aria-modal="true"><div class="sheet">${content}</div></div>`;
   const sheet = $(".sheet", root);
@@ -60,6 +63,9 @@ export function openOverlay(content) {
 function escClose(e) { if (e.key === "Escape") closeOverlay(); }
 
 export function closeOverlay() {
+  const fn = onOverlayClose;
+  onOverlayClose = null;
+  fn?.();
   $("#overlay").innerHTML = "";
   document.removeEventListener("keydown", escClose);
   window.speechSynthesis?.cancel();

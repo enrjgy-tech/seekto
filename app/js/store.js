@@ -2,7 +2,7 @@
 // (some private windows), data lives in memory for the session instead.
 
 const DB = "seekto";
-const STORES = ["notes", "events", "projects", "audio"];
+const STORES = ["notes", "events", "projects", "audio", "deleted"];
 let dbPromise = null;
 const memory = Object.fromEntries(STORES.map((s) => [s, new Map()]));
 
@@ -10,7 +10,7 @@ function open() {
   if (dbPromise) return dbPromise;
   dbPromise = new Promise((resolve) => {
     try {
-      const req = indexedDB.open(DB, 1);
+      const req = indexedDB.open(DB, 2);
       req.onupgradeneeded = () => {
         for (const s of STORES) if (!req.result.objectStoreNames.contains(s)) req.result.createObjectStore(s, { keyPath: "id" });
       };
@@ -70,7 +70,7 @@ export function uid(prefix = "id") {
 
 // Small settings live in localStorage; it can throw in some contexts, so every access is guarded.
 const SETTINGS_KEY = "seekto.settings";
-const DEFAULTS = { provider: "none", model: "", apiKey: "", baseUrl: "", speak: true, onboarded: false };
+const DEFAULTS = { provider: "none", model: "", apiKey: "", baseUrl: "", speak: true, onboarded: false, signalServer: "https://ntfy.sh" };
 
 export function loadSettings() {
   try {
@@ -82,4 +82,11 @@ export function loadSettings() {
 
 export function saveSettings(settings) {
   try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch { /* not available */ }
+}
+
+/** Ids of every stored recording, without loading the audio. */
+export async function audioIds() {
+  const db = await open();
+  if (!db) return [...memory.audio.keys()];
+  return tx(db, "audio", "readonly", (s) => s.getAllKeys());
 }

@@ -18,6 +18,7 @@ Seekto is a free, open-source study assistant that runs in your browser. Talk to
 - **A calendar that fills itself.** When a teacher says "the quiz is on Friday" or you type "essay due October 20th", it goes on your calendar. Import your Canvas, Google Classroom, Moodle or Blackboard calendar as an .ics file.
 - **Research & assignments.** Paste the rubric and it becomes a checklist and a schedule back from the due date. See your related notes, add YouTube videos as sources and ask them questions, and get a plan or research brief with an AI model.
 - **Practice tests,** both ways: term to meaning and meaning to term. Export to Quizlet, Anki, Google Forms or Kahoot (CSV), or Moodle (GIFT).
+- **Connect your devices with a code.** Choose "Connect a device" on your computer to show a 6-letter code, type it on your phone, tap Allow, and they stay in sync: notes, recordings, calendar and assignments. Record on your phone, study on your computer.
 - **Talk mode.** Ask out loud, hear the answer, and get quizzed by voice.
 - **Your choice of AI, or none.** Everything above works without AI. Add a model for open questions, summaries, better quizzes and research briefs:
   - **on your computer:** Ollama, private and free;
@@ -32,12 +33,14 @@ It works best on a computer. On a phone, it's built around recording, with quick
 
 Your notes, recordings and calendar are stored in your browser on your device. There's no account and no Seekto server. Live transcripts use your browser's speech service; in Chrome and Edge that is processed online by the browser maker. Always follow your school's rules and ask before recording a class.
 
+**Connected devices** sync directly with each other over an encrypted WebRTC connection, not through a Seekto server. To find each other they use a public message service, [ntfy.sh](https://ntfy.sh) by default (you can set your own ntfy server in Settings). Only connection setup passes through it: device names, random device ids and network addresses. A new device needs the code and a tap on Allow on the device showing it; after that, paired devices prove a shared secret each time they reconnect. AI keys are never synced. Devices on networks that block direct connections (some school networks) may not be able to connect; using the same Wi-Fi helps.
+
 ## Run it locally
 
 ```sh
 git clone https://github.com/enrjgy-tech/seekto.git
 cd seekto
-npm test          # engine tests: dates, calendars, quizzes, the assistant, AI requests, search
+npm test          # engine tests: dates, calendars, quizzes, the assistant, AI requests, search, sync
 npm run build     # builds the static site into ./site
 npm run serve     # serves ./site locally
 ```
@@ -55,6 +58,7 @@ No dependencies. Node 20 or newer.
   - answer checking;
   - understanding questions like "when is my test";
   - transcript search;
+  - pairing codes and the rules for syncing devices;
   - requests to each AI provider.
 - `packs/`: prepared lecture transcripts with their licenses, for research sources.
 

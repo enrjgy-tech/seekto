@@ -3,6 +3,8 @@ import { $, html, raw, toast, download, readFile } from "./ui.js";
 import { state, updateSettings, loadAll } from "./state.js";
 import { all, put, clearAll } from "./store.js";
 import { PROVIDERS, isReady, chat } from "../engine/index.js";
+import { devicesListHtml, wireForget } from "./connect.js";
+import { onStatus } from "./devices.js";
 
 const GROUPS = [
   ["No AI", ["none"]],
@@ -30,6 +32,16 @@ export function render(main) {
           <p class="note-small" id="providerHelp"></p>
           <div class="row"><button class="btn" id="saveModel">Save</button><button class="btn ghost" id="testModel">Test connection</button><span id="testResult" class="note-small"></span></div>
         </div>
+      </section>
+      <section class="panel">
+        <h2>Devices</h2>
+        <p class="sub">Connect your phone, laptop and other devices with a short code. They sync directly with each other.</p>
+        <div class="agenda" id="setDevices"></div>
+        <div class="row"><button class="btn" id="setConnect">Connect a device</button></div>
+        <details><summary class="note-small" style="cursor:pointer">Connection server</summary>
+          <p class="note-small" style="margin:8px 0">Devices find each other through a public message service. Only connection setup passes through it; your data goes directly between devices, encrypted. You can use your own ntfy server instead.</p>
+          <div class="row"><input type="url" id="signal" value="${s.signalServer}" style="flex:1"><button class="btn ghost small" id="saveSignal">Save</button></div>
+        </details>
       </section>
       <section class="panel">
         <h2>Voice</h2>
@@ -88,6 +100,11 @@ export function render(main) {
     }
   });
   $("#speak").addEventListener("change", (e) => updateSettings({ speak: e.target.checked }));
+  const drawDevices = () => { const box = $("#setDevices"); if (!box) return; box.innerHTML = devicesListHtml(); wireForget(box, drawDevices); };
+  drawDevices();
+  const off = onStatus(drawDevices);
+  $("#setConnect").addEventListener("click", () => window.dispatchEvent(new Event("seekto:connect")));
+  $("#saveSignal").addEventListener("click", () => { updateSettings({ signalServer: $("#signal").value.trim() || "https://ntfy.sh" }); toast("Saved. Reload to use it."); });
   $("#backup").addEventListener("click", async () => {
     const data = { app: "seekto", version: 1, exported: new Date().toISOString(), notes: await all("notes"), events: await all("events"), projects: await all("projects") };
     download(`seekto-backup-${data.exported.slice(0, 10)}.json`, JSON.stringify(data, null, 2), "application/json");
@@ -110,4 +127,5 @@ export function render(main) {
     toast("Everything was deleted from this device");
     e.target.dataset.sure = ""; e.target.textContent = "Delete everything";
   });
+  return off;
 }

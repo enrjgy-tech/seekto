@@ -9,6 +9,9 @@ import * as notes from "./notes.js";
 import * as calendar from "./calendar.js";
 import * as research from "./research.js";
 import * as settings from "./settings.js";
+import { initDevices, onStatus, connected, paired } from "./devices.js";
+import { openConnect } from "./connect.js";
+import { toast } from "./ui.js";
 
 const views = {
   chat: chat.render,
@@ -50,5 +53,28 @@ window.addEventListener("hashchange", render);
 window.addEventListener("seekto:render", render);
 window.addEventListener("seekto:model", updateModelPill);
 
+function updateDevicePill() {
+  const n = connected().length;
+  const total = paired().length;
+  $("#devicePill").textContent = total ? `${n ? `${n} device${n > 1 ? "s" : ""} connected` : "Devices offline"}` : "";
+}
+
+$("#connectBtn").addEventListener("click", () => openConnect());
+window.addEventListener("seekto:connect", () => openConnect());
+onStatus(updateDevicePill);
+
+// When another device sends changes, refresh list views (not while someone is typing).
+let syncToast = null;
+window.addEventListener("seekto:synced", async (e) => {
+  await loadAll();
+  clearTimeout(syncToast);
+  syncToast = setTimeout(() => toast(`Synced with ${e.detail.from}`), 400);
+  const name = (location.hash.slice(1) || "chat").split("/")[0];
+  const typing = document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName);
+  if (["notes", "calendar", "research"].includes(name) && !typing && !document.querySelector(".overlay")) render();
+});
+
 await loadAll();
 render();
+initDevices();
+updateDevicePill();

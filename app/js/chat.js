@@ -36,7 +36,7 @@ export function render(main) {
     <div style="overflow-y:auto;min-height:0" id="chatScroll">
       <div class="view">
         <section class="welcome" id="welcome">
-          <div class="view-head"><h1>${greeting()}</h1><button class="btn ghost small phone-only" id="phoneSettings">Settings</button></div>
+          <div class="view-head"><h1>${greeting()}</h1><span class="row phone-only"><button class="btn ghost small" id="phoneDevices">Devices</button><button class="btn ghost small" id="phoneSettings">Settings</button></span></div>
           <p class="sub">I'm Seekto, your study assistant. I keep your class notes, your calendar and your assignments in one place, and I help you study.</p>
           <div class="steps">${raw(stepsHtml())}</div>
         </section>
@@ -65,6 +65,7 @@ export function render(main) {
   });
   $("#talkBtn").addEventListener("click", toggleTalk);
   $("#phoneSettings").addEventListener("click", () => go("settings"));
+  $("#phoneDevices").addEventListener("click", () => window.dispatchEvent(new Event("seekto:connect")));
   drawHistory();
   if (!state.settings.onboarded && !history.length) {
     updateSettings({ onboarded: true });
