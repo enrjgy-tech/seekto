@@ -54,5 +54,6 @@ test("writes a follow-up email", () => {
   assert.equal(email.subject, "Follow-up: Launch sync");
   assert.match(email.body, /Decisions:\n- We decided to launch the beta on November 2nd/);
   assert.match(email.body, /- Maria: Send the updated deck to the client by Friday \(by Fri, Oct 16\)/);
+  assert.match(email.body, /- Unassigned: Share the budget spreadsheet/);
   assert.match(followUpEmail({}).body, /didn't catch any/);
 });

@@ -12,7 +12,7 @@ Each of these takes an evening or less, and every one makes Seekto better for re
 - **Accessibility:** keyboard use, screen readers, contrast and reduced motion.
 - **Packs:** add a lecture transcript from a source that allows it. See [packs/README.md](packs/README.md).
 
-Issues labelled `good first issue` are kept small and explained, and the launch plan is in [docs/LAUNCH.md](docs/LAUNCH.md).
+Small, well-explained issues get the `good first issue` label. The launch plan is in [docs/LAUNCH.md](docs/LAUNCH.md).
 
 ## Before you open a pull request
 

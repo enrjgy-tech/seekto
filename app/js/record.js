@@ -3,7 +3,7 @@
 import { $, html, raw, toast, esc } from "./ui.js";
 import { state, saveNote } from "./state.js";
 import { words, mode } from "./profile.js";
-import { addDates } from "./capture.js";
+import { addDates, transcribeNote } from "./capture.js";
 import { put, uid } from "./store.js";
 import { go } from "./nav.js";
 import { formatTime, detectSubject, detectTopic, toISO } from "../engine/index.js";
@@ -15,6 +15,8 @@ const SUBJECTS = ["Auto-detect", "Math", "English", "Biology", "Chemistry", "Phy
 const rec = { active: false, startedAt: 0, cues: [], marks: [], mine: [], interim: "", chunks: [], recorder: null, stream: null, speech: null, wake: null, subject: "Auto-detect", title: "" };
 let tick = null;
 
+// Transcribe on this device (after recording) when chosen in Settings, or when the browser can't listen.
+const onDevice = () => state.settings.transcriber === "device" || !canListen;
 const elapsed = () => (rec.active ? (Date.now() - rec.startedAt) / 1000 : 0);
 
 export function render(main) {
@@ -35,7 +37,7 @@ export function render(main) {
           <button class="btn ghost" id="markBtn">Lost here</button>
           <form id="mineForm" class="row"><input type="text" id="mineInput" placeholder="Type a note, press Enter" style="min-width:240px"></form>
         </div>
-        <p class="note-small" id="recHelp">${canListen ? "Audio stays on this device. The live transcript uses your browser's speech service (in Chrome and Edge it is processed online)." : "This browser can record but can't transcribe live. Audio stays on this device; add a transcript later from the note."} ${words().consent}</p>
+        <p class="note-small" id="recHelp">${onDevice() ? "Audio stays on this device. When you stop, Seekto transcribes it on this device too (the model downloads once)." : "Audio stays on this device. The live transcript uses your browser's speech service (in Chrome and Edge it is processed online). For fully private transcripts, choose On this device in Settings."} ${words().consent}</p>
       </section>
       <section class="panel" id="livePanel" ${raw(rec.active || rec.cues.length ? "" : "hidden")}>
         <span class="label">Live transcript</span>
@@ -87,7 +89,7 @@ async function start() {
   rec.recorder.ondataavailable = (e) => e.data.size && rec.chunks.push(e.data);
   rec.recorder.start(5000);
   let lineStart = 0;
-  rec.speech = transcribe({
+  rec.speech = onDevice() ? null : transcribe({
     onLine: ({ text, final }) => {
       if (!rec.interim) lineStart = Math.max(0, elapsed() - 2);
       if (final) {
@@ -127,11 +129,14 @@ async function stop() {
     subject, topic, cues: rec.cues, marks: rec.marks, mine: rec.mine, text, audioId, ...(work ? { mode: "work" } : {}),
   };
   if (work && !rec.title.trim()) note.title = `Meeting: ${topic}`;
+  const later = onDevice() && !rec.cues.length;
+  if (later) { note.pendingTranscript = true; if (!rec.title.trim()) note.title = work ? "Meeting: Recording" : "Recording"; }
   const added = await addDates(note);
   await saveNote(note);
   Object.assign(rec, { title: "", cues: [], marks: [], mine: [], interim: "", chunks: [] });
-  toast(added ? `Saved. Added ${added} date${added > 1 ? "s" : ""} to your calendar.` : "Saved to your notes.");
+  toast(later ? "Saved. Transcribing on this device…" : added ? `Saved. Added ${added} date${added > 1 ? "s" : ""} to your calendar.` : "Saved to your notes.");
   go(`note/${note.id}`);
+  if (later) transcribeNote(note.id);
 }
 
 export const isRecording = () => rec.active;

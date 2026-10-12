@@ -97,7 +97,7 @@ export function followUpEmail({ title = "our meeting", decisions = [], actions =
   }
   if (actions.length) {
     lines.push("Action items:");
-    for (const a of actions) lines.push(`- ${a.owner && a.owner !== "Team" ? `${a.owner === "Me" ? "Me" : a.owner}: ` : ""}${a.task}${a.due ? ` (by ${formatDate(a.due)})` : ""}`);
+    for (const a of actions) lines.push(`- ${a.owner || "Unassigned"}: ${a.task}${a.due ? ` (by ${formatDate(a.due)})` : ""}`);
     lines.push("");
   }
   if (!decisions.length && !actions.length) lines.push("I didn't catch any decisions or action items. Reply if I missed something.", "");

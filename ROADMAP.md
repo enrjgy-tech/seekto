@@ -17,13 +17,14 @@ Seekto is built in public. This is the plan, not a promise of dates.
 - [x] Learning and Work modes: meetings with a consent check, decisions, action items with owners and dates, and a follow-up email draft
 - [x] Try a sample class or meeting with one click (no microphone, account or AI)
 - [x] Share a practice test as a link that opens with no install; the questions live in the link, not on a server
+- [x] Private on-device transcription with Whisper (any modern browser, offline after one download, about 100 languages)
 - [x] Installs as an app and opens offline; fonts served with the app, no third-party requests
 - [x] Your own account with no sign-up: a 24-character key, end-to-end encryption, and storage in a Supabase project you own (Seekto hosts nothing)
 - [x] Connect devices with a 6-letter code: direct encrypted sync of notes, recordings, calendar and assignments, with Allow on first pairing and automatic reconnects
 
 ## Next
 
-- **On-device transcription** with Whisper, so live transcripts work in every browser and never leave the device.
+- **Live on-device transcription:** today Whisper runs when you stop recording; next, while you record.
 - **Writing helper for Google Docs:** a browser side panel that shows your related notes, the rubric checklist and your sources while you write.
 - **Live school sync:** Canvas and Google Classroom connections that keep deadlines up to date without exporting files.
 - **Direct test upload** to connected sites (Canvas quizzes, Google Forms, Quizlet).

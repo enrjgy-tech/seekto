@@ -3,10 +3,10 @@
 import { $, html, raw, toast } from "./ui.js";
 import { state, today, noteText, updateSettings } from "./state.js";
 import { go } from "./nav.js";
-import { classify, answerLocally, searchNotes, describeDay, isReady, chat as askModel, findDefinitions } from "../engine/index.js";
+import { classify, answerLocally, searchNotes, describeDay, isReady, chat as askModel, findDefinitions, findEvents, findActionItems, findDecisions, formatTime } from "../engine/index.js";
 import { openQuiz } from "./quiz.js";
 import { words, mode, setMode } from "./profile.js";
-import { loadSample, hasSamples } from "./sample.js";
+import { loadSample, hasSamples, sampleScript } from "./sample.js";
 import { isMeeting, meetingParts } from "./capture.js";
 import { openFollowUp } from "./meeting.js";
 import { friendlyDate } from "./ui.js";
@@ -106,6 +106,7 @@ function drawHistory() {
 }
 
 function messageHtml(m) {
+  if (m.live) return liveHtml(m);
   if (m.role === "user") return html`<div class="msg user"><div class="bubble">${m.text}</div></div>`;
   const actions = (m.actions || []).map((a) => html`<button class="btn ghost small" data-action='${JSON.stringify(a)}'>${a.label}</button>`).join("");
   const items = (m.items || []).map((e) => html`<div class="event"><span class="when">${describeDay(e.date, today())}</span><span>${e.title}</span><span class="kind ${e.type}">${e.type || ""}</span></div>`).join("");
@@ -120,7 +121,50 @@ function runAction(a) {
   if (a.ask) return send(a.ask);
 }
 
+// Plays the sample like a live recording: lines appear as they're "spoken", and dates and action
+// items light up the moment Seekto hears them. Then the sample is saved like a real recording.
+async function playSample(kind) {
+  const box = $("#msgs");
+  if (!box) return;
+  $("#welcome").hidden = true;
+  const script = sampleScript(kind);
+  const card = document.createElement("div");
+  card.className = "msg bot";
+  card.innerHTML = html`<span class="who">Seekto · listening to a sample ${kind === "work" ? "meeting" : "class"}</span><div class="live-card"><div class="live-head"><span class="pulse"></span><b>${script.title}</b><span class="mono note-small" id="liveClock">0:00</span></div><div class="live-lines" id="liveLines"></div></div>`;
+  box.appendChild(card);
+  const lines = card.querySelector("#liveLines");
+  const scroll = $("#chatScroll");
+  const ref = new Date();
+  const saved = { title: script.title, kind, lines: [] };
+  for (let i = 0; i < script.lines.length; i++) {
+    const text = script.lines[i];
+    const row = document.createElement("div");
+    row.className = "live-line";
+    row.innerHTML = html`<span class="t mono">${formatTime(i * 9 + 2)}</span><span>${text}</span>`;
+    lines.appendChild(row);
+    card.querySelector("#liveClock").textContent = formatTime(i * 9 + 6);
+    const found = [];
+    for (const e of findEvents(text, { ref, subject: kind === "work" ? null : script.subject })) found.push(["date", `Added to calendar · ${friendlyDate(e.date)} · ${e.title}`]);
+    if (kind === "work" && findDecisions(text).length) found.push(["def", "Decision"]);
+    if (kind === "work") for (const a of findActionItems(text, { ref })) found.push(["task", `Action item · ${a.owner || "Unassigned"}${a.due ? ` · ${friendlyDate(a.due)}` : ""}`]);
+    else if (findDefinitions(text).length) found.push(["def", `Definition · ${findDefinitions(text)[0].term}`]);
+    saved.lines.push({ t: i * 9 + 2, text, chips: found });
+    const chips = found.map(([cls, label]) => html`<span class="chip ${cls}">${label}</span>`);
+    if (chips.length) { const c = document.createElement("div"); c.className = "chips"; c.innerHTML = chips.join(""); row.appendChild(c); }
+    if (scroll) scroll.scrollTop = scroll.scrollHeight;
+    await new Promise((r) => setTimeout(r, chips.length ? 900 : 420));
+  }
+  history.push({ role: "bot", live: saved, text: "" });
+  saveHistory();
+}
+
+function liveHtml(m) {
+  const rows = m.live.lines.map((l) => html`<div class="live-line"><span class="t mono">${formatTime(l.t)}</span><span>${l.text}</span>${raw(l.chips.length ? `<div class="chips">${l.chips.map(([cls, label]) => html`<span class="chip ${cls}">${label}</span>`).join("")}</div>` : "")}</div>`).join("");
+  return html`<div class="msg bot"><span class="who">Seekto · sample ${m.live.kind === "work" ? "meeting" : "class"} (scripted)</span><div class="live-card"><div class="live-head"><b>${m.live.title}</b></div><div class="live-lines">${raw(rows)}</div></div></div>`;
+}
+
 async function runSample(kind) {
+  await playSample(kind);
   const { note, decisions, actions } = await loadSample(kind);
   const events = state.events.filter((e) => e.noteId === note.id);
   if (kind === "work") {
@@ -131,7 +175,7 @@ async function runSample(kind) {
       ...decisions.map((d) => `• ${d.text}`),
       "",
       "Action items:",
-      ...actions.map((a) => `• ${a.owner === "Me" ? "You" : a.owner || "Someone"}: ${a.task}${a.due ? ` (${friendlyDate(a.due)})` : ""}`),
+      ...actions.map((a) => `• ${a.owner || "Unassigned"}: ${a.task}${a.due ? ` (${friendlyDate(a.due)})` : ""}`),
       "",
       events.length ? `The ${events.length} with dates are on your calendar:` : "",
     ];
@@ -152,7 +196,7 @@ function actionItemsReply() {
   }
   const sorted = all.sort((a, b) => (a.due || "9999").localeCompare(b.due || "9999"));
   const mine = sorted.filter((a) => a.owner === "Me");
-  const lines = sorted.slice(0, 12).map((a) => `• ${a.owner === "Me" ? "You" : a.owner || "Someone"}: ${a.task}${a.due ? ` (${friendlyDate(a.due)})` : ""}`);
+  const lines = sorted.slice(0, 12).map((a) => `• ${a.owner || "Unassigned"}: ${a.task}${a.due ? ` (${friendlyDate(a.due)})` : ""}`);
   return reply({ text: `${mine.length ? `${mine.length} of these are yours. ` : ""}Action items from your meetings:\n${lines.join("\n")}`, actions: [{ label: "Draft a follow-up email", followup: sorted[0].note.id }] });
 }
 
@@ -235,7 +279,7 @@ async function send(text) {
 
 function conversation() {
   return history
-    .filter((m) => m.text && m.text !== "Thinking…")
+    .filter((m) => m.text && !m.live && m.text !== "Thinking…")
     .slice(-10)
     .map((m) => ({ role: m.role === "user" ? "user" : "assistant", content: m.text }));
 }

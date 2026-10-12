@@ -39,6 +39,8 @@ const MEETING = {
   ],
 };
 
+export const sampleScript = (kind) => (kind === "work" ? MEETING : CLASS);
+
 /** Load a sample class or meeting. Returns { note, added, decisions, actions }. */
 export async function loadSample(kind = "learning") {
   const s = kind === "work" ? MEETING : CLASS;

@@ -7,6 +7,10 @@ import { devicesListHtml, wireForget } from "./connect.js";
 import { onStatus } from "./devices.js";
 import { renderAccount } from "./account.js";
 import { setMode } from "./profile.js";
+import { MODELS as ASR_MODELS, prepare as prepareAsr, progressText } from "./ondevice.js";
+import { canListen } from "./voice.js";
+
+const LANGS = [["", "Detect automatically"], ["english", "English"], ["spanish", "Spanish"], ["french", "French"], ["german", "German"], ["portuguese", "Portuguese"], ["italian", "Italian"], ["chinese", "Chinese"], ["japanese", "Japanese"], ["korean", "Korean"], ["hindi", "Hindi"], ["arabic", "Arabic"], ["russian", "Russian"], ["vietnamese", "Vietnamese"], ["turkish", "Turkish"], ["polish", "Polish"], ["dutch", "Dutch"], ["indonesian", "Indonesian"], ["ukrainian", "Ukrainian"]];
 import { hasSamples, removeSamples } from "./sample.js";
 import { disconnect } from "./cloud.js";
 
@@ -52,6 +56,16 @@ export function render(main) {
           <p class="note-small" style="margin:8px 0">Devices find each other through a public message service. Only connection setup passes through it; your data goes directly between devices, encrypted. You can use your own ntfy server instead.</p>
           <div class="row"><input type="url" id="signal" value="${s.signalServer}" style="flex:1"><button class="btn ghost small" id="saveSignal">Save</button></div>
         </details>
+      </section>
+      <section class="panel">
+        <h2>Transcription</h2>
+        <label class="row"><input type="radio" name="asr" value="browser" ${raw(s.transcriber !== "device" && canListen ? "checked" : "")} ${raw(canListen ? "" : "disabled")} style="width:auto"> <span><b>Live, with your browser's speech service.</b> <span class="note-small">You see words as they're spoken. In Chrome and Edge, audio is processed online by the browser maker.${canListen ? "" : " Not available in this browser."}</span></span></label>
+        <label class="row"><input type="radio" name="asr" value="device" ${raw(s.transcriber === "device" || !canListen ? "checked" : "")} style="width:auto"> <span><b>Private, on this device.</b> <span class="note-small">Whisper runs in your browser when you stop recording. Works in any modern browser and offline after a one-time download, in about 100 languages.</span></span></label>
+        <div class="row">
+          <label class="field" style="min-width:200px"><span class="label">Model</span><select id="asrQuality">${raw(Object.entries(ASR_MODELS).map(([k, m]) => html`<option value="${k}" ${k === (s.asrQuality || "fast") ? "selected" : ""}>${m.label}</option>`).join(""))}</select></label>
+          <label class="field" style="min-width:200px"><span class="label">Language</span><select id="asrLanguage">${raw(LANGS.map(([code, name]) => html`<option value="${code}" ${code === (s.asrLanguage || "") ? "selected" : ""}>${name}</option>`).join(""))}</select></label>
+        </div>
+        <div class="row"><button class="btn ghost small" id="asrPrepare">Download the model now</button><span class="note-small" id="asrPrepStatus"></span></div>
       </section>
       <section class="panel">
         <h2>Voice</h2>
@@ -108,6 +122,20 @@ export function render(main) {
       out.textContent = `Connected. The model said: "${reply.trim().slice(0, 40)}"`;
     } catch (err) {
       out.textContent = err.message;
+    }
+  });
+  main.querySelectorAll("input[name=asr]").forEach((r) => r.addEventListener("change", () => updateSettings({ transcriber: r.value })));
+  $("#asrQuality").addEventListener("change", (e) => updateSettings({ asrQuality: e.target.value }));
+  $("#asrLanguage").addEventListener("change", (e) => updateSettings({ asrLanguage: e.target.value }));
+  $("#asrPrepare").addEventListener("click", async (e) => {
+    e.target.disabled = true;
+    const out = $("#asrPrepStatus");
+    try {
+      const device = await prepareAsr(state.settings.asrQuality || "fast", (p) => { if (out.isConnected) out.textContent = progressText(p); });
+      out.textContent = `Ready. It runs on ${device === "webgpu" ? "your graphics chip (WebGPU)" : "your processor (WebAssembly)"} and works offline now.`;
+    } catch (err) {
+      out.textContent = err.message;
+      e.target.disabled = false;
     }
   });
   main.querySelectorAll("[data-setmode]").forEach((b) => b.addEventListener("click", () => setMode(b.dataset.setmode)));

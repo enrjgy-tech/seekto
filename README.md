@@ -9,12 +9,13 @@
 ## What makes it different
 
 - **It listens for what you need to do.** When a teacher says "the quiz is on Friday", it's on your calendar. When someone says "Maria will send the deck by Friday", it's an action item with an owner and a date. This works without any AI model, from tested rules in [`engine/`](engine/src).
+- **Private transcripts in any language.** Turn on on-device transcription and Whisper runs in your browser: no audio leaves your device, it works offline after a one-time download, in about 100 languages and any modern browser.
 - **Your data stays yours.** Everything is stored in your browser. Connect your phone and laptop with a 6-letter code and they sync directly, encrypted. Optional storage goes to a Supabase project *you* own, end-to-end encrypted with a key only you hold. Seekto has no server and no accounts to hack.
 - **Any AI, or none.** Use it as is, or add Ollama on your own computer, free models on OpenRouter, or OpenAI or Anthropic with your own key.
 
 ## For learning
 
-- **Record a class.** Live transcript, "lost here" marks and quick notes stamped to the second. Audio stays on your device.
+- **Record a class.** A live transcript, or a private one made on your device. "Lost here" marks and quick notes are stamped to the second. Audio stays on your device.
 - **Ask about it.** "When is my math test?", "What's due this week?", "What is mitosis?" Type or talk.
 - **Practice.** Seekto makes practice tests from your notes, both ways (term to meaning, meaning to term), and grades typed or spoken answers. Export to Quizlet, Anki, Google Forms, Kahoot or Moodle.
 - **Share a test with your class.** One link opens the test for anyone, with nothing to install. The questions travel inside the link itself, so they're never stored on a server.
@@ -31,9 +32,9 @@ Switch between Learning and Work at any time. Notes, search, talk mode, device s
 
 ## Privacy, in short
 
-Everything you create stays in your browser unless you turn on sync. Device sync goes directly between your devices; a public message service (ntfy.sh, or your own) only helps them find each other. Storage sync is end-to-end encrypted in a database you own. AI is off until you choose a provider, and then only what you ask about is sent to it. Fonts and code are served with the app, with no trackers or analytics. The details, including what each service can see, are in [docs/PRIVACY.md](docs/PRIVACY.md).
+Everything you create stays in your browser unless you turn on sync. Device sync goes directly between your devices; a public message service (ntfy.sh, or your own) only helps them find each other. Storage sync is end-to-end encrypted in a database you own. AI is off until you choose a provider, and then only what you ask about is sent to it. There are no trackers or analytics. The details, including what each service can see, are in [docs/PRIVACY.md](docs/PRIVACY.md).
 
-Live transcripts use your browser's speech service (online in Chrome and Edge). Follow your school's and workplace's rules about recording.
+Transcripts are made either live by your browser's speech service (online in Chrome and Edge) or privately on your device with Whisper; you choose in Settings. Follow your school's and workplace's rules about recording.
 
 ## Run it locally
 

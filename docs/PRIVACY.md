@@ -8,7 +8,8 @@ Notes, recordings, your calendar, assignments and settings are stored in your br
 
 | Feature | What leaves your device | Who sees it |
 |---|---|---|
-| Live transcript | Audio, while you record | Your browser's speech service (online in Chrome and Edge) |
+| Live transcript (browser) | Audio, while you record | Your browser's speech service (online in Chrome and Edge) |
+| Private transcript (on device) | Nothing. The Whisper model and the Transformers.js library are downloaded once (from Hugging Face and jsDelivr) and cached | Those sites see a download request, not your audio |
 | AI model (off by default) | The question and the note excerpts it needs | Only the provider you choose; your key stays on the device |
 | Shared practice test | The questions, inside the link | Whoever you send the link to. The part after `#` is never sent to a server |
 | Device sync | Connection setup: device names, random ids, network addresses | The message service (ntfy.sh or your own). Your data goes directly between devices, encrypted (WebRTC) |
@@ -38,5 +39,5 @@ Each item is encrypted on the device and bound to its account, item id and versi
 ## Known limits
 
 - The account key is kept in the browser's storage on each device you add, so anyone who can use that browser profile can read your data. Use your device's lock screen.
-- A cross-site scripting bug in the app could expose data in the browser. The app escapes notes and shared content before showing them, and loads no third-party scripts except YouTube's player, and only when you add a video.
+- A cross-site scripting bug in the app could expose data in the browser. The app escapes notes and shared content before showing them, and loads third-party code only when you ask for it: YouTube's player when you add a video, and Transformers.js (pinned version, from jsDelivr) when you turn on on-device transcription.
 - This hasn't had an outside security review yet. It is on the launch checklist. Please report issues as described in [SECURITY.md](../SECURITY.md).

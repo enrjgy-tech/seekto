@@ -11,7 +11,7 @@ export function meetingPanelHtml(note) {
     ? decisions.map((d) => html`<li>${d.text}</li>`).join("")
     : `<li class="note-small">None found yet.</li>`;
   const act = actions.length
-    ? actions.map((a) => html`<li><b>${a.owner === "Me" ? "You" : a.owner || "Someone"}</b> · ${a.task}${raw(a.due ? html` <span class="note-small">· ${friendlyDate(a.due)}</span>` : "")}</li>`).join("")
+    ? actions.map((a) => html`<li><b>${a.owner || "Unassigned"}</b> · ${a.task}${raw(a.due ? html` <span class="note-small">· ${friendlyDate(a.due)}</span>` : "")}</li>`).join("")
     : `<li class="note-small">None found yet.</li>`;
   return html`
     <span class="label">Decisions</span><ul class="plain">${raw(dec)}</ul>

@@ -9,7 +9,8 @@ import {
   findEvents, searchNotes, toISO, fromISO, isReady, chat, stem, tokens,
 } from "../engine/index.js";
 import { openQuiz } from "./quiz.js";
-import { isMeeting, addDates } from "./capture.js";
+import { isMeeting, addDates, transcribeNote, transcribing } from "./capture.js";
+import { supported as canTranscribeHere } from "./ondevice.js";
 import { meetingPanelHtml, openFollowUp } from "./meeting.js";
 
 let filter = "All";
@@ -104,6 +105,7 @@ async function importFile(file) {
   await saveNote(note);
   toast("Imported");
   go(`note/${note.id}`);
+  if (note.audioId && !note.cues.length && state.settings.transcriber === "device") transcribeNote(note.id);
 }
 
 function finishNote(note) {
@@ -137,7 +139,8 @@ export async function renderDetail(main, id) {
         <section class="panel">
           ${raw(note.audioId ? `<audio id="audio" controls preload="metadata"></audio>` : "")}
           ${raw(typed ? `<textarea id="body" rows="16" placeholder="Write your notes. Dates like &quot;quiz on Friday&quot; are added to your calendar.">${esc(note.text)}</textarea>` : `<span class="label">Transcript and notes</span><div class="transcript" id="lines"></div>`)}
-          ${raw(!typed && !note.cues?.length ? `<div class="field"><span class="label">No transcript yet</span><p class="note-small">Add a caption file (.vtt or .srt) or paste a transcript with times.</p><textarea id="pasteT" rows="4" placeholder="0:00&#10;Today we start chapter 5…"></textarea><div class="row"><button class="btn small" id="useT">Use transcript</button><label class="btn ghost small" style="cursor:pointer">Caption file<input type="file" id="capFile" accept=".vtt,.srt,.txt" hidden></label></div></div>` : "")}
+          ${raw(!typed && !note.cues?.length && note.audioId && canTranscribeHere ? `<div class="field"><span class="label">Transcript</span><p class="note-small" id="asrStatus">${transcribing(note.id) || "Make the transcript on this device: private, works offline after a one-time download, about 100 languages."}</p><div class="row"><button class="btn small" id="asrGo" ${transcribing(note.id) ? "disabled" : ""}>Transcribe on this device</button></div></div>` : "")}
+          ${raw(!typed && !note.cues?.length ? `<div class="field"><span class="label">${note.audioId ? "Or add a transcript" : "No transcript yet"}</span><p class="note-small">Add a caption file (.vtt or .srt) or paste a transcript with times.</p><textarea id="pasteT" rows="4" placeholder="0:00&#10;Today we start chapter 5…"></textarea><div class="row"><button class="btn small" id="useT">Use transcript</button><label class="btn ghost small" style="cursor:pointer">Caption file<input type="file" id="capFile" accept=".vtt,.srt,.txt" hidden></label></div></div>` : "")}
         </section>
         <section class="panel">
           ${raw(isMeeting(note) ? `<div id="meetingBox" style="display:grid;gap:8px">${meetingPanelHtml(note)}</div>` : "")}
@@ -186,6 +189,17 @@ export async function renderDetail(main, id) {
       }, 1200);
     });
   }
+  $("#asrGo")?.addEventListener("click", (e) => { e.target.disabled = true; transcribeNote(note.id); });
+  const view = main.firstElementChild;
+  const onAsr = (e) => {
+    if (!view.isConnected) { window.removeEventListener("seekto:asr", onAsr); return; }
+    if (e.detail.id !== note.id) return;
+    if (e.detail.done) { toast(`Transcribed${e.detail.added ? `. Added ${e.detail.added} date${e.detail.added > 1 ? "s" : ""} to your calendar` : ""}.`); renderDetail(main, id); return; }
+    const st = $("#asrStatus");
+    if (st) st.textContent = e.detail.error || e.detail.text;
+    if (e.detail.error && $("#asrGo")) $("#asrGo").disabled = false;
+  };
+  window.addEventListener("seekto:asr", onAsr);
   $("#useT")?.addEventListener("click", async () => { await addTranscript(note, $("#pasteT").value); renderDetail(main, id); });
   $("#capFile")?.addEventListener("change", async (e) => { await addTranscript(note, await readFile(e.target.files[0])); renderDetail(main, id); });
 

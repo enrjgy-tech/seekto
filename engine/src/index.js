@@ -10,3 +10,4 @@ export { makeCode, normalizeCode, isValidCode, randomId, manifest, outgoing, inc
 export { makeAccountKey, normalizeAccountKey, formatAccountKey, isValidAccountKey, deriveAccount, itemId, sealItem, openItem, sealBytes, openBytes, matchCode } from "./vault.js";
 export { findDecisions, findActionItems, followUpEmail } from "./meetings.js";
 export { encodeShare, decodeShare, cleanShared, sharedToText } from "./share.js";
+export { whisperCues, toMono16k } from "./asr.js";
