@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Paste a lecture, ask anything, seek to the exact second. Free, open source, runs in your browser.">
+<title>Seekto</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one paste bar on top, then player + transcript on the left and Ask + answers on the right; stacks on phones. */
+:root {
+  --bg: #0a0a0b; --surface: #131315; --raised: #1b1b1e; --line: #29292d;
+  --fg: #f3f3f1; --muted: #9b9ba2; --faint: #606067; --accent: #ffffff; --on-accent: #0a0a0b;
+  --hl: #34343a; --tick: #f3f3f1;
+  --display: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --body: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "Geist Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) {
+  --bg: #f5f5f3; --surface: #ffffff; --raised: #ededea; --line: #dadad6;
+  --fg: #111113; --muted: #5d5d63; --faint: #94949a; --accent: #111113; --on-accent: #ffffff;
+  --hl: #e2e2dd; --tick: #111113; color-scheme: light; } }
+:root[data-theme="light"] {
+  --bg: #f5f5f3; --surface: #ffffff; --raised: #ededea; --line: #dadad6;
+  --fg: #111113; --muted: #5d5d63; --faint: #94949a; --accent: #111113; --on-accent: #ffffff;
+  --hl: #e2e2dd; --tick: #111113; color-scheme: light; }
+
+* { box-sizing: border-box; }
+html, body { background: var(--bg); color: var(--fg); }
+html, body { margin: 0; }
+body { font-family: var(--body); font-size: 15px; line-height: 1.55; padding-inline: 20px; padding-block: 0 48px; }
+.wrap { max-width: 1180px; margin: 0 auto; display: grid; gap: 20px; }
+button, input { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+a { color: inherit; }
+
+header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-block: 22px 4px; flex-wrap: wrap; }
+.mark { display: flex; align-items: baseline; gap: 10px; }
+.mark h1 { font-family: var(--display); font-weight: 700; font-size: 26px; letter-spacing: -0.03em; margin: 0; }
+.mark .ts { font-family: var(--mono); font-size: 13px; color: var(--muted); }
+.chip { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; }
+.lede { margin: 0; color: var(--muted); max-width: 62ch; }
+.lede strong { color: var(--fg); font-weight: 600; }
+
+.load { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px; display: grid; gap: 10px; }
+.load form { display: flex; gap: 8px; flex-wrap: wrap; }
+.load input[type=url] { flex: 1 1 260px; min-width: 0; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 11px 14px; }
+.btn { background: var(--accent); color: var(--on-accent); border: 0; border-radius: 10px; padding: 11px 18px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.btn.ghost { background: transparent; color: var(--fg); border: 1px solid var(--line); font-weight: 500; }
+.btn.small { padding: 6px 11px; font-size: 13px; border-radius: 8px; }
+.btn:hover { opacity: 0.88; }
+.filebtn { position: relative; overflow: hidden; }
+.filebtn input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.pastebox { display: grid; gap: 8px; }
+.pastebox textarea { width: 100%; background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font: 13px/1.5 var(--mono); resize: vertical; }
+.status { font-size: 13px; color: var(--muted); margin: 0; }
+.status b { color: var(--fg); font-weight: 600; }
+.drop-on { outline: 2px dashed var(--accent); outline-offset: 4px; }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 860px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; min-width: 0; }
+.timeline { margin-inline: 9px; }
+.label { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin: 0; }
+
+.player { background: var(--raised); border-radius: 10px; aspect-ratio: 16 / 9; max-width: 100%; display: grid; place-items: center; overflow: hidden; position: relative; }
+.player video, .player audio, .player iframe, .player #yt { width: 100%; height: 100%; border: 0; display: block; }
+.player audio { height: auto; align-self: end; margin: 12px; width: calc(100% - 24px); }
+.ph { text-align: center; padding: 18px; display: grid; gap: 6px; justify-items: center; }
+.ph .big { font-family: var(--mono); font-size: 34px; letter-spacing: -0.02em; }
+.ph p { margin: 0; color: var(--muted); font-size: 13px; max-width: 46ch; }
+.now { font-size: 14px; min-height: 1.5em; color: var(--muted); margin: 0; }
+.now .t { font-family: var(--mono); color: var(--fg); margin-right: 8px; }
+
+.timeline { position: relative; height: 22px; }
+.timeline .rail { position: absolute; left: 0; right: 0; top: 10px; height: 2px; background: var(--line); border-radius: 2px; }
+.timeline .head { position: absolute; top: 4px; width: 2px; height: 14px; background: var(--muted); transform: translateX(-1px); }
+.timeline .tick { position: absolute; top: 2px; width: 18px; height: 18px; transform: translateX(-9px); border-radius: 50%; background: var(--tick); color: var(--bg); border: 0; font: 600 10px/18px var(--mono); text-align: center; cursor: pointer; padding: 0; }
+
+.transcript { position: relative; max-height: 380px; overflow-y: auto; display: grid; gap: 2px; padding-right: 4px; }
+.cue { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 10px; padding: 6px 8px; border-radius: 8px; cursor: pointer; background: none; border: 0; text-align: left; color: var(--muted); }
+.cue:hover { background: var(--raised); }
+.cue .t { font-family: var(--mono); font-size: 12px; padding-top: 2px; color: var(--faint); font-variant-numeric: tabular-nums; }
+.cue.on { background: var(--hl); color: var(--fg); }
+.cue.on .t { color: var(--fg); }
+
+.ask { display: flex; gap: 8px; }
+.ask input { flex: 1; min-width: 0; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; font-size: 16px; }
+.sugg { display: flex; flex-wrap: wrap; gap: 6px; }
+.sugg button { background: var(--raised); border: 1px solid var(--line); border-radius: 999px; padding: 5px 11px; font-size: 13px; color: var(--fg); cursor: pointer; }
+.answers { display: grid; gap: 10px; }
+.ans { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; display: grid; gap: 8px; }
+.ans.top { border-color: var(--muted); }
+.ans .row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.play { font-family: var(--mono); font-size: 13px; background: var(--accent); color: var(--on-accent); border: 0; border-radius: 8px; padding: 6px 11px; cursor: pointer; text-decoration: none; font-weight: 500; }
+.ans p { margin: 0; color: var(--muted); }
+.ans mark { background: var(--hl); color: var(--fg); border-radius: 3px; padding: 0 2px; }
+.ans .rank { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); margin-left: auto; }
+.empty { color: var(--muted); font-size: 14px; margin: 0; }
+
+.cards { display: grid; gap: 8px; }
+.card { border-top: 1px solid var(--line); padding-top: 8px; display: grid; gap: 4px; font-size: 14px; }
+.card .q { font-weight: 600; }
+.card .a { color: var(--muted); }
+.card .meta { font-family: var(--mono); font-size: 12px; color: var(--faint); }
+.toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--accent); color: var(--on-accent); padding: 8px 14px; border-radius: 999px; font-size: 13px; font-weight: 500; }
+.note { font-size: 12px; color: var(--faint); margin: 0; }
+@media (prefers-reduced-motion: no-preference) { .cue, .btn, .ans { transition: background .15s, opacity .15s, border-color .15s; } }
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+  <header>
+    <div class="mark"><h1>Seekto</h1><span class="ts" id="markts">▸ 00:00</span></div>
+    <span class="chip">Working preview</span>
+  </header>
+  <p class="lede"><strong>Paste a lecture, ask anything, seek to the exact second.</strong> A sample lecture is loaded below so you can try it now. Load your own with a YouTube link plus its caption file (.srt or .vtt), or a video or audio file plus captions. Everything runs in your browser. Nothing is uploaded.</p>
+
+  <section class="load" id="drop" aria-label="Load a lecture">
+    <form id="linkform">
+      <label for="link" class="label" style="flex-basis:100%">Lecture</label>
+      <input type="url" id="link" placeholder="Paste a YouTube link, e.g. https://youtu.be/…" autocomplete="off">
+      <button class="btn" type="submit">Load link</button>
+      <span class="btn ghost filebtn">Add captions or media<input type="file" id="file" multiple accept=".srt,.vtt,text/vtt,video/*,audio/*" aria-label="Add caption, video or audio files"></span>
+      <button class="btn ghost" type="button" id="pastebtn">Paste transcript</button>
+      <button class="btn ghost" type="button" id="sample">Sample lecture</button>
+    </form>
+    <div id="pastebox" class="pastebox" hidden>
+      <label for="pastetext" class="label">Paste a transcript with timestamps, or the text of a .vtt or .srt file</label>
+      <textarea id="pastetext" rows="6" placeholder="0:00&#10;Welcome back. Today is binary search…"></textarea>
+      <button class="btn small" type="button" id="pasteuse">Use this transcript</button>
+    </div>
+    <p class="status" id="status"></p>
+  </section>
+
+  <div class="grid">
+    <section class="panel" aria-label="Player and transcript">
+      <div class="player" id="player"></div>
+      <div class="timeline" id="timeline" aria-hidden="true"><div class="rail"></div><div class="head" id="head" style="left:0"></div></div>
+      <p class="now" id="now"></p>
+      <p class="label">Transcript</p>
+      <div class="transcript" id="transcript" role="list"></div>
+    </section>
+
+    <section class="panel" aria-label="Ask">
+      <form class="ask" id="askform">
+        <label for="q" class="label" style="position:absolute;left:-9999px">Your question</label>
+        <input id="q" placeholder="Ask about this lecture" autocomplete="off">
+        <button class="btn" type="submit">Ask</button>
+      </form>
+      <div class="sugg" id="sugg"></div>
+      <div class="answers" id="answers"></div>
+      <div class="row" style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+        <p class="label">Cards <span id="ncards"></span></p>
+        <button class="btn ghost small" id="anki" type="button">Copy for Anki</button>
+      </div>
+      <div class="cards" id="cards"><p class="empty">Save an answer as a card and it appears here with its source second.</p></div>
+      <p class="note">Answers in this preview are the lecturer's own words, found by matching your question against the transcript in your browser. The full app adds written explanations and spaced review.</p>
+    </section>
+  </div>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script type="module">
+import { parseCaptions, parseTranscriptText, formatTime, buildIndex, search, stem, videoId, watchUrl } from "./engine/index.js";
+import { STOP } from "./engine/search.js";
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const fmt = formatTime;
+function toast(msg) { const el = $("toast"); el.textContent = msg; el.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => (el.hidden = true), 1800); }
+const store = { get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} } };
+let INDEX = null;
+const searchIndex = (q) => search(INDEX, q);
+function highlight(text, terms) {
+  return esc(text).replace(/[A-Za-z0-9]+/g, (w) => (terms.includes(stem(w.toLowerCase())) && !STOP.has(w.toLowerCase()) ? `<mark>${w}</mark>` : w));
+}
+
+// ---------- State and player ----------
+const S = { cues: [], kind: "none", yt: null, ytApi: false, ytPlayer: null, media: null, title: "", duration: 0 };
+let ytLoading = null;
+function loadYouTubeApi() {
+  if (ytLoading) return ytLoading;
+  ytLoading = new Promise((resolve) => {
+    const done = (ok) => { S.ytApi = ok; resolve(ok); };
+    window.onYouTubeIframeAPIReady = () => done(true);
+    const s = document.createElement("script"); s.src = "https://www.youtube.com/iframe_api"; s.onerror = () => done(false);
+    document.head.appendChild(s);
+    setTimeout(() => done(!!(window.YT && window.YT.Player)), 3500); // blocked hosts fail silently
+  });
+  return ytLoading;
+}
+const ytUrl = (t) => watchUrl(S.yt, t);
+function currentTime() {
+  if (S.media) return S.media.currentTime;
+  if (S.ytPlayer && S.ytPlayer.getCurrentTime) return S.ytPlayer.getCurrentTime();
+  return S.virtual || 0;
+}
+function canPlayInline() { return !!S.media || !!S.ytPlayer; }
+function seek(t) {
+  if (S.media) { S.media.currentTime = t; S.media.play().catch(() => {}); }
+  else if (S.ytPlayer && S.ytPlayer.seekTo) { S.ytPlayer.seekTo(t, true); S.ytPlayer.playVideo(); }
+  else { S.virtual = t; }
+  syncTo(t, true);
+}
+function renderPlayer() {
+  const el = $("player"); el.innerHTML = "";
+  if (S.media) { el.appendChild(S.media); return; }
+  if (S.kind === "youtube") {
+    if (S.ytApi) {
+      const div = document.createElement("div"); div.id = "yt"; el.appendChild(div);
+      S.ytPlayer = new YT.Player("yt", { videoId: S.yt, playerVars: { rel: 0, playsinline: 1 } });
+      return;
+    }
+    el.innerHTML = `<div class="ph"><div class="big">▶ ${esc(S.yt)}</div><p>This page can't play YouTube inline, so every answer opens the video on YouTube at the exact second. Hosted on its own site, Seekto plays it right here.</p><a class="play" href="${ytUrl(0)}" target="_blank" rel="noopener">Open on YouTube</a></div>`;
+    return;
+  }
+  if (S.kind === "sample") {
+    el.innerHTML = `<div class="ph"><div class="big" id="phbig">00:00</div><p>Sample lecture: Binary search (5:52). This one is transcript-only, so a jump highlights the line instead of playing audio.</p></div>`;
+    return;
+  }
+  el.innerHTML = `<div class="ph"><div class="big">—</div><p>No lecture loaded.</p></div>`;
+}
+
+// ---------- Rendering ----------
+function renderTranscript() {
+  const box = $("transcript");
+  box.innerHTML = S.cues.map((c, i) => `<button class="cue" role="listitem" data-i="${i}"><span class="t">${fmt(c.start)}</span><span>${esc(c.text)}</span></button>`).join("")
+    || `<p class="empty">Add a caption file (.srt or .vtt) to see the transcript and ask questions.</p>`;
+  S.duration = S.cues.length ? S.cues[S.cues.length - 1].end : 0;
+  renderTicks([]);
+}
+let lastCue = -1;
+function syncTo(t, scroll) {
+  let i = -1; for (let k = 0; k < S.cues.length; k++) { if (S.cues[k].start <= t + 0.01) i = k; else break; }
+  $("markts").textContent = "▸ " + fmt(t);
+  const big = $("phbig"); if (big) big.textContent = fmt(t);
+  if (S.duration) $("head").style.left = Math.min(100, (t / S.duration) * 100) + "%";
+  if (i === lastCue && !scroll) return; lastCue = i;
+  document.querySelectorAll(".cue.on").forEach((e) => e.classList.remove("on"));
+  const el = document.querySelector(`.cue[data-i="${i}"]`);
+  if (el) { el.classList.add("on"); if (scroll) { const box = $("transcript"); const anchor = el.previousElementSibling || el; box.scrollTop = anchor.offsetTop; } }
+  $("now").innerHTML = i >= 0 ? `<span class="t">${fmt(S.cues[i].start)}</span>${esc(S.cues[i].text)}` : "";
+}
+function renderTicks(results) {
+  const tl = $("timeline"); tl.querySelectorAll(".tick").forEach((e) => e.remove());
+  if (!S.duration) return;
+  results.forEach((r, n) => { const b = document.createElement("button"); b.className = "tick"; b.textContent = n + 1;
+    b.style.left = (r.start / S.duration) * 100 + "%"; b.title = "Answer " + (n + 1) + " at " + fmt(r.start); b.onclick = () => seek(r.start); tl.appendChild(b); });
+}
+function playControl(t) {
+  if (S.kind === "youtube" && !canPlayInline()) return `<a class="play" href="${ytUrl(t)}" target="_blank" rel="noopener">▶ ${fmt(t)} on YouTube</a>`;
+  return `<button class="play" data-seek="${t}">▶ ${canPlayInline() ? "Play from" : "Jump to"} ${fmt(t)}</button>`;
+}
+let lastQ = "", lastResults = [];
+function ask(q) {
+  q = q.trim(); if (!q) return;
+  lastQ = q;
+  if (!S.cues.length) { $("answers").innerHTML = `<p class="empty">Add this lecture's caption file first, then ask again.</p>`; return; }
+  const res = searchIndex(q); lastResults = res; renderTicks(res);
+  if (!res.length) { $("answers").innerHTML = `<p class="empty">No part of this lecture uses those words. Try the words the lecturer would say, such as a key term from the transcript.</p>`; return; }
+  $("answers").innerHTML = res.map((r, n) => `<div class="ans${n === 0 ? " top" : ""}">
+      <div class="row">${playControl(r.start)}<button class="btn ghost small" data-card="${n}">Save card</button><button class="btn ghost small" data-moment="${n}">Copy moment link</button><span class="rank">${n === 0 ? "Best match" : "Also here"}</span></div>
+      <p>${highlight(r.ctx, r.terms)}</p></div>`).join("");
+  if (S.kind !== "youtube" || canPlayInline()) seek(res[0].start);
+}
+
+// ---------- Cards ----------
+let cards = store.get("seekto.cards", []);
+function renderCards() {
+  $("ncards").textContent = cards.length ? `· ${cards.length}` : "";
+  $("cards").innerHTML = cards.length ? cards.slice().reverse().map((c) => `<div class="card"><span class="q">${esc(c.q)}</span><span class="a">${esc(c.a)}</span><span class="meta">${esc(c.src)} · ${fmt(c.t)}</span></div>`).join("")
+    : `<p class="empty">Save an answer as a card and it appears here with its source second.</p>`;
+}
+function momentLink(t) { return S.kind === "youtube" ? ytUrl(t) : `${S.title} at ${fmt(t)}`; }
+async function copy(text, ok) {
+  try { await navigator.clipboard.writeText(text); toast(ok); }
+  catch { const ta = document.createElement("textarea"); ta.value = text; document.body.appendChild(ta); ta.select();
+    try { document.execCommand("copy"); toast(ok); } catch { toast("Select and copy the text manually"); } ta.remove(); }
+}
+
+// ---------- Loading sources ----------
+function setStatus(html) { $("status").innerHTML = html; }
+function useCues(cues, label) {
+  S.cues = cues; INDEX = buildIndex(cues); lastCue = -1; renderTranscript(); syncTo(0, true);
+  $("answers").innerHTML = ""; return label;
+}
+let SAMPLE = null;
+async function loadSample() {
+  if (S.media) { URL.revokeObjectURL(S.media.src); S.media = null; }
+  if (!SAMPLE) {
+    const base = "./packs/sample-binary-search/";
+    const [meta, vtt] = await Promise.all([fetch(base + "pack.json").then((r) => r.json()), fetch(base + "transcript.vtt").then((r) => r.text())]);
+    SAMPLE = { meta, cues: parseCaptions(vtt) };
+  }
+  S.kind = "sample"; S.yt = null; S.ytPlayer = null; S.title = SAMPLE.meta.title + " (sample)"; S.virtual = 0;
+  useCues(SAMPLE.cues); renderPlayer();
+  setStatus(`Loaded <b>${esc(SAMPLE.meta.title)}</b>, a sample lecture written for Seekto · ${S.cues.length} transcript lines`);
+  $("sugg").innerHTML = (SAMPLE.meta.suggestedQuestions || []).map((s) => `<button type="button">${esc(s)}</button>`).join("");
+}
+
+async function loadLink(url) {
+  const id = videoId(url);
+  if (!id) { setStatus("That doesn't look like a YouTube link. Paste a link like https://youtu.be/ followed by the video ID."); return; }
+  if (S.media) { URL.revokeObjectURL(S.media.src); S.media = null; }
+  S.kind = "youtube"; S.yt = id; S.ytPlayer = null; S.title = "YouTube " + id; S.cues = []; INDEX = null;
+  $("sugg").innerHTML = ""; $("answers").innerHTML = ""; renderTranscript();
+  setStatus(`Loading <b>${esc(id)}</b>…`);
+  await loadYouTubeApi(); renderPlayer();
+  setStatus(`Loaded YouTube video <b>${esc(id)}</b>. Now add its caption file (.srt or .vtt) to ask questions. In the full app, videos with a pack open instantly and others get a live transcript.`);
+}
+async function loadFiles(files) {
+  let msg = [];
+  for (const f of files) {
+    if (/\.(srt|vtt)$/i.test(f.name) || f.type === "text/vtt") {
+      const cues = parseCaptions(await f.text());
+      if (!cues.length) { msg.push(`<b>${esc(f.name)}</b> has no timed lines. Check that it's an .srt or .vtt file.`); continue; }
+      if (S.kind === "sample" || S.kind === "none") { S.kind = "captions"; S.title = f.name.replace(/\.(srt|vtt)$/i, ""); renderPlayer(); $("sugg").innerHTML = ""; }
+      useCues(cues); msg.push(`Captions <b>${esc(f.name)}</b> · ${cues.length} lines`);
+    } else if (/^(video|audio)\//.test(f.type)) {
+      if (S.media) URL.revokeObjectURL(S.media.src);
+      const m = document.createElement(f.type.startsWith("audio") ? "audio" : "video");
+      m.src = URL.createObjectURL(f); m.controls = true; m.playsInline = true; m.preload = "metadata";
+      m.addEventListener("timeupdate", () => syncTo(m.currentTime, false));
+      S.media = m; S.ytPlayer = null; if (S.kind === "sample" || S.kind === "none" || S.kind === "youtube") { S.kind = "file"; S.cues = []; INDEX = null; renderTranscript(); $("sugg").innerHTML = ""; }
+      S.kind = "file"; S.title = f.name; renderPlayer(); msg.push(`Media <b>${esc(f.name)}</b>`);
+    } else msg.push(`<b>${esc(f.name)}</b> isn't a caption, video or audio file.`);
+  }
+  if (S.kind === "file" && !S.cues.length) msg.push("Add its caption file (.srt or .vtt) to ask questions.");
+  setStatus(msg.join(" · "));
+}
+
+async function loadPastedText(text) {
+  const cues = /-->/.test(text) ? parseCaptions(text) : parseTranscriptText(text);
+  if (!cues.length) { setStatus("That text has no timestamps. Paste a transcript with times (like 1:05) or a caption file."); return; }
+  if (S.kind === "sample" || S.kind === "none") { S.kind = "captions"; S.title = "Pasted transcript"; renderPlayer(); $("sugg").innerHTML = ""; }
+  useCues(cues); setStatus(`Pasted transcript · <b>${cues.length}</b> lines`);
+}
+
+// ---------- Events ----------
+$("linkform").addEventListener("submit", (e) => { e.preventDefault(); loadLink($("link").value); });
+$("file").addEventListener("change", (e) => { loadFiles([...e.target.files]); e.target.value = ""; });
+$("sample").addEventListener("click", loadSample);
+$("askform").addEventListener("submit", (e) => { e.preventDefault(); ask($("q").value); });
+$("sugg").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; $("q").value = b.textContent; ask(b.textContent); });
+$("transcript").addEventListener("click", (e) => { const c = e.target.closest(".cue"); if (c) seek(S.cues[+c.dataset.i].start); });
+$("answers").addEventListener("click", (e) => {
+  const s = e.target.closest("[data-seek]"); if (s) return seek(+s.dataset.seek);
+  const c = e.target.closest("[data-card]"); if (c) { const r = lastResults[+c.dataset.card];
+    cards.push({ q: lastQ, a: r.ctx, t: r.start, src: S.title, link: momentLink(r.start) }); store.set("seekto.cards", cards); renderCards(); toast("Card saved"); return; }
+  const m = e.target.closest("[data-moment]"); if (m) copy(momentLink(lastResults[+m.dataset.moment].start), S.kind === "youtube" ? "Moment link copied" : "Moment copied");
+});
+$("anki").addEventListener("click", () => {
+  if (!cards.length) return toast("Save a card first");
+  copy(cards.map((c) => [c.q, `${c.a} (${c.src} ${fmt(c.t)}${c.link.startsWith("http") ? " " + c.link : ""})`].map((x) => x.replace(/[\t\n]/g, " ")).join("\t")).join("\n"),
+    "Copied. In Anki: File, Import, paste as text");
+});
+const drop = $("drop");
+["dragenter", "dragover"].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.add("drop-on"); }));
+["dragleave", "drop"].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.remove("drop-on"); }));
+drop.addEventListener("drop", (e) => loadFiles([...e.dataTransfer.files]));
+$("pastebtn").addEventListener("click", () => { $("pastebox").hidden = !$("pastebox").hidden; if (!$("pastebox").hidden) $("pastetext").focus(); });
+$("pasteuse").addEventListener("click", () => { loadPastedText($("pastetext").value); $("pastebox").hidden = true; });
+setInterval(() => { if (S.ytPlayer && S.ytPlayer.getCurrentTime) syncTo(S.ytPlayer.getCurrentTime(), false); }, 500);
+
+renderCards();
+loadSample().then(() => { $("q").value = "Why does the list have to be sorted?"; ask($("q").value); }).catch(() => setStatus("Couldn't load the sample lecture. Add a caption file to start."));
+</script>
+</body>
+</html>

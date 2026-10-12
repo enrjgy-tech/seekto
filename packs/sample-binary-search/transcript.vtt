@@ -1,0 +1,79 @@
+WEBVTT
+
+00:00:00.000 --> 00:00:09.000
+Welcome back. Today is binary search, which is the first algorithm in this course that feels a little like magic.
+
+00:00:09.000 --> 00:00:21.000
+Here is the problem. You have a list of a million names and you want to know whether one particular name is in it.
+
+00:00:21.000 --> 00:00:33.000
+The obvious approach is linear search. Start at the first item, check it, move to the next, and keep going until you find the name or run out.
+
+00:00:33.000 --> 00:00:46.000
+In the worst case linear search looks at every single item, so for a million names that is a million comparisons.
+
+00:00:46.000 --> 00:01:00.000
+Binary search does much better, but it has one requirement that you must never forget. The list has to be sorted first.
+
+00:01:00.000 --> 00:01:14.000
+Why sorted? Because the whole trick is that one comparison tells you which half of the list cannot possibly contain the name.
+
+00:01:14.000 --> 00:01:28.000
+Think of a phone book. You open it in the middle, you see names starting with M, and you are looking for Smith. So you tear away the first half.
+
+00:01:28.000 --> 00:01:42.000
+That is the algorithm. Look at the middle item. If it matches, you are done. If your target is smaller, keep the left half. If it is larger, keep the right half.
+
+00:01:42.000 --> 00:01:55.000
+Then repeat on the half that is left. Every step throws away half of the remaining items.
+
+00:01:55.000 --> 00:02:10.000
+So how many steps for a million items? Halve a million and you get five hundred thousand, then two hundred fifty thousand, and so on.
+
+00:02:10.000 --> 00:02:24.000
+You reach a single item after about twenty halvings, because two to the twentieth is roughly one million. Twenty comparisons instead of a million.
+
+00:02:24.000 --> 00:02:38.000
+That is what we mean by logarithmic time, written O of log n. Double the size of the list and binary search needs only one more step.
+
+00:02:38.000 --> 00:02:52.000
+Now let me write it in code. We keep two variables, low and high, which mark the part of the list that could still hold the target.
+
+00:02:52.000 --> 00:03:06.000
+Low starts at index zero and high starts at the last index. While low is less than or equal to high, we compute the middle index.
+
+00:03:06.000 --> 00:03:20.000
+If the middle item equals the target, return its index. If the middle item is less than the target, set low to middle plus one.
+
+00:03:20.000 --> 00:03:34.000
+Otherwise set high to middle minus one. If the loop ends without a match, the target is not in the list, so return minus one.
+
+00:03:34.000 --> 00:03:50.000
+This short loop is famous for bugs. The classic one is an off-by-one error, where you write high equals middle instead of middle minus one.
+
+00:03:50.000 --> 00:04:04.000
+With that bug, when low and high are next to each other, the middle never moves and the loop runs forever. Always test a list with two items.
+
+00:04:04.000 --> 00:04:18.000
+There is a second, sneakier bug. Computing the middle as low plus high divided by two can overflow when the numbers are huge.
+
+00:04:18.000 --> 00:04:32.000
+The safe version is low plus high minus low, divided by two. That bug sat in widely used library code for years before anyone noticed.
+
+00:04:32.000 --> 00:04:46.000
+So when is linear search actually better? When the list is small, or unsorted and you only search it once, sorting first costs more than it saves.
+
+00:04:46.000 --> 00:05:00.000
+Sorting takes about n log n time. If you search the same list many times, you pay that cost once and every search after is fast.
+
+00:05:00.000 --> 00:05:14.000
+Binary search also shows up far outside lists. Git bisect uses it to find the commit that introduced a bug by testing the middle commit each time.
+
+00:05:14.000 --> 00:05:28.000
+You can even binary search on answers, like finding the smallest speed that finishes a job in time, as long as the yes or no answer only flips once.
+
+00:05:28.000 --> 00:05:42.000
+For homework, implement binary search both with a loop and with recursion, and write tests for an empty list, one item, two items and a missing target.
+
+00:05:42.000 --> 00:05:52.000
+Next time we look at sorting algorithms and see why merge sort also halves the problem. See you then.

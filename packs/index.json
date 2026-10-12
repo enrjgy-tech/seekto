@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "packs": [
+    {
+      "id": "sample-binary-search",
+      "title": "Binary search",
+      "subject": "computer-science",
+      "video": null,
+      "license": "CC-BY-4.0",
+      "lines": 26
+    }
+  ]
+}

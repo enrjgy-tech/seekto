@@ -1,0 +1,21 @@
+name: Request a pack
+description: Ask for a lecture to be prepared so it opens instantly
+labels: ["pack request"]
+body:
+  - type: input
+    id: link
+    attributes:
+      label: Lecture link
+      description: The YouTube link or course page
+    validations:
+      required: true
+  - type: input
+    id: source
+    attributes:
+      label: Where is the transcript published?
+      description: For example the course site's lecture page. Leave blank if you don't know.
+  - type: textarea
+    id: why
+    attributes:
+      label: What are you studying it for?
+      description: Optional. Helps us decide what to build first.

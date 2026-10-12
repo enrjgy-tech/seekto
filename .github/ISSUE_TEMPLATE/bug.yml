@@ -1,0 +1,18 @@
+name: Something broke
+description: Tell us what went wrong
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, and what you saw instead
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Device and browser
+      description: For example "iPhone 13, Safari" or "Chromebook, Chrome"
+    validations:
+      required: true

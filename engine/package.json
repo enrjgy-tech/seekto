@@ -1,0 +1,27 @@
+{
+  "name": "seekto",
+  "version": "0.1.0",
+  "description": "On-device lecture search: parse captions, rank transcript lines, and seek to the exact second.",
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "files": [
+    "src"
+  ],
+  "keywords": [
+    "lecture",
+    "transcript",
+    "captions",
+    "vtt",
+    "srt",
+    "search",
+    "bm25",
+    "education"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  }
+}

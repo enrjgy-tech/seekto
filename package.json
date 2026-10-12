@@ -1,0 +1,16 @@
+{
+  "name": "seekto-workspace",
+  "private": true,
+  "type": "module",
+  "description": "Paste a lecture, ask anything, seek to the exact second.",
+  "scripts": {
+    "test": "node --test engine/test/*.test.js",
+    "check:packs": "node pipeline/check-packs.mjs",
+    "build": "node pipeline/build-site.mjs",
+    "serve": "npx --yes serve@14.2.4 site"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT"
+}

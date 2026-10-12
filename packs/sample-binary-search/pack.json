@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "id": "sample-binary-search",
+  "title": "Binary search",
+  "subject": "computer-science",
+  "language": "en",
+  "duration": 352,
+  "source": {
+    "kind": "original",
+    "name": "Written for Seekto as a sample lecture",
+    "url": null
+  },
+  "video": null,
+  "license": {
+    "spdx": "CC-BY-4.0",
+    "attribution": "Seekto contributors",
+    "url": "https://creativecommons.org/licenses/by/4.0/"
+  },
+  "transcript": "transcript.vtt",
+  "suggestedQuestions": [
+    "Why does the list have to be sorted?",
+    "How many steps for a million items?",
+    "What is the off-by-one bug?",
+    "When is linear search better?"
+  ]
+}
