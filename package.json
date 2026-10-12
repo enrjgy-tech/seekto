@@ -2,7 +2,7 @@
   "name": "seekto-workspace",
   "private": true,
   "type": "module",
-  "description": "Paste a lecture, ask anything, seek to the exact second.",
+  "description": "Your study assistant: record class, organized notes, a calendar that fills itself, research and practice tests.",
   "scripts": {
     "test": "node --test engine/test/*.test.js",
     "check:packs": "node pipeline/check-packs.mjs",

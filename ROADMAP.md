@@ -1,38 +1,34 @@
 # Roadmap
 
-Seekto is built in public. This roadmap is the plan, not a promise of dates.
+Seekto is built in public. This is the plan, not a promise of dates.
 
-## Now (October 2026)
+## Working now
 
-- [x] Working app: sample lecture, YouTube link plus captions, video or audio files, pasted transcripts
-- [x] Ask: ranked answers, timeline marks, jump to the exact second
-- [x] Cards with source second, moment links, Anki copy
-- [x] Engine module with tests, including retrieval checks
-- [x] Pack format, license rules and CI checks
-- [ ] Pack pipeline for open course sites that publish transcripts (NPTEL, MIT OpenCourseWare, Open Yale Courses, CS50), after checking each site's terms
-- [ ] First 100 packs, matched to their YouTube videos using each course site's own listing
+- [x] Assistant home with guided first steps and suggestions
+- [x] Answers from your own notes and calendar with no AI ("when is my math test", "what's due this week", "what is mitosis")
+- [x] Talk mode: ask out loud, hear answers, quiz by voice
+- [x] Record a class: audio on device, live transcript where the browser supports it, "lost here" marks, typed notes stamped to the second
+- [x] Notes organized by date, subject and topic, with search, playback from any line and questions
+- [x] Calendar: dates found in recordings and notes, .ics import (Canvas, Google Classroom through Google Calendar, Moodle, Blackboard) and export
+- [x] Research & assignments: rubric checklist, schedule from the due date, related notes, YouTube videos as sources with questions, links
+- [x] Practice tests in both directions, with exports for Quizlet, Anki, CSV (Google Forms, Kahoot) and Moodle
+- [x] AI model choice: none, Ollama on your computer, OpenRouter free or paid models, OpenAI, Anthropic, or any OpenAI-compatible service
+- [x] Backup and restore
 
 ## Next
 
-- **Notes while you watch:** synced transcript beside the video; notes stamped to the second; "My notes" and "Auto notes" modes.
-- **Packs at scale:** 5,000 basic packs across at least five subjects, plus 300 full packs with cards and checked explanations.
-- **Live class mode:** record a talk on your device, transcribe on-device, tap "lost here", replay the speaker at the cited second.
-- **Better answers:** short explanations checked against a published rubric; free-form answers from an in-browser model where WebGPU works, or your own endpoint.
-- **Spaced review** with FSRS, and **Study together** links for a class.
-- **Embed:** a one-tag `<seekto-player>` for course pages and docs sites.
-
-## Later
-
-- **Plan:** read-only Canvas sync, `.ics` import, deadlines next to lectures, and "ask your professor" email drafts that open in Gmail for you to send.
-- **Talking mode:** ask out loud, hear the answer.
+- **On-device transcription** with Whisper, so live transcripts work in every browser and never leave the device.
+- **Writing helper for Google Docs:** a browser side panel that shows your related notes, the rubric checklist and your sources while you write.
+- **Live school sync:** Canvas and Google Classroom connections that keep deadlines up to date without exporting files.
+- **Direct test upload** to connected sites (Canvas quizzes, Google Forms, Quizlet).
+- **Phone app polish:** install as an app, record with the screen off, sync recordings to your computer.
+- **Spaced review** that schedules your practice tests before each exam.
 
 ## Launch checks
 
-The big public launch waits for these, measured and published here:
+The big public launch waits for these:
 
-- a full design-system pass;
-- 20 moderated sessions with students, at least 90% success on paste, ask, then open the clip;
+- 20 sessions with students, at least 90% success on record, ask, and add a deadline;
 - a System Usability Scale score of 80 or more;
 - performance budgets met on Chromebooks, budget phones and low-end laptops;
-- 5,000 basic packs and 300 full packs;
 - a WCAG 2.2 AA audit, a published threat model and a trademark check.

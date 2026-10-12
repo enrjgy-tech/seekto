@@ -1,73 +1,67 @@
 # Seekto
 
-**Paste a lecture, ask anything, seek to the exact second.**
+**Your study assistant. Record class, and Seekto keeps your notes, your deadlines and your studying in one place.**
 
-Seekto turns a lecture into something you can ask. Load a lecture with its transcript, type a question, and Seekto finds the lines that answer it, marks them on the timeline and jumps the video to that second. Save any answer as a card with its source second, or export your cards to Anki.
+Seekto is a free, open-source study assistant that runs in your browser. Talk to it or type to it:
 
-It's free and open source, runs entirely in your browser, and needs no account. Nothing you load is uploaded.
+- **"When is my math test?"** It checks your calendar.
+- **"What's due this week?"** It lists what's coming up.
+- **"Quiz me on chapter 5."** It makes a practice test from your notes and grades your answers, typed or spoken.
+- **"What is mitosis?"** It finds the answer in your notes.
 
 **[Try it →](https://enrjgy-tech.github.io/seekto/)**
 
-## What works today
+## What it does
 
-This is an early build, made in public. Today you can:
+- **Record a class.** Audio stays on your device. You get a live transcript where your browser supports it, "lost here" marks and quick typed notes, all stamped to the second.
+- **Notes that organize themselves,** by date, subject and topic. Search everything, replay the teacher at any line, and ask a note questions.
+- **A calendar that fills itself.** When a teacher says "the quiz is on Friday" or you type "essay due October 20th", it goes on your calendar. Import your Canvas, Google Classroom, Moodle or Blackboard calendar as an .ics file.
+- **Research & assignments.** Paste the rubric and it becomes a checklist and a schedule back from the due date. See your related notes, add YouTube videos as sources and ask them questions, and get a plan or research brief with an AI model.
+- **Practice tests,** both ways: term to meaning and meaning to term. Export to Quizlet, Anki, Google Forms or Kahoot (CSV), or Moodle (GIFT).
+- **Talk mode.** Ask out loud, hear the answer, and get quizzed by voice.
+- **Your choice of AI, or none.** Everything above works without AI. Add a model for open questions, summaries, better quizzes and research briefs:
+  - **on your computer:** Ollama, private and free;
+  - **free cloud:** OpenRouter's free models;
+  - **paid cloud:** OpenAI, Anthropic, or any OpenAI-compatible service.
 
-- open the built-in sample lecture and ask it questions;
-- load a YouTube link and its caption file (`.srt` or `.vtt`), or paste a transcript with timestamps;
-- load a video or audio file with its captions and play from any answer;
-- see the top three answers on the lecture timeline, with your words highlighted;
-- save answers as cards, copy a link to the exact moment, and copy your cards for Anki.
+  Keys stay on your device and go only to the service you choose.
 
-Seekto never downloads or scrapes YouTube. Videos play in YouTube's own embedded player.
+It works best on a computer. On a phone, it's built around recording, with quick questions and your calendar.
 
-## What's coming
+## Privacy
 
-See [ROADMAP.md](ROADMAP.md). In short:
-
-- **Packs:** thousands of prepared lectures built from transcripts that open course sites publish themselves, so a pasted link opens instantly on any device.
-- **Notes while you watch:** a synced transcript beside the video, notes stamped to the second, and suggested key points.
-- **Live class mode:** on-device transcription of a talk in the room.
-- **Better answers:** short explanations under each clip, and free-form answers from a small in-browser model where your device supports it.
-- **Spaced review** for your cards, and **Study together** links for a class.
-
-## Who it's for
-
-Students first, in every subject. Also anyone learning from lectures and talks: self-learners, people taking online courses for work, and researchers who study recorded talks.
+Your notes, recordings and calendar are stored in your browser on your device. There's no account and no Seekto server. Live transcripts use your browser's speech service; in Chrome and Edge that is processed online by the browser maker. Always follow your school's rules and ask before recording a class.
 
 ## Run it locally
 
 ```sh
 git clone https://github.com/enrjgy-tech/seekto.git
 cd seekto
-npm test          # engine tests, including retrieval checks on the sample lecture
+npm test          # engine tests: dates, calendars, quizzes, the assistant, AI requests, search
 npm run build     # builds the static site into ./site
 npm run serve     # serves ./site locally
 ```
 
-No dependencies are needed for the app or the tests. Node 20 or newer.
+No dependencies. Node 20 or newer.
 
-## For developers
+## How it's built
 
-The engine is a small, dependency-free module you can use on any page:
-
-```js
-import { parseCaptions, buildIndex, search, formatTime } from "./engine/index.js";
-
-const cues = parseCaptions(await (await fetch("lecture.vtt")).text());
-const index = buildIndex(cues);
-for (const answer of search(index, "why does the list have to be sorted?")) {
-  console.log(formatTime(answer.start), answer.text);
-}
-```
-
-## Packs
-
-A pack is a prepared lecture: its transcript, its source and its license. See [packs/README.md](packs/README.md) for the rules and how to add one. Packs are built only from sources that allow it, and every pack's license is checked in CI.
+- `app/`: the web app (plain HTML, CSS and JavaScript modules, no build step).
+- `engine/`: the tested logic the app uses:
+  - finding dates and deadlines in speech and text;
+  - reading and writing .ics calendars;
+  - subject and topic detection;
+  - definitions and quizzes;
+  - answer checking;
+  - understanding questions like "when is my test";
+  - transcript search;
+  - requests to each AI provider.
+- `packs/`: prepared lecture transcripts with their licenses, for research sources.
 
 ## Contributing
 
-Contributions are welcome, especially packs, accessibility fixes and testing on phones and Chromebooks. Start with [CONTRIBUTING.md](CONTRIBUTING.md).
+Contributions are welcome, especially testing on phones and Chromebooks, accessibility, and better date and topic detection. Start with [CONTRIBUTING.md](CONTRIBUTING.md) and the [roadmap](ROADMAP.md).
 
 ## License
 
-Code: [MIT](LICENSE). Each pack keeps its own license, listed in its `pack.json`.
+[MIT](LICENSE).
