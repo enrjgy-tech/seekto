@@ -42,17 +42,19 @@ jobs:
           npm install --no-save --no-package-lock @huggingface/transformers@3.0.2
           node test/real-audio.mjs lecture.wav out "${{ inputs.model }}" | tee out.log
           while IFS= read -r line; do echo "::notice::${line//$'\n'/ }"; done < <(grep -E '^(audio|transcribed|DATE|DEF)' out.log | head -60)
-      - name: Show the transcript in the run summary
+      - name: Show transcript (compressed) in the run annotations
         run: |
+          gzip -9 -c out/transcript.txt | base64 -w0 > transcript.b64
           node -e '
-            const fs = require("fs");
-            const esc = (t) => t.replace(/%/g, "%25").replace(/\r/g, "").replace(/\n/g, "%0A");
-            for (const [file, label] of [["out/transcript.txt", "transcript"], ["out/engine.json", "engine"]]) {
-              const text = fs.readFileSync(file, "utf8");
-              for (let i = 0, n = 1; i < text.length; i += 12000, n++) {
-                console.log("::notice title=" + label + " " + n + "::" + esc(text.slice(i, i + 12000)));
-              }
-            }
+            const t = require("fs").readFileSync("transcript.b64", "utf8");
+            for (let i = 0, n = 1; i < t.length; i += 3500, n++) console.log("::notice title=transcript " + n + "::" + t.slice(i, i + 3500));
+          '
+      - name: Show engine (compressed) in the run annotations
+        run: |
+          gzip -9 -c out/engine.json | base64 -w0 > engine.b64
+          node -e '
+            const t = require("fs").readFileSync("engine.b64", "utf8");
+            for (let i = 0, n = 1; i < t.length; i += 3500, n++) console.log("::notice title=engine " + n + "::" + t.slice(i, i + 3500));
           '
       - uses: actions/upload-artifact@v4
         with:
