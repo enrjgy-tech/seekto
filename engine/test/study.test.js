@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import {
-  findDates, findEvents, parseICS, toICS, detectSubject, detectTopic, findDefinitions,
+  reviewPlan, findDates, findEvents, parseICS, toICS, detectSubject, detectTopic, findDefinitions,
   makeQuiz, checkAnswer, exportQuiz, parseCaptions,
 } from "../src/index.js";
 
@@ -94,9 +94,14 @@ test("finds definitions", () => {
 
 test("makes a mixed quiz and checks answers", () => {
   const notes = [{ title: "Bio", text: "Photosynthesis is the process plants use to turn light into sugar. Mitosis means one cell dividing into two identical cells." }];
-  const quiz = makeQuiz(notes, { count: 4 });
-  assert.equal(quiz.length, 4);
-  assert.equal(quiz[0].kind, "term");
+  // One question per definition, alternating direction; "flip" asks the other way round.
+  const quiz = makeQuiz(notes, { count: 4, seed: 7 });
+  assert.equal(quiz.length, 2);
+  assert.deepEqual(quiz.map((q) => q.kind).sort(), ["define", "term"]);
+  const flipped = makeQuiz(notes, { count: 4, seed: 7, flip: true });
+  assert.deepEqual(flipped.find((q) => q.answer === "Photosynthesis" || q.prompt === "Photosynthesis").kind, quiz.find((q) => q.answer === "Photosynthesis" || q.prompt === "Photosynthesis").kind === "term" ? "define" : "term");
+  // The same seed gives the same order
+  assert.deepEqual(makeQuiz(notes, { seed: 3 }), makeQuiz(notes, { seed: 3 }));
   assert.ok(checkAnswer("photosynthesis", "Photosynthesis"));
   assert.ok(checkAnswer("photosynthesys", "Photosynthesis"));
   assert.ok(!checkAnswer("mitosis", "Photosynthesis"));
@@ -135,4 +140,11 @@ test("one sentence with two deadlines gives two events", () => {
   assert.deepEqual(ev("Your lab report is due next Wednesday, and the essay is due October 30th."), [["2026-10-21", "Lab report due"], ["2026-10-30", "Essay due"]]);
   assert.deepEqual(ev("La tarea de química se entrega el 20 de octubre, y el proyecto vence en dos semanas."), [["2026-10-20", "Tarea de química"], ["2026-10-26", "Proyecto"]]);
   assert.deepEqual(ev("The quiz is Friday and the essay is due Monday."), [["2026-10-16", "Quiz"], ["2026-10-19", "Essay due"]]);
+});
+
+test("plans spaced reviews before a test", () => {
+  assert.deepEqual(reviewPlan("2026-10-23", "2026-10-12"), ["2026-10-16", "2026-10-20", "2026-10-22"]);
+  assert.deepEqual(reviewPlan("2026-10-16", "2026-10-12"), ["2026-10-14", "2026-10-15"]);
+  assert.deepEqual(reviewPlan("2026-10-14", "2026-10-12"), ["2026-10-13"]);
+  assert.deepEqual(reviewPlan("2026-10-13", "2026-10-12"), []);
 });

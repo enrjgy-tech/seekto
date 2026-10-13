@@ -61,7 +61,7 @@ const PRONOUN = /^(no|yes|sí|si|não|sim|it|it's|this|that|that's|these|those|t
 const NOT_TERM = /^(?:answer|point|thing|things|problem|idea|question|part|reason|key|goal|plan|rule|trick|difference|main|important|hard|easy|first|second|last|next|best|worst|only|whole|same|other|class|lecture|chapter|section|unit|grade|grades|deadline|due date|homework|reading|test|quiz|exam|essay|paper|project|lab|final|midterm|syllabus|room|book|textbook|slide|slides|example|short version|bottom line|catch|deal|story|goal|focus|topic|plan|schedule|today|tomorrow|tonight|week|weekend|semester|year|day|morning|afternoon|everyone|everybody|somebody|someone|nobody|people|guys|kids|class|teacher|professor|respuesta|pregunta|problema|idea|clase|tema|examen|prueba|tarea|trabajo|prova|aula|resposta|pergunta|matéria|semana|hoje|amanhã|mañana)$/iu;
 const EVENTISH = /(?<![\p{L}])(?:quiz|test|exam|midterm|final|essay|homework|assignment|deadline|due|lab report|examen|prueba|parcial|tarea|entrega|prova|teste|trabalho|seminário|relatório)(?![\p{L}])/iu;
 const NUMBERISH = /^(?:\d|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|a hundred|half|uno|dos|tres|um|dois|três)\b/i;
-const BAD_DEFINITION = /^(?:that|because|why|not|so|going|gonna|due|on|in|at|for|really|very|pretty|too|hard|easy|tough|fine|okay|ok|important|tricky|done|over|here|there|next|coming|up|out|back|cancelled|canceled|the part|the one|the hard|the easy|the best|the worst|the same|the answer|the reason|the problem|the point|the thing|the key|the main|the last|the first|the next|the deadline|the due date|a big|a lot|a good|a bad|a great|a hard|a tough|a pain|a problem|a bit|a little|my|your|our|his|her|their|yours|mine|worth|about|like|also|still|always|never|probably|definitely|el (?:próximo|lunes|martes|miércoles|jueves|viernes)|muy|importante|para|na|no|pra|o mais|a mais|isso|difícil|fácil|high|low|everywhere|something|anything|chapter|unit|page|section|one of the|part of|higher|lower|bigger|smaller|harder|easier|worse|better|more|less|great|huge|super|insane|wild|crazy|key|crucial|central|tested|on the test|in the|at the)\b/iu;
+const BAD_DEFINITION = /^(?:that|because|why|not|so|going|gonna|due|on|in|at|for|really|very|pretty|too|hard|easy|tough|fine|okay|ok|important|tricky|done|over|here|there|next|coming|up|out|back|cancelled|canceled|the part (?:everyone|people|you|that everyone|where you)|the one|the hard|the easy|the best|the worst|the same|the answer is|the reason (?:is|why)|the problem is|the point is|the thing is|the key is|the main thing|the last|the first|the next|the deadline|the due date|a big|a lot|a good|a bad|a great|a hard|a tough|a pain|a problem|a bit|a little|my|your|our|his|her|their|yours|mine|worth|about|like|also|still|always|never|probably|definitely|el (?:próximo|lunes|martes|miércoles|jueves|viernes)|muy|importante|para|na|no|pra|o mais|a mais|isso|difícil|fácil|high|low|everywhere|something|anything|chapter|unit|page|section|one of the|part of|higher|lower|bigger|smaller|harder|easier|worse|better|more|less|great|huge|super|insane|wild|crazy|key|crucial|central|tested|on the test|in the|at the)\b/iu;
 const LEAD = /^(?:so|and|okay|ok|now|remember|basically|right|alright|all right|well|um|uh|then|also|anyway|entonces|bueno|recuerden|recuerda|o sea|básicamente|pues|então|gente|tipo|bom|olha|lembrem|lembra)[,]?\s+/i;
 const FILLER = /,?\s*\b(?:um|uh|like|basically|you know|right|o sea|eh|este|tipo|gente|né|tá|in simple terms|simply put|put simply|in short|essentially|roughly|informally|técnicamente|digamos)\b\s*,/giu;
 
@@ -147,44 +147,77 @@ export function findDefinitions(text) {
 // Words that make poor fill-in-the-blank answers: classroom talk, not course content.
 const BLANK_SKIP = new Set("chapter chapters today tomorrow everyone class lesson lecture week weeks review quiz test exam homework page pages section unit tema clase examen semana hoy".split(" "));
 
+/** A small seeded random number generator, so a quiz can be shuffled the same way twice. */
+function seeded(seed) {
+  let a = seed >>> 0 || 1;
+  return () => { a = (a + 0x6d2b79f5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
+
+/** Shuffle a copy of a list. Pass a seed for the same order every time. */
+export function shuffle(list, seed = Date.now()) {
+  const rand = seeded(seed);
+  const out = [...list];
+  for (let i = out.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [out[i], out[j]] = [out[j], out[i]]; }
+  return out;
+}
+
 /**
  * Make quiz questions from notes ({ title, text }).
- * Definitions give two-way questions; other key sentences give fill-in-the-blank questions.
+ * Each definition gives one question, alternating "which term means..." and "what does X mean?"
+ * (flip: true swaps them, for a second round). Other key sentences give fill-in-the-blank questions.
+ * Questions are shuffled; pass a seed to get the same order again.
  */
-export function makeQuiz(notes, { count = 10 } = {}) {
-  const questions = [];
+export function makeQuiz(notes, { count = 10, flip = false, seed = Date.now() } = {}) {
+  const defs = [];
+  const blanks = [];
+  const usedTerms = new Set();
   for (const note of notes) {
-    for (const d of findDefinitions(note.text)) {
-      questions.push({ kind: "term", prompt: d.definition, answer: d.term, source: note.title });
-      questions.push({ kind: "define", prompt: d.term, answer: d.definition, source: note.title });
+    const found = findDefinitions(note.text);
+    found.forEach((d, i) => {
+      usedTerms.add(d.term.toLowerCase());
+      const asTerm = (i % 2 === 0) !== flip;
+      defs.push(asTerm ? { kind: "term", prompt: d.definition, answer: d.term, source: note.title } : { kind: "define", prompt: d.term, answer: d.definition, source: note.title });
+    });
+  }
+  for (const note of notes) {
+    const topicWords = new Set(tokens(note.topic || detectTopic(note.text)));
+    const definitionSentences = new Set(findDefinitions(note.text).map((d) => d.sentence));
+    for (const s of sentences(note.text)) {
+      if (s.length < 40 || s.length > 220 || definitionSentences.has(s)) continue;
+      if (/^(okay|ok|so|alright|right|hi|hello|good morning|bueno|hola|então|gente)\b/i.test(s) || /\?$/.test(s)) continue;
+      // Class logistics ("the quiz is on Friday") make poor questions.
+      if (/\b(due|quiz|test|exam|homework|deadline|examen|tarea|entrega|prova|trabalho)\b/i.test(s) || findDates(s).length) continue;
+      const parts = s.split(/(\s+)/);
+      // Blank out a defined term if the sentence uses one, else a topic word.
+      let idx = parts.findIndex((p) => usedTerms.has(p.replace(/[^\p{L}'-]/gu, "").toLowerCase()));
+      if (idx < 0) idx = parts.findIndex((p) => {
+        const w = p.trim().replace(/[^\p{L}'-]/gu, "").toLowerCase();
+        return w.length >= 4 && !BLANK_SKIP.has(w) && topicWords.has(tokens(p)[0]);
+      });
+      if (idx < 0) continue;
+      const answer = parts[idx].replace(/[^\p{L}\d'-]/gu, "");
+      parts[idx] = parts[idx].replace(answer, "_____");
+      blanks.push({ kind: "blank", prompt: parts.join(""), answer, source: note.title });
     }
   }
-  if (questions.length < count) {
-    for (const note of notes) {
-      const topicWords = new Set(tokens(note.topic || detectTopic(note.text)));
-      for (const s of sentences(note.text)) {
-        if (s.length < 40 || s.length > 220) continue;
-        const parts = s.split(/(\s+)/);
-        if (/^(okay|ok|so|alright|right|hi|hello|good morning|bueno|hola)\b/i.test(s) || /\?$/.test(s)) continue;
-        // Class logistics ("the quiz is on Friday") make poor questions.
-        if (/\b(due|quiz|test|exam|homework|deadline|examen|tarea|entrega)\b/i.test(s) || findDates(s).length) continue;
-        const idx = parts.findIndex((p) => {
-          const w = p.trim().replace(/[^\p{L}'-]/gu, "").toLowerCase();
-          return w.length >= 4 && !BLANK_SKIP.has(w) && topicWords.has(tokens(p)[0]);
-        });
-        if (idx < 0) continue;
-        const answer = parts[idx].replace(/[^\w'-]/g, "");
-        parts[idx] = parts[idx].replace(answer, "_____");
-        questions.push({ kind: "blank", prompt: parts.join(""), answer, source: note.title });
-        if (questions.length >= count * 2) break;
-      }
-    }
-  }
-  // Interleave kinds so a quiz doesn't start with ten of the same type.
-  const byKind = ["term", "define", "blank"].map((k) => questions.filter((q) => q.kind === k));
-  const mixed = [];
-  while (mixed.length < count && byKind.some((l) => l.length)) for (const l of byKind) if (l.length && mixed.length < count) mixed.push(l.shift());
-  return mixed;
+  // Definitions first in priority, then blanks; shuffle what's kept so the order isn't predictable.
+  const picked = [...shuffle(defs, seed), ...shuffle(blanks, seed + 1)].slice(0, count);
+  return shuffle(picked, seed + 2);
+}
+
+/**
+ * Spaced reviews before a test: a few short practice sessions, closer together near the day.
+ * Returns ISO dates strictly after today and before the test (up to three).
+ */
+export function reviewPlan(testISO, todayISO) {
+  const day = (iso) => { const [y, m, d] = iso.split("-").map(Number); return Date.UTC(y, m - 1, d) / 86400000; };
+  const gap = day(testISO) - day(todayISO);
+  if (gap < 2) return [];
+  const offsets = gap >= 8 ? [7, 3, 1] : gap >= 5 ? [4, 2, 1] : gap >= 3 ? [2, 1] : [1];
+  return offsets.filter((o) => o < gap).map((o) => {
+    const d = new Date((day(testISO) - o) * 86400000);
+    return d.toISOString().slice(0, 10);
+  });
 }
 
 function norm(text) {

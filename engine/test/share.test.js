@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { encodeShare, decodeShare, sharedToText, makeQuiz, findDefinitions } from "../src/index.js";
+import { encodeShare, decodeShare, cleanShared, sharedToText, makeQuiz, findDefinitions } from "../src/index.js";
 
 const text = "Mitosis means one cell dividing into two identical cells. Photosynthesis is the process plants use to turn light into sugar. A gene is a section of DNA that codes for a protein.";
 
@@ -33,4 +33,12 @@ test("a saved shared test becomes notes Seekto can quiz from again", () => {
   const questions = makeQuiz([{ title: "Cells", text }], { count: 6 });
   const again = findDefinitions(sharedToText({ questions })).map((d) => d.term).sort();
   assert.deepEqual(again, ["Gene", "Mitosis", "Photosynthesis"]);
+});
+
+test("carries the sender's score for 'beat my score', and ignores a bad one", async () => {
+  const questions = [{ kind: "term", prompt: "One cell dividing into two", answer: "Mitosis" }];
+  const back = await decodeShare(await encodeShare({ title: "Bio", questions, challenge: { got: 7, of: 10 } }));
+  assert.deepEqual(back.challenge, { got: 7, of: 10 });
+  assert.equal(cleanShared({ t: "x", q: [{ k: "term", p: "a", a: "b" }], c: [11, 10] }).challenge, undefined);
+  assert.equal(cleanShared({ t: "x", q: [{ k: "term", p: "a", a: "b" }], c: "7/10" }).challenge, undefined);
 });

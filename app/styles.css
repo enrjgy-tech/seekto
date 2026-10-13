@@ -199,3 +199,21 @@ ul.plain { margin: 0 0 6px; padding-left: 18px; display: grid; gap: 4px; }
 @keyframes pop { 0% { opacity: 0; transform: scale(.9); } 100% { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .live-line, .chip { animation: none; } }
 @media (max-width: 480px) { .qcard [data-answer] { flex-wrap: wrap; } .qcard [data-answer] input { flex: 1 1 100% !important; } .qcard [data-answer] .btn { flex: 1; } }
+
+/* Shared test: its own page, no app around it */
+body.standalone .app { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
+body.standalone .side, body.standalone .tabbar { display: none; }
+.view.shared { max-width: 640px; padding-bottom: 40px; gap: 16px; }
+.shared-head { display: grid; gap: 6px; }
+.shared-head h1 { font-size: 26px; }
+.shared-quiz { display: grid; gap: 14px; }
+.shared-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; border-top: 1px solid var(--line); padding-top: 14px; }
+.progress { height: 4px; border-radius: 999px; background: var(--raised); overflow: hidden; }
+.progress span { display: block; height: 100%; background: var(--fg); transition: width .2s; }
+.score { display: flex; justify-content: center; align-items: baseline; gap: 8px; padding: 10px 0 0; }
+.score b { font-size: 64px; line-height: 1; letter-spacing: -0.04em; }
+.score span { font-size: 22px; color: var(--muted); }
+.panel.plan, .panel.made { gap: 8px; }
+.day .ev.review, .event .kind.review { --c: var(--ok); }
+.day .ev.review { box-shadow: inset 2px 0 0 var(--ok); }
+.event .kind.review { color: var(--ok); }

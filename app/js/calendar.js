@@ -3,6 +3,7 @@ import { $, $$, html, raw, toast, download, readFile, friendlyDate } from "./ui.
 import { state, saveEvent, deleteEvent, hasEvent, today } from "./state.js";
 import { uid } from "./store.js";
 import { go } from "./nav.js";
+import { practiceNote } from "./quiz.js";
 import { parseICS, toICS, toISO, fromISO, describeDay } from "../engine/index.js";
 
 let month = null;
@@ -80,15 +81,17 @@ function drawMonth() {
   $("#monthLabel").textContent = month.toLocaleDateString(undefined, { month: "long", year: "numeric" });
   const start = new Date(month);
   start.setDate(1 - month.getDay());
-  const cells = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => `<div class="dow">${d}</div>`);
+  const cells = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => `<div class="dow" aria-hidden="true">${d}</div>`);
   for (let i = 0; i < 42; i++) {
     const day = new Date(start);
     day.setDate(start.getDate() + i);
     const iso = toISO(day);
     const evs = state.events.filter((e) => e.date === iso);
-    cells.push(html`<div class="day ${day.getMonth() !== month.getMonth() ? "other" : ""} ${iso === today() ? "today" : ""} ${evs.length ? "has" : ""}" title="${evs.map((e) => e.title).join(", ")}">
-      <span class="n">${day.getDate()}</span>${raw(evs.slice(0, 3).map((e) => html`<span class="ev ${e.type}">${e.title}</span>`).join(""))}</div>`);
+    const label = `${day.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}${evs.length ? `: ${evs.map((e) => e.title).join(", ")}` : ""}`;
+    cells.push(html`<div class="day ${day.getMonth() !== month.getMonth() ? "other" : ""} ${iso === today() ? "today" : ""} ${evs.length ? "has" : ""}" role="listitem" aria-label="${label}" ${raw(iso === today() ? 'aria-current="date"' : "")} title="${evs.map((e) => e.title).join(", ")}">
+      <span class="n" aria-hidden="true">${day.getDate()}</span>${raw(evs.slice(0, 3).map((e) => html`<span class="ev ${e.type}" aria-hidden="true">${e.title}</span>`).join(""))}</div>`);
   }
+  $("#grid").setAttribute("role", "list");
   $("#grid").innerHTML = cells.join("");
 }
 
@@ -99,10 +102,11 @@ function drawAgenda() {
     ? list.map((e) => html`<div class="event">
         <span class="when">${e.date >= now ? describeDay(e.date, now) : friendlyDate(e.date)}</span>
         <span>${e.title}${raw(e.noteId ? html` <a href="#note/${e.noteId}" class="note-small">from your notes</a>` : e.source === "import" ? ' <span class="note-small">imported</span>' : "")}</span>
-        <span class="row"><span class="kind ${e.type}">${e.type}</span><button class="btn ghost small" data-del="${e.id}" aria-label="Remove ${e.title}">Remove</button></span>
+        <span class="row">${raw(e.type === "review" && e.noteId ? html`<button class="btn small" data-practice="${e.noteId}">Practice</button>` : html`<span class="kind ${e.type}">${e.type}</span>`)}<button class="btn ghost small" data-del="${e.id}" aria-label="Remove ${e.title}">Remove</button></span>
       </div>`).join("")
     : `<p class="empty">Nothing coming up. Record a class, import your school calendar, or add a date.</p>`;
   $$("[data-del]").forEach((b) => b.addEventListener("click", async () => { await deleteEvent(b.dataset.del); drawAgenda(); drawMonth(); }));
+  $$("[data-practice]").forEach((b) => b.addEventListener("click", () => practiceNote(b.dataset.practice)));
 }
 
 export { go, fromISO };

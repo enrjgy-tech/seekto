@@ -28,12 +28,17 @@ export function cleanShared(value) {
     .slice(0, MAX_QUESTIONS)
     .map((q) => ({ kind: q.k, prompt: str(q.p, 600), answer: str(q.a, 400) }));
   if (!questions.length) throw new Error("This link doesn't contain a practice test.");
-  return { title: str(value.t, 120) || "Practice test", questions };
+  const out = { title: str(value.t, 120) || "Practice test", questions };
+  // "Beat my score": how the person who sent the link did
+  const [got, of] = Array.isArray(value.c) ? value.c.map(Number) : [];
+  if (Number.isInteger(got) && Number.isInteger(of) && of > 0 && got >= 0 && got <= of && of <= MAX_QUESTIONS) out.challenge = { got, of };
+  return out;
 }
 
-/** Questions ({ kind, prompt, answer }) and a title -> the part of a link after "#s=". */
-export async function encodeShare({ title, questions }) {
+/** Questions ({ kind, prompt, answer }), a title and optionally the sender's score -> the part of a link after "#s=". */
+export async function encodeShare({ title, questions, challenge = null }) {
   const value = { v: 1, t: str(title, 120), q: questions.slice(0, MAX_QUESTIONS).map((q) => ({ k: q.kind, p: str(q.prompt, 600), a: str(q.answer, 400) })) };
+  if (challenge) value.c = [challenge.got, challenge.of];
   return toBase64Url(await pipe(new TextEncoder().encode(JSON.stringify(value)), new CompressionStream("deflate-raw")));
 }
 
