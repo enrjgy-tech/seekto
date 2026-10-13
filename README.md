@@ -33,6 +33,7 @@ Two kinds of numbers, and the first one matters more.
 | Definitions, 2 lectures scored blind before any fix | 15 | 0 of the 8 real ones found |
 | Definitions, 23 lectures after the rules learned from them (tuned, so read with care) | 127 | 57 (45%), 57 of 82 real ones found |
 | Definitions, 2 more lectures scored blind after that | 11 | 5 (45%), 5 of 9 real ones found |
+| Definitions, 8 more lectures scored blind (third test, before any fix) | 35 | 16 (46%); recall not measured |
 | Deadlines, the same 23 lectures | 9 at first contact, 2 after general fixes | 3 real deadlines existed: 3 found with 6 wrong, then 2 found with 0 wrong |
 
 So on a real lecture, roughly half of the definitions Seekto suggests are real, and it finds about half of the real ones. That is why a recorded class shows them as suggestions you keep or dismiss; only kept ones become flashcards. Deadlines look solid, but lectures carry few of them, so the quoted-lecture set below is the better test for those.
