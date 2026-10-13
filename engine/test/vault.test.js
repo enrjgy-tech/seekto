@@ -70,9 +70,9 @@ test("recording bytes round-trip", async () => {
   assert.deepEqual(await openBytes(a, "p", 2, body), bytes);
 });
 
-test("both screens get the same 4-digit match code", async () => {
+test("both screens get the same 6-digit match code", async () => {
   const code = await matchCode("AA:11|BB:22", webcrypto);
-  assert.match(code, /^\d{4}$/);
+  assert.match(code, /^\d{6}$/);
   assert.equal(code, await matchCode("AA:11|BB:22", webcrypto));
   assert.notEqual(code, await matchCode("AA:11|CC:33", webcrypto));
 });

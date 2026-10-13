@@ -214,7 +214,7 @@ function fromDevice() {
     const out = $("#askStatus", sheet);
     try {
       const { code, result } = await requestAccount(b.dataset.peer);
-      out.innerHTML = html`<p class="sub">On <b>${b.textContent.replace("● Connected", "").trim()}</b>, check that it shows</p><div class="mono" style="font-size:40px;letter-spacing:0.2em;text-align:center">${code}</div><p class="sub">then tap Allow there.</p>`;
+      out.innerHTML = html`<p class="sub">On <b>${b.textContent.replace("● Connected", "").trim()}</b>, check that it shows</p><div class="mono" style="font-size:40px;letter-spacing:0.2em;text-align:center">${code.slice(0, 3)} ${code.slice(3)}</div><p class="sub">then tap Allow there.</p>`;
       const got = await result;
       out.innerHTML = `<p class="note-small">Connecting to your storage…</p>`;
       const a = await connectAccount(got);
@@ -233,7 +233,7 @@ export function askToShareAccount({ name, code, respond }) {
   sheet.innerHTML = html`
     <div class="view-head"><h2>${name} is asking for your account</h2></div>
     <p class="sub">It will be able to read and change everything in your storage. Only allow it if it's your device and it shows this number:</p>
-    <div class="mono" style="font-size:40px;letter-spacing:0.2em;text-align:center;padding:8px 0">${code}</div>
+    <div class="mono" style="font-size:40px;letter-spacing:0.2em;text-align:center;padding:8px 0">${code.slice(0, 3)} ${code.slice(3)}</div>
     <div class="row"><button class="btn" data-allow>Allow</button><button class="btn ghost" data-deny>Don't allow</button></div>`;
   $("[data-allow]", sheet).addEventListener("click", () => { respond(true); closeOverlay(); toast(`Sent to ${name}`); });
   $("[data-deny]", sheet).addEventListener("click", () => closeOverlay());

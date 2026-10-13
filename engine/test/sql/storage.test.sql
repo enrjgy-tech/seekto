@@ -8,6 +8,7 @@ declare
   t text := repeat('b', 64);
   i text := repeat('1', 40);
   r jsonb;
+  n int;
 begin
   begin
     perform count(*) from public.seekto_items;
@@ -34,5 +35,16 @@ begin
   exception when insufficient_privilege then null;
   end;
   perform public.seekto_forget(a, t);
+  -- Only a limited number of accounts can be created with the public browser key
+  for n in 1..public.seekto_max_accounts() loop
+    perform public.seekto_register(lpad(to_hex(n), 32, '0'), t);
+  end loop;
+  begin
+    perform public.seekto_register(repeat('f', 32), t);
+    raise exception 'FAIL: more accounts than the limit';
+  exception when sqlstate '53400' then null;
+  end;
+  -- an existing account can still sign in
+  perform public.seekto_register(lpad(to_hex(1), 32, '0'), t);
   raise notice 'storage checks passed';
 end $$;

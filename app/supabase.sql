@@ -52,6 +52,13 @@ create or replace function public.seekto_info() returns jsonb
 language sql stable set search_path = public, pg_temp
 as $$ select jsonb_build_object('app', 'seekto', 'schema', 1) $$;
 
+-- How many Seekto accounts this database accepts. The app's browser key is not a secret (it is
+-- in your recovery kit and on every device you add), so without a limit anyone holding it could
+-- create accounts and fill your free storage. Raise it if more people share this project.
+create or replace function public.seekto_max_accounts() returns int
+language sql immutable set search_path = pg_catalog
+as $$ select 10 $$;
+
 -- Claim an account id with a write token. Only someone with the account key can derive both.
 create or replace function public.seekto_register(p_account text, p_token text) returns jsonb
 language plpgsql security definer set search_path = public, pg_temp
@@ -61,6 +68,10 @@ declare
 begin
   if length(p_token) <> 64 then
     raise exception 'seekto: bad token' using errcode = '22023';
+  end if;
+  if not exists (select 1 from seekto_accounts where account_id = p_account)
+     and (select count(*) from seekto_accounts) >= seekto_max_accounts() then
+    raise exception 'seekto: this storage already has the most accounts it allows' using errcode = '53400';
   end if;
   insert into seekto_accounts (account_id, token_hash) values (p_account, seekto_hash(p_token))
   on conflict (account_id) do nothing;

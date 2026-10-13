@@ -154,3 +154,26 @@ export async function proof(secret, nonce, crypto = globalThis.crypto, { channel
   const hash = await crypto.subtle.digest("SHA-256", data);
   return [...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
+
+// ---------- Checking a first pairing with a number on both screens ----------
+// The pairing code travels through a public message service, so on its own it can't stop someone
+// who runs that service from sitting in the middle. Both devices therefore show a 6-digit number
+// made from random values that each side committed to before seeing the other's, plus this
+// connection's own fingerprints. Someone in the middle would get two different connections and,
+// because of the commitments, only a one-in-a-million chance of making the numbers match.
+
+const hex = (buf) => [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
+const sha = async (text, crypto) => crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+
+/** The commitment the device that joins sends first: a hash of its random value. */
+export async function sasCommit(random, crypto = globalThis.crypto) {
+  return hex(await sha(`seekto/sas-commit|${random}`, crypto));
+}
+
+/** The 6-digit number both screens show, as "123 456". */
+export async function sasCode(joinerRandom, hostRandom, binding, crypto = globalThis.crypto) {
+  const h = new Uint8Array(await sha(`seekto/sas|${joinerRandom}|${hostRandom}|${binding}`, crypto));
+  const n = (((h[0] << 24) | (h[1] << 16) | (h[2] << 8) | h[3]) >>> 0) % 1000000;
+  const s = String(n).padStart(6, "0");
+  return `${s.slice(0, 3)} ${s.slice(3)}`;
+}

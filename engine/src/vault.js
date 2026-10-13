@@ -111,8 +111,9 @@ export async function openItem(acct, id, version, body) {
   return JSON.parse(new TextDecoder().decode(await openBytes(acct, id, version, body)));
 }
 
-/** A 4-digit code both screens show, so you can check they're talking to each other. */
+/** A 6-digit code both screens show, so you can check they're talking to each other. */
 export async function matchCode(binding, crypto = globalThis.crypto) {
   const h = new Uint8Array(await crypto.subtle.digest("SHA-256", enc.encode(`seekto/match/${binding}`)));
-  return String(((h[0] << 8) | h[1]) % 10000).padStart(4, "0");
+  const n = ((h[0] << 24) | (h[1] << 16) | (h[2] << 8) | h[3]) >>> 0;
+  return String(n % 1000000).padStart(6, "0");
 }

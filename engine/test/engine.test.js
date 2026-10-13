@@ -70,3 +70,16 @@ test("reads YouTube links", () => {
   assert.equal(videoId("not a link"), null);
   assert.equal(watchUrl("dQw4w9WgXcQ", 61.9), "https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=61s");
 });
+
+test("first pairing: both screens show the same 6-digit number, tied to the connection", async () => {
+  const { sasCommit, sasCode } = await import("../src/index.js");
+  const { webcrypto } = await import("node:crypto");
+  const c = await sasCommit("joiner-random", webcrypto);
+  assert.equal(c.length, 64);
+  assert.notEqual(c, await sasCommit("other", webcrypto));
+  const a = await sasCode("joiner-random", "host-random", "AA|BB", webcrypto);
+  assert.match(a, /^\d{3} \d{3}$/);
+  assert.equal(a, await sasCode("joiner-random", "host-random", "AA|BB", webcrypto));
+  // A different connection (someone in the middle) gives a different number
+  assert.notEqual(a, await sasCode("joiner-random", "host-random", "AA|CC", webcrypto));
+});

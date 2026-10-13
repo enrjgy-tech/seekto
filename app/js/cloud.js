@@ -51,6 +51,7 @@ export function supabase(url, apiKey) {
     if (code === "PGRST202" || res.status === 404) throw new Error("Seekto's setup script hasn't been run in this project yet. Run it in the SQL Editor, then try again.");
     if (res.status === 401 && !message.includes("seekto")) throw new Error("Supabase didn't accept that API key. Use the project's publishable (or anon) key.");
     if (message.includes("seekto: wrong account or token")) { const e = new Error("This account isn't on your storage any more. It may have been deleted, or its key changed on another device."); e.gone = true; throw e; }
+    if (message.includes("seekto: this storage already has the most accounts")) throw new Error("This storage already has the most accounts it allows (10). To add more, change seekto_max_accounts in the setup script and run it again.");
     throw new Error(message || `Supabase returned an error (${res.status}).`);
   }
   return {

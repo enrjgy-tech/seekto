@@ -233,3 +233,4 @@ details.more[open] > summary h2::before { content: "▾ "; }
 /* Dates inside a note's side panel: the date above the title, so titles don't wrap a word per line */
 #noteEvents .event { grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; }
 #noteEvents .event .when { grid-column: 1 / -1; font-size: 12px; }
+.check-number { font-size: 36px; letter-spacing: 0.12em; text-align: center; padding: 6px 0; color: var(--fg); }

@@ -5,13 +5,14 @@
 //    Only connection setup goes through it: who wants to connect and how to reach each other.
 // 2. The devices then open a direct, encrypted WebRTC connection. Notes, recordings, the
 //    calendar and assignments travel over that connection, never through the server.
-// 3. A first pairing needs the 6-letter code and a tap on "Allow" on the device showing it.
+// 3. A first pairing needs the 6-letter code, the same 6-digit number on both screens, and a tap
+//    on "Allow" on the device showing the code.
 //    Paired devices share a secret and reconnect on their own, proving the secret each time.
 import { state, saveNote, saveEvent, saveProject, deleteNote, deleteEvent, deleteProject } from "./state.js";
 import { all, put, get, audioIds } from "./store.js";
 import { account } from "./cloud.js";
 import {
-  makeCode, normalizeCode, isValidCode, randomId, manifest, outgoing, incoming, frames, makeAssembler, deviceName, proof, channelBinding, matchCode, STORES,
+  makeCode, normalizeCode, isValidCode, randomId, manifest, outgoing, incoming, frames, makeAssembler, deviceName, proof, channelBinding, matchCode, sasCommit, sasCode, STORES,
 } from "../engine/index.js";
 
 const ICE = [{ urls: "stun:stun.l.google.com:19302" }, { urls: "stun:stun.cloudflare.com:3478" }];
@@ -247,7 +248,7 @@ async function applyRecords(link, msg) {
   if (count) window.dispatchEvent(new CustomEvent("seekto:synced", { detail: { from: link.peer.name, count } }));
 }
 
-// The 4-digit code both ends of a connection show, from the connection's own fingerprints.
+// The 6-digit code both ends of a connection show, from the connection's own fingerprints.
 function linkCode(link) {
   return matchCode(channelBinding(link.pc.localDescription?.sdp, link.pc.remoteDescription?.sdp));
 }
@@ -289,42 +290,61 @@ function register(link) {
 }
 
 // ---------- Pairing with a code ----------
+/** The next message of this type on a link, or an error after a while. */
+function next(link, type, ms = 20000) {
+  return new Promise((resolve, reject) => {
+    link.on(type, resolve);
+    setTimeout(() => reject(new Error("The other device stopped answering. Try again.")), ms);
+  });
+}
+const bindingOf = (link) => channelBinding(link.pc.localDescription?.sdp, link.pc.remoteDescription?.sdp);
+
 /**
- * Show a code on this device. Calls ui.onCode(code), ui.onRequest({ name }) -> Promise<boolean>,
- * ui.onPaired(peer), ui.onError(err). Returns a cancel function.
+ * Show a code on this device. Calls ui.onCode(code), ui.onRequest({ name, check }) -> Promise<boolean>
+ * where `check` is the 6-digit number the other device must also show, ui.onPaired(peer),
+ * ui.onError(err). Returns a cancel function.
  */
 export function hostPairing(ui) {
   const code = makeCode();
   const topicName = `seekto-pair-${code}`;
   let link = null;
   let done = false;
-  let asking = false;
   let answered = false;
   const denied = new Set();
   const topic = new Topic(topicName, async (msg) => {
     if (done) return;
-    if (msg.type === "hello" && !link && !asking && !denied.has(msg.from)) {
-      asking = true;
-      const ok = await ui.onRequest({ name: msg.name });
-      asking = false;
-      if (done) return;
-      if (!ok) { denied.add(msg.from); Topic.send(topicName, { type: "denied", to: msg.from }); return; }
+    if (msg.type === "hello" && !link && !denied.has(msg.from)) {
       const peer = { id: msg.from, name: msg.name };
-      link = new Link({ peer, initiator: false, sendSignal: (m) => Topic.send(topicName, { ...m, to: peer.id }) });
+      answered = false;
+      const current = (link = new Link({ peer, initiator: false, sendSignal: (m) => Topic.send(topicName, { ...m, to: peer.id }) }));
       Topic.send(topicName, { type: "welcome", to: peer.id, name: me().name });
-      link.opened.then(() => {
+      try {
+        await current.opened;
+        // Commit-then-reveal: the other device committed to its random value before seeing ours.
+        const commit = await next(current, "sas-commit");
+        const mine = randomId(16);
+        current.send({ type: "sas-host", random: mine });
+        const reveal = await next(current, "sas-reveal");
+        if (!reveal.random || (await sasCommit(reveal.random)) !== commit.value) throw new Error("The other device's check didn't add up, so it wasn't connected.");
+        const check = await sasCode(reveal.random, mine, bindingOf(current));
+        const ok = await ui.onRequest({ name: peer.name, check });
+        if (done || link !== current) return;
+        if (!ok) { denied.add(peer.id); current.send({ type: "denied" }); current.close(); link = null; return; }
         const secret = randomId(24);
-        link.send({ type: "pair", secret, id: me().id, name: me().name });
-        link.on("paired", () => {
+        current.on("paired", () => {
           done = true;
           savePaired([...paired().filter((p) => p.id !== peer.id), { ...peer, secret, lastSync: null }]);
-          link.authed = true;
-          register(link);
-          startSync(link);
+          current.authed = true;
+          register(current);
+          startSync(current);
           topic.close();
           ui.onPaired(peer);
         });
-      }).catch((err) => ui.onError(err));
+        current.send({ type: "pair", secret, id: me().id, name: me().name });
+      } catch (err) {
+        if (link === current) { current.close(); link = null; }
+        if (!done) ui.onError(err);
+      }
     } else if (msg.type === "offer" && link && !answered && msg.to === me().id && msg.from === link.peer.id) {
       answered = true;
       link.answer(msg.sdp).catch((err) => ui.onError(err));
@@ -335,7 +355,10 @@ export function hostPairing(ui) {
   return () => { done = true; clearTimeout(expiry); topic.close(); if (link && !link.authed) link.close(); };
 }
 
-/** Enter a code shown on another device. ui: onWaiting(), onPaired(peer), onError(err). Returns cancel. */
+/**
+ * Enter a code shown on another device. ui: onWaiting(), onCheck(check) with the 6-digit number to
+ * compare, onPaired(peer), onError(err). Returns cancel.
+ */
 export function joinPairing(input, ui) {
   const code = normalizeCode(input);
   if (!isValidCode(code)) { ui.onError(new Error("Codes are 6 letters and numbers, like K7M2P9.")); return () => {}; }
@@ -350,6 +373,7 @@ export function joinPairing(input, ui) {
       clearInterval(helloTimer);
       const peer = { id: msg.from, name: msg.name };
       link = new Link({ peer, initiator: true, sendSignal: (m) => Topic.send(topicName, { ...m, to: peer.id }) });
+      link.on("denied", () => { done = true; topic.close(); ui.onError(new Error("The other device said no.")); link.close(); });
       link.on("pair", (m) => {
         done = true;
         savePaired([...paired().filter((p) => p.id !== peer.id), { ...peer, name: m.name, secret: m.secret, lastSync: null }]);
@@ -360,7 +384,13 @@ export function joinPairing(input, ui) {
         topic.close();
         ui.onPaired(peer);
       });
-      link.opened.catch((err) => ui.onError(err));
+      link.opened.then(async () => {
+        const mine = randomId(16);
+        link.send({ type: "sas-commit", value: await sasCommit(mine) });
+        const host = await next(link, "sas-host");
+        link.send({ type: "sas-reveal", random: mine });
+        ui.onCheck?.(await sasCode(mine, host.random, bindingOf(link)));
+      }).catch((err) => ui.onError(err));
       link.offer().catch((err) => ui.onError(err));
     }
     if (msg.type === "answer" && link && msg.from === link.peer.id && !link.pc.remoteDescription) link.accept(msg.sdp).catch((err) => ui.onError(err));

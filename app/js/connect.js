@@ -59,9 +59,10 @@ export function openConnect(mode = "choose") {
         $("#codeBox", sheet).textContent = `${code.slice(0, 3)} ${code.slice(3)}`;
         $("#codeStatus", sheet).textContent = "Waiting for your other device. The code works for 10 minutes.";
       },
-      onRequest({ name }) {
+      onRequest({ name, check }) {
         return new Promise((resolve) => {
-          $("#request", sheet).innerHTML = html`<div class="qcard"><b>${name} wants to connect.</b><p class="sub">Only allow it if it's your device. It will get a copy of your notes, recordings, calendar and assignments.</p><div class="row"><button class="btn" data-allow>Allow</button><button class="btn ghost" data-deny>Don't allow</button></div></div>`;
+          $("#request", sheet).innerHTML = html`<div class="qcard"><b>${name} wants to connect.</b><p class="sub">Check that it shows the same number:</p><div class="mono check-number">${check}</div><p class="sub">Allow only if the numbers match and it's your device. It will get a copy of your notes, recordings, calendar and assignments.</p><div class="row"><button class="btn" data-allow>The numbers match, allow</button><button class="btn ghost" data-deny>Don't allow</button></div></div>`;
+          $("[data-allow]", sheet).focus();
           $("[data-allow]", sheet).addEventListener("click", () => { $("#request", sheet).innerHTML = `<p class="note-small">Connecting…</p>`; resolve(true); });
           $("[data-deny]", sheet).addEventListener("click", () => { $("#request", sheet).innerHTML = ""; resolve(false); });
         });
@@ -76,7 +77,7 @@ export function openConnect(mode = "choose") {
       <div class="view-head"><h2>Enter a code</h2><button class="btn ghost small" data-close>Close</button></div>
       <p class="sub">On your other device, open Seekto, choose <b>Connect a device</b>, then <b>Show a code</b>.</p>
       <form id="codeForm" class="row"><input type="text" id="codeIn" maxlength="9" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="K7M 2P9" aria-label="Code" class="mono" style="flex:1;font-size:24px;letter-spacing:0.15em;text-transform:uppercase"><button class="btn">Connect</button></form>
-      <p class="note-small" id="joinStatus"></p>`;
+      <p class="note-small" id="joinStatus" role="status" aria-live="polite" style="display:grid;gap:6px"></p>`;
     wire();
     $("#codeIn", sheet).focus();
     $("#codeForm", sheet).addEventListener("submit", (e) => {
@@ -84,7 +85,10 @@ export function openConnect(mode = "choose") {
       cancel?.();
       $("#joinStatus", sheet).textContent = "Looking for the other device…";
       cancel = joinPairing($("#codeIn", sheet).value, {
-        onWaiting() { $("#joinStatus", sheet).textContent = "Found the code. Tap Allow on the other device."; },
+        onWaiting() { $("#joinStatus", sheet).textContent = "Looking for the device showing the code…"; },
+        onCheck(check) {
+          $("#joinStatus", sheet).innerHTML = html`<span class="sub">Check that the other device shows this number, then tap Allow there:</span><span class="mono check-number">${check}</span>`;
+        },
         onPaired(peer) { done(peer); },
         onError(err) { $("#joinStatus", sheet).textContent = err.message; },
       });
