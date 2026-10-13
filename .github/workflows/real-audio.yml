@@ -35,7 +35,9 @@ jobs:
         run: |
           url="$AUDIO_URL"
           if [ -z "$url" ]; then
-            curl -fsSL "$PAGE" -o page.html
+            code=$(curl -sSL -A "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/124 Safari/537.36" -w '%{http_code}' "$PAGE" -o page.html || true)
+            echo "::notice::page status $code, $(wc -c < page.html) bytes"
+            [ "$code" = 200 ] || { echo "::error::could not load the page (HTTP $code); pass audio_url instead"; exit 1; }
             url=$(grep -oE 'https://[^"\\ ]+\.(mp3|mp4|m4a)' page.html | grep -v -i trailer | head -1 || true)
             if [ -z "$url" ]; then
               echo "::error::no mp3/mp4 link on the page; links seen:"
@@ -44,7 +46,7 @@ jobs:
             fi
           fi
           echo "::notice::recording: $url"
-          curl -fsSL "$url" -o lecture.src
+          curl -fsSL -A "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/124 Safari/537.36" "$url" -o lecture.src
           ls -l lecture.src
       - name: Convert to 16 kHz mono
         run: |
