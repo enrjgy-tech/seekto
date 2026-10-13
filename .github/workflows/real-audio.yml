@@ -1,13 +1,15 @@
 name: Real audio
 
-# Manual only. Takes a real, openly licensed lecture recording (by default MIT 14.01 lecture 1), runs it through Whisper and the
-# engine exactly as the app does, and saves the transcript and what the engine found as a build
-# artifact. Nothing from the recording is committed. See engine/bench/README.md.
+# Manual only. Takes real, openly licensed lecture recordings (by default MIT 14.01 lecture 1),
+# runs each through Whisper and the engine exactly as the app does, and saves the transcript and
+# what the engine found as a build artifact (and, compressed, in the run's annotations).
+# Nothing from a recording is committed. Put the word "search" in `urls` to list recordings on the
+# Internet Archive instead. See engine/bench/README.md.
 on:
   workflow_dispatch:
     inputs:
-      audio_url:
-        description: Direct link to a recording (MIT 14.01 Fall 2018, lecture 1, from the Internet Archive; CC BY-NC-SA)
+      urls:
+        description: Direct links to recordings, separated by spaces (Internet Archive copies of MIT OpenCourseWare lectures, CC BY-NC-SA)
         default: https://archive.org/download/MIT14.01F18/MIT14_01F18_lec01_300k.mp4
       model:
         description: Whisper model
@@ -17,9 +19,45 @@ permissions:
   contents: read
 
 jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.m.outputs.matrix }}
+      search: ${{ steps.m.outputs.search }}
+    steps:
+      - id: m
+        env:
+          URLS: ${{ inputs.urls }}
+        run: |
+          if [ "$URLS" = "search" ]; then echo "search=yes" >> "$GITHUB_OUTPUT"; echo 'matrix=[]' >> "$GITHUB_OUTPUT"; exit 0; fi
+          echo "search=no" >> "$GITHUB_OUTPUT"
+          echo "matrix=$(printf '%s\n' $URLS | jq -R . | jq -sc .)" >> "$GITHUB_OUTPUT"
+
+  search:
+    needs: plan
+    if: needs.plan.outputs.search == 'yes'
+    runs-on: ubuntu-latest
+    steps:
+      - name: List MIT OpenCourseWare items on the Internet Archive
+        run: |
+          for q in 'creator:"MIT OpenCourseWare" AND mediatype:movies' 'title:(MIT) AND (lecture OR "Fall 2018" OR "Spring 2018" OR "Fall 2017") AND mediatype:movies' 'identifier:MIT*F1*'; do
+            curl -sSL -G 'https://archive.org/advancedsearch.php' --data-urlencode "q=$q" --data-urlencode 'fl[]=identifier' --data-urlencode 'fl[]=title' --data-urlencode 'rows=60' --data-urlencode 'output=json' -o ia.json
+            node -e '
+              const d = JSON.parse(require("fs").readFileSync("ia.json", "utf8")).response;
+              const t = d.docs.map((x) => x.identifier + " = " + x.title).join(" | ");
+              for (let i = 0; i < t.length; i += 3500) console.log("::notice::" + t.slice(i, i + 3500));
+            '
+          done
+
   transcribe:
+    needs: plan
+    if: needs.plan.outputs.search == 'no'
     runs-on: ubuntu-latest
     timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        url: ${{ fromJson(needs.plan.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -27,7 +65,7 @@ jobs:
           node-version: 22
       - name: Download the recording
         env:
-          AUDIO_URL: ${{ inputs.audio_url }}
+          AUDIO_URL: ${{ matrix.url }}
         run: |
           echo "::notice::recording: $AUDIO_URL"
           curl -fsSL -A "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/124 Safari/537.36" "$AUDIO_URL" -o lecture.src
@@ -41,22 +79,17 @@ jobs:
         run: |
           npm install --no-save --no-package-lock @huggingface/transformers@3.0.2
           node test/real-audio.mjs lecture.wav out "${{ inputs.model }}" | tee out.log
-          while IFS= read -r line; do echo "::notice::${line//$'\n'/ }"; done < <(grep -E '^(audio|transcribed|DATE|DEF)' out.log | head -60)
-      - name: Show transcript (compressed) in the run annotations
+      - name: Show the transcript (compressed) in the run annotations
+        env:
+          AUDIO_URL: ${{ matrix.url }}
         run: |
           gzip -9 -c out/transcript.txt | base64 -w0 > transcript.b64
           node -e '
             const t = require("fs").readFileSync("transcript.b64", "utf8");
-            for (let i = 0, n = 1; i < t.length; i += 3500, n++) console.log("::notice title=transcript " + n + "::" + t.slice(i, i + 3500));
-          '
-      - name: Show engine (compressed) in the run annotations
-        run: |
-          gzip -9 -c out/engine.json | base64 -w0 > engine.b64
-          node -e '
-            const t = require("fs").readFileSync("engine.b64", "utf8");
-            for (let i = 0, n = 1; i < t.length; i += 3500, n++) console.log("::notice title=engine " + n + "::" + t.slice(i, i + 3500));
+            const tag = process.env.AUDIO_URL.split("/").pop();
+            for (let i = 0, n = 1; i < t.length; i += 3500, n++) console.log("::notice title=" + tag + " " + n + "::" + t.slice(i, i + 3500));
           '
       - uses: actions/upload-artifact@v4
         with:
-          name: real-audio-result
+          name: real-audio-${{ strategy.job-index }}
           path: out/
