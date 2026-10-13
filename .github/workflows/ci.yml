@@ -52,8 +52,8 @@ jobs:
         run: node test/smoke.mjs
       - name: Private transcription loads from the site alone and runs Whisper
         run: |
-          sudo apt-get install -y -qq espeak-ng > /dev/null
-          espeak-ng -v en-us -s 130 -w /tmp/speech.wav "Your chemistry test is on Friday."
+          sudo apt-get install -y -qq espeak-ng mbrola mbrola-us1 > /dev/null || sudo apt-get install -y -qq espeak-ng > /dev/null
+          espeak-ng -v mb-us1 -s 130 -w /tmp/speech.wav "Your chemistry test is on Friday." || espeak-ng -v en-us -s 130 -w /tmp/speech.wav "Your chemistry test is on Friday."
           SPEECH_WAV=/tmp/speech.wav node test/whisper.mjs
 
   storage-sql:

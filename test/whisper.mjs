@@ -92,42 +92,46 @@ try {
   console.log(`${lib === "function" ? "ok  " : "FAIL"} the page can load Transformers.js from this site`);
   failed ||= lib !== "function";
   // 2. Seekto's worker loads Whisper and transcribes the speech (or, without a recording, a quiet tone)
-  const result = await page.evaluate(
-    (samples) =>
-      new Promise((resolve) => {
-        const w = new Worker("./js/asr-worker.js", { type: "module" });
-        const audio = samples
-          ? Float32Array.from(samples)
-          : new Float32Array(32000).map((_, i) => 0.01 * Math.sin(i / 8));
-        const timer = setTimeout(() => resolve({ error: "timed out" }), 240000);
-        w.onmessage = ({ data }) => {
-          if (data.type === "ready")
-            w.postMessage({ type: "run", model: "Xenova/whisper-tiny", audio, language: "english" });
-          if (data.type === "result") {
+  const transcribe = (model) =>
+    page.evaluate(
+      ([samples, model]) =>
+        new Promise((resolve) => {
+          const w = new Worker("./js/asr-worker.js", { type: "module" });
+          const audio = samples
+            ? Float32Array.from(samples)
+            : new Float32Array(32000).map((_, i) => 0.01 * Math.sin(i / 8));
+          const timer = setTimeout(() => resolve({ error: "timed out" }), 240000);
+          w.onmessage = ({ data }) => {
+            if (data.type === "ready") w.postMessage({ type: "run", model, audio, language: "english" });
+            if (data.type === "result") {
+              clearTimeout(timer);
+              resolve({ ok: true, text: String(data.output?.text ?? "") });
+            }
+            if (data.type === "error") {
+              clearTimeout(timer);
+              resolve({ error: data.message });
+            }
+          };
+          w.onerror = (e) => {
             clearTimeout(timer);
-            resolve({ ok: true, text: String(data.output?.text ?? "") });
-          }
-          if (data.type === "error") {
-            clearTimeout(timer);
-            resolve({ error: data.message });
-          }
-        };
-        w.onerror = (e) => {
-          clearTimeout(timer);
-          resolve({ error: e.message || "worker failed" });
-        };
-        w.postMessage({ type: "load", model: "Xenova/whisper-tiny" });
-      }),
-    speech,
-  );
+            resolve({ error: e.message || "worker failed" });
+          };
+          w.postMessage({ type: "load", model });
+        }),
+      [speech, model],
+    );
+  const result = await transcribe("Xenova/whisper-tiny");
   console.log(
     `${result.ok ? "ok  " : "FAIL"} Whisper runs in Seekto's worker${result.ok ? `: "${result.text.trim()}"` : `: ${result.error}`}`,
   );
   failed ||= !result.ok;
   if (speech && result.ok) {
-    const heard = /test/i.test(result.text) && /friday/i.test(result.text);
+    // Tiny ("Fast") is reported; Base ("Better") must get the words, and the date onto the calendar
+    const better = await transcribe("Xenova/whisper-base");
+    console.log(`${better.ok ? "ok  " : "FAIL"} Whisper base: "${(better.text || better.error || "").trim()}"`);
+    const heard = better.ok && /test/i.test(better.text) && /friday/i.test(better.text);
     console.log(`${heard ? "ok  " : "FAIL"} the spoken words come back ("test", "Friday")`);
-    const events = findEvents(result.text, { ref: new Date(2026, 9, 12, 12), locale: "en-US" });
+    const events = findEvents(better.text || "", { ref: new Date(2026, 9, 12, 12), locale: "en-US" });
     const onCalendar = events.some((e) => e.date === "2026-10-16" && e.type === "test");
     console.log(
       `${onCalendar ? "ok  " : "FAIL"} sound to calendar: ${JSON.stringify(events.map((e) => [e.date, e.title]))}`,
