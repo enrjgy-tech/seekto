@@ -1,11 +1,11 @@
 // "Paste notes or a syllabus": for anyone who can't record (school rules, a blocked microphone)
 // or already has the text. Seekto finds the dates and the terms and makes a practice test.
-import { $, html, raw, openOverlay, closeOverlay, friendlyDate } from "./ui.js";
+import { $, html, raw, openOverlay, closeOverlay, friendlyDate, download } from "./ui.js";
 import { state, saveNote, today } from "./state.js";
 import { uid } from "./store.js";
 import { go } from "./nav.js";
 import { addDates } from "./capture.js";
-import { detectSubject, detectTopic, makeQuiz, fromISO } from "../engine/index.js";
+import { detectSubject, detectTopic, makeQuiz, fromISO, toICS } from "../engine/index.js";
 import { openQuiz } from "./quiz.js";
 import { typeLabel } from "./calendar.js";
 import { t } from "./i18n.js";
@@ -42,10 +42,12 @@ export function openPaste() {
         ${raw(events.length ? `<div class="agenda">${events.map((e) => html`<div class="event"><span class="when">${friendlyDate(e.date)}</span><span>${e.title}</span><span class="kind ${e.type}">${typeLabel(e.type)}</span></div>`).join("")}</div>` : html`<p class="note-small">${t("No dates found. Seekto looks for things like \"the quiz is on Friday\" or \"due October 20\".")}</p>`)}
         <div class="row">
           <button class="btn" data-quiz>${t("Take the practice test")}</button>
+          ${raw(events.length ? html`<button class="btn ghost" data-remind>${t("Remind me about these")}</button>` : "")}
           <button class="btn ghost" data-open>${t("Open the note")}</button>
         </div>
       </section>`;
     $("[data-quiz]", sheet).addEventListener("click", () => openQuiz({ notes: [note], title: topic }));
+    $("[data-remind]", sheet)?.addEventListener("click", () => download("seekto-reminders.ics", toICS(events, { labels: { tomorrow: t("Tomorrow"), today: t("Today") } }), "text/calendar"));
     $("[data-open]", sheet).addEventListener("click", () => { closeOverlay(); go(`note/${note.id}`); });
   });
   requestAnimationFrame(() => $("#pasteText", sheet)?.focus());

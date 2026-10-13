@@ -23,6 +23,16 @@ function typeFor(title) {
 // Exported events carry reminders (the day before and the morning of), in the interface language
 const icsFor = (events) => toICS(events, { labels: { tomorrow: t("Tomorrow"), today: t("Today") } });
 
+/** Every upcoming deadline in one .ics file with reminders: open it once and the phone's calendar
+ * reminds you about all of them. */
+export function remindAll() {
+  const now = today();
+  const upcoming = state.events.filter((e) => e.date >= now);
+  if (!upcoming.length) return toast(t("Nothing coming up yet."));
+  download("seekto-reminders.ics", icsFor(upcoming), "text/calendar");
+  toast(upcoming.length === 1 ? t("Open the file to add 1 date with reminders to your calendar.") : t("Open the file to add {n} dates with reminders to your calendar.", { n: upcoming.length }));
+}
+
 export function render(main) {
   if (!month) { const d = new Date(); month = new Date(d.getFullYear(), d.getMonth(), 1); }
   main.innerHTML = html`
@@ -31,6 +41,7 @@ export function render(main) {
         <h1>${t("Calendar")}</h1>
         <div class="row">
           <label class="btn ghost" style="cursor:pointer">${t("Import calendar (.ics)")}<input type="file" id="ics" accept=".ics,text/calendar" class="sr-only"></label>
+          <button class="btn" id="remindAll">${t("Remind me about all of them")}</button>
           <button class="btn ghost" id="exportIcs">${t("Export")}</button>
         </div>
       </div>
@@ -79,6 +90,7 @@ export function render(main) {
     toast(events.length ? imported : t("No events found in that file"));
     render(main);
   });
+  $("#remindAll").addEventListener("click", remindAll);
   $("#exportIcs").addEventListener("click", () => download("seekto-calendar.ics", icsFor(state.events), "text/calendar"));
   $("#addForm").addEventListener("submit", async (e) => {
     e.preventDefault();

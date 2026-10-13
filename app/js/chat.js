@@ -12,7 +12,8 @@ import { openFollowUp } from "./meeting.js";
 import { friendlyDate } from "./ui.js";
 import { speak, listenOnce, canListen } from "./voice.js";
 import { t, uiLocale, replyIn } from "./i18n.js";
-import { typeLabel } from "./calendar.js";
+import { typeLabel, remindAll } from "./calendar.js";
+import { practiceNote } from "./quiz.js";
 import { openPaste } from "./paste.js";
 
 const HISTORY_KEY = "seekto.chat";
@@ -39,6 +40,22 @@ function stepsHtml() {
   return steps.map(([go, title, text, done]) => html`<button class="step" data-step="${go}"><b>${title}</b><span>${text}</span>${raw(done ? html`<span class="done">${t("Done")}</span>` : "")}</button>`).join("");
 }
 
+/** What's due in the next week, counted down, first thing a returning student sees. */
+function comingUpHtml() {
+  const now = today();
+  const week = new Date();
+  week.setDate(week.getDate() + 7);
+  const end = `${week.getFullYear()}-${String(week.getMonth() + 1).padStart(2, "0")}-${String(week.getDate()).padStart(2, "0")}`;
+  const soon = state.events.filter((e) => e.date >= now && e.date <= end).sort((a, b) => a.date.localeCompare(b.date));
+  const later = state.events.filter((e) => e.date > end).length;
+  if (!soon.length && !later) return "";
+  return html`<section class="panel coming" aria-labelledby="comingTitle">
+    <div class="view-head"><h2 id="comingTitle">${t("Coming up")}</h2><button class="btn small" id="remindAllHome">${t("Remind me about all of them")}</button></div>
+    ${raw(soon.length ? `<div class="agenda">${soon.map((e) => html`<div class="event"><span class="when">${describeDay(e.date, now, { tr: t, locale: uiLocale() })}</span><span>${e.title}</span><span class="row">${raw(e.noteId && state.notes.some((n) => n.id === e.noteId) ? html`<button class="btn ghost small" data-practice="${e.noteId}">${t("Practice")}</button>` : html`<span class="kind ${e.type}">${typeLabel(e.type || "")}</span>`)}</span></div>`).join("")}</div>` : html`<p class="note-small">${t("Nothing in the next 7 days.")}</p>`)}
+    ${raw(later ? html`<a href="#calendar" class="note-small">${later === 1 ? t("1 more date later on your calendar") : t("{n} more dates later on your calendar", { n: later })}</a>` : "")}
+  </section>`;
+}
+
 export function render(main) {
   main.innerHTML = html`
     <div style="overflow-y:auto;min-height:0" id="chatScroll">
@@ -47,8 +64,8 @@ export function render(main) {
           <div class="view-head"><h1>${greeting()}</h1><span class="row phone-only"><button class="btn ghost small" id="phoneDevices">${t("Devices")}</button><button class="btn ghost small" id="phoneSettings">${t("Settings")}</button></span></div>
           <div class="row" style="align-items:center;gap:10px;margin:-4px 0 6px"><span class="note-small">${t("I'm using Seekto for")}</span>
             <div class="seg" role="group" aria-label="${t("Use Seekto for")}">${raw(["learning", "work"].map((m) => html`<button type="button" data-pickmode="${m}" aria-pressed="${m === mode()}">${m === "learning" ? t("Learning") : t("Work")}</button>`).join(""))}</div></div>
-          <p class="sub">${t("I'm Seekto.")} ${words().intro}</p>
-          <div class="steps">${raw(stepsHtml())}</div>
+          ${raw(comingUpHtml())}
+          ${raw(state.events.some((e) => e.date >= today()) ? html`<details class="getting-started"><summary class="label">${t("Getting started")}</summary><p class="sub">${t("I'm Seekto.")} ${words().intro}</p><div class="steps">${raw(stepsHtml())}</div></details>` : html`<p class="sub">${t("I'm Seekto.")} ${words().intro}</p><div class="steps">${raw(stepsHtml())}</div>`)}
         </section>
         <div class="chat-bar" id="chatBar" hidden>
           <div class="seg" role="group" aria-label="${t("Use Seekto for")}">${raw(["learning", "work"].map((m) => html`<button type="button" data-pickmode="${m}" aria-pressed="${m === mode()}">${m === "learning" ? t("Learning") : t("Work")}</button>`).join(""))}</div>
@@ -81,6 +98,8 @@ export function render(main) {
     else if (b.dataset.step === "paste") openPaste();
     else go(b.dataset.step === "settings" ? "settings/ai" : b.dataset.step);
   });
+  $("#remindAllHome")?.addEventListener("click", remindAll);
+  main.querySelectorAll(".coming [data-practice]").forEach((b) => b.addEventListener("click", () => practiceNote(b.dataset.practice)));
   $("#talkBtn").addEventListener("click", toggleTalk);
   $("#chatBar").addEventListener("click", (e) => { const m = e.target.closest("[data-pickmode]"); if (m) setMode(m.dataset.pickmode); });
   $("#newChat").addEventListener("click", () => { history = []; saveHistory(); window.dispatchEvent(new Event("seekto:render")); });
