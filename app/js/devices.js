@@ -519,7 +519,9 @@ export function reconnectAll() {
 export function startDevices() {
   if (!paired().length) return;
   if (!inbox) startInbox();
-  reconnectAll();
+  // Reach out once our own inbox is listening, and again shortly after, in case the other
+  // device was starting up at the same moment and missed the first try.
+  inbox.ready.then(() => { reconnectAll(); setTimeout(reconnectAll, 6000); });
 }
 
 let keepAlive = null;
@@ -527,7 +529,7 @@ export function initDevices() {
   if (!("RTCPeerConnection" in window) || !("EventSource" in window)) return;
   startDevices();
   clearInterval(keepAlive);
-  keepAlive = setInterval(() => { if (document.visibilityState === "visible" && paired().length) { if (!inbox) startInbox(); reconnectAll(); } }, 45000);
+  keepAlive = setInterval(() => { if (document.visibilityState === "visible" && paired().length) { if (!inbox) startInbox(); reconnectAll(); } }, 20000);
   onStatus(() => { if (paired().length && !inbox) startInbox(); });
 }
 

@@ -235,3 +235,53 @@ details.more[open] > summary h2::before { content: "▾ "; }
 #noteEvents .event .when { grid-column: 1 / -1; font-size: 12px; }
 .check-number { font-size: 36px; letter-spacing: 0.12em; text-align: center; padding: 6px 0; color: var(--fg); }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+
+/* First screen: the sample class plays and what Seekto finds lands where it belongs */
+.home-main { overflow-y: auto; }
+.view.home { max-width: 1120px; gap: 26px; padding-top: 44px; }
+.home-head { display: grid; gap: 14px; max-width: 760px; }
+.home-head h1 { font-size: clamp(32px, 4.6vw, 52px); line-height: 1.04; letter-spacing: -0.035em; font-weight: 750; }
+.home-head .lede { font-size: 18px; line-height: 1.5; color: var(--muted); max-width: 62ch; }
+.btn.big { padding: 12px 20px; font-size: 16px; border-radius: 12px; }
+.btn.rec { display: inline-flex; align-items: center; gap: 10px; }
+.btn.rec .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--rec); box-shadow: 0 0 0 3px color-mix(in srgb, var(--rec) 30%, transparent); }
+.btn.linkish { border: 0; text-decoration: underline; text-underline-offset: 3px; }
+.stage { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.stage-class { gap: 10px; min-height: 420px; align-content: start; }
+.stage-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.stage-head .mono { margin-left: auto; }
+.stage-lines { display: grid; gap: 8px; font-size: 15px; }
+.stage-lines .live-line { grid-template-columns: 44px 1fr; }
+.stage-side { display: grid; gap: 16px; }
+.week .days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.dcell { border: 1px solid var(--line); border-radius: 10px; padding: 6px; min-height: 64px; display: grid; align-content: start; gap: 6px; min-width: 0; }
+.dcell .dw { font-size: 11px; color: var(--muted); }
+.dcell .dn { font-weight: 650; font-variant-numeric: tabular-nums; }
+.dcell .pill { height: 8px; border-radius: 4px; }
+.added { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 6px; }
+.added li { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; font-size: 14px; }
+.added .when { color: var(--muted); font-size: 13px; min-width: 92px; }
+.added mark.found { border-radius: 4px; padding: 1px 6px; }
+.dcell.has { border-color: var(--found); }
+.testcard .qcount { font-size: 15px; color: var(--muted); }
+.testcard .qcount span:first-child { font-size: 40px; font-weight: 750; color: var(--fg); letter-spacing: -0.03em; vertical-align: -6px; margin-right: 4px; }
+.home-foot { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+a.brand { text-decoration: none; color: inherit; }
+@media (prefers-reduced-motion: no-preference) {
+  .dcell .pill, .added li { animation: drop .5s cubic-bezier(.2, .9, .3, 1.3); }
+  .qcount.bump span:first-child { display: inline-block; animation: bump .35s ease-out; }
+  .stage-lines mark.found { animation: sweep .6s ease-out; background-size: 100% 100%; }
+}
+@keyframes drop { from { opacity: 0; transform: translateY(-14px) scale(.9); } to { opacity: 1; transform: none; } }
+@keyframes bump { 50% { transform: scale(1.25); } }
+@keyframes sweep { from { background: linear-gradient(90deg, var(--found) 0%, transparent 0%); } to { background: linear-gradient(90deg, var(--found) 100%, transparent 100%); } }
+@media (max-width: 900px) {
+  .stage { grid-template-columns: minmax(0, 1fr); }
+  .stage-class { min-height: 0; }
+  .view.home { padding-top: 24px; }
+}
+@media (max-width: 560px) {
+  .week .days { grid-template-columns: repeat(7, minmax(44px, 1fr)); overflow-x: auto; }
+  .home-head .lede { font-size: 16px; }
+  .cta .btn { flex: 1 1 100%; justify-content: center; }
+}

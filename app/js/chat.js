@@ -13,6 +13,7 @@ import { friendlyDate } from "./ui.js";
 import { speak, listenOnce, canListen } from "./voice.js";
 import { t, uiLocale, replyIn } from "./i18n.js";
 import { typeLabel } from "./calendar.js";
+import { openPaste } from "./paste.js";
 
 const HISTORY_KEY = "seekto.chat";
 let history = loadHistory();
@@ -77,6 +78,7 @@ export function render(main) {
     if (!b) return;
     if (b.dataset.step === "ask") $("#chatInput").focus();
     else if (b.dataset.step === "sample") runSample(mode());
+    else if (b.dataset.step === "paste") openPaste();
     else go(b.dataset.step === "settings" ? "settings/ai" : b.dataset.step);
   });
   $("#talkBtn").addEventListener("click", toggleTalk);

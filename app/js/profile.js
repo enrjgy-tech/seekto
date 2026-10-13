@@ -11,6 +11,7 @@ export const MODES = {
     steps: [
       ["sample", t("Try a sample class"), t("See a recorded lesson turn into notes, calendar dates and a quiz.")],
       ["record", t("Record a class"), t("Notes, marks and dates are saved by themselves.")],
+      ["paste", t("Paste notes or a syllabus"), t("No microphone needed: get the dates and a practice test.")],
       ["calendar", t("Add your school calendar"), t("Import from Canvas, Google Classroom or any .ics file.")],
       ["settings", t("Choose an AI model (optional)"), t("On your computer, free cloud or paid cloud.")],
     ],
@@ -27,6 +28,7 @@ export const MODES = {
     steps: [
       ["sample", t("Try a sample meeting"), t("See a meeting turn into decisions, action items and a follow-up email.")],
       ["record", t("Record a meeting"), t("Decisions, action items and dates are saved by themselves.")],
+      ["paste", t("Paste meeting notes"), t("Get the decisions, action items and dates from notes you already have.")],
       ["calendar", t("Add your calendar"), t("Import any .ics file from Google, Outlook or your team tools.")],
       ["settings", t("Choose an AI model (optional)"), t("On your computer, free cloud or paid cloud.")],
     ],

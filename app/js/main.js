@@ -4,6 +4,7 @@ import { go } from "./nav.js";
 import { state, loadAll } from "./state.js";
 import { PROVIDERS, isReady } from "../engine/index.js";
 import * as chat from "./chat.js";
+import * as home from "./home.js";
 import * as record from "./record.js";
 import * as notes from "./notes.js";
 import * as calendar from "./calendar.js";
@@ -18,6 +19,7 @@ import { toast, closeOverlay, clearToast } from "./ui.js";
 import { t, translatePage } from "./i18n.js";
 
 const views = {
+  home: home.render,
   chat: chat.render,
   record: record.render,
   notes: notes.renderList,
@@ -31,10 +33,17 @@ const views = {
 
 let cleanup = null;
 
+// Someone who hasn't recorded, pasted or chatted yet starts on the demo; everyone else on the assistant.
+function firstVisit() {
+  let chatted = false;
+  try { chatted = JSON.parse(sessionStorage.getItem("seekto.chat") || "[]").length > 0; } catch { /* not available */ }
+  return !chatted && !state.notes.some((n) => !n.sample);
+}
+
 function route() {
   const hash = location.hash.slice(1);
   if (hash.startsWith("s=")) return ["shared", hash.slice(2)]; // a shared practice test
-  return (hash || "chat").split("/");
+  return (hash || (firstVisit() ? "home" : "chat")).split("/");
 }
 
 function render() {
@@ -50,7 +59,7 @@ function render() {
   if (typeof cleanup === "function") cleanup();
   const main = $("#main");
   main.innerHTML = "";
-  main.className = view === "chat" ? "chat" : "";
+  main.className = view === "chat" ? "chat" : view === "home" ? "home-main" : "";
   main.scrollTop = 0;
   cleanup = views[view](main, param ? (view === "shared" ? param : decodeURIComponent(param)) : undefined) || null;
   updateModelPill();
