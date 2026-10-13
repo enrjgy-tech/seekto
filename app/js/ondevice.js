@@ -22,7 +22,9 @@ export function defaultTranscriber(canListen) {
   // Many school Chromebooks have little memory and slow processors; there the live service is
   // the default unless the device clearly has room (8 GB or more). Private stays one tap away.
   const lowEndChromebook = typeof navigator !== "undefined" && /CrOS/.test(navigator.userAgent) && !(navigator.deviceMemory >= 8);
-  const strong = typeof navigator !== "undefined" && !lowEndChromebook && ("gpu" in navigator || globalThis.matchMedia?.("(pointer: fine)").matches);
+  // A computer (mouse or trackpad). Phones and tablets default to the live service, since a 40–150 MB
+  // download and transcribing after the class are a poor fit there; on-device stays one tap away.
+  const strong = typeof navigator !== "undefined" && !lowEndChromebook && Boolean(globalThis.matchMedia?.("(pointer: fine)").matches);
   return supported && (strong || !canListen) ? "device" : "browser";
 }
 

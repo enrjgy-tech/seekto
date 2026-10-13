@@ -33,7 +33,7 @@ export function render(main) {
             <input type="text" id="recTitle" placeholder="${t("Seekto names it for you")}" value="${rec.title}"></label>
         </div>
         <div class="timer mono" id="recTimer">${formatTime(elapsed())}</div>
-        ${raw(!rec.active ? html`<label class="row note-small" style="justify-content:center;gap:8px"><input type="checkbox" id="consent" style="width:auto" aria-describedby="consentHint"> ${words().consentCheck}</label><p class="note-small consent-hint" id="consentHint" hidden>${t("Tick the box above first, then press Record.")}</p>` : "")}
+        ${raw(!rec.active ? html`<label class="row note-small" style="justify-content:center;gap:8px"><input type="checkbox" id="consent" style="width:auto"> ${words().consentCheck}</label><p class="note-small consent-hint" id="consentHint" hidden>${t("Tick the box above first, then press Record.")}</p>` : "")}
         <button class="recbtn ${rec.active ? "on" : ""}" id="recBtn">${rec.active ? t("Stop") : t("Record")}</button>
         <div class="row" id="recTools" ${raw(rec.active ? "" : "hidden")} style="justify-content:center">
           <button class="btn ghost" id="markBtn">${t("Lost here")}</button>
@@ -52,6 +52,7 @@ export function render(main) {
     const consent = $("#consent");
     if (consent && !consent.checked) {
       $("#consentHint").hidden = false;
+      consent.setAttribute("aria-describedby", "consentHint");
       announce(t("Tick the box above first, then press Record."));
       return consent.focus();
     }

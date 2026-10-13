@@ -321,10 +321,10 @@ label.btn:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; 
 /* Multiple choice */
 .choices { display: grid; gap: 8px; }
 .choice { display: flex; gap: 12px; align-items: flex-start; text-align: left; width: 100%; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--fg); font: inherit; font-size: 15px; line-height: 1.4; cursor: pointer; }
-.choice:hover:not(:disabled) { border-color: var(--fg); }
+.choice:hover:not([aria-disabled="true"]) { border-color: var(--fg); }
 .choice:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .choice .key { flex: none; width: 24px; height: 24px; border-radius: 6px; border: 1px solid var(--line); display: grid; place-items: center; font-size: 12px; font-weight: 600; color: var(--muted); }
-.choice:disabled { cursor: default; opacity: .75; }
+.choice[aria-disabled="true"] { cursor: default; opacity: .75; }
 .choice.right { border-color: var(--ok); opacity: 1; box-shadow: inset 0 0 0 1px var(--ok); }
 .choice.right .key { background: var(--ok); border-color: var(--ok); color: #fff; }
 .choice.wrong { border-color: var(--rec); opacity: 1; }
@@ -339,3 +339,4 @@ label.btn:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; 
 .remind-menu .btn { justify-content: flex-start; }
 .remind-menu a.btn { text-decoration: none; }
 .remind-menu .btn { justify-content: center; }
+.remind-menu.up { top: auto; bottom: calc(100% + 6px); }

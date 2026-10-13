@@ -74,6 +74,7 @@ const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]):not([t
  */
 let namer = null;
 export function openOverlay(content, onClose = null) {
+  clearToast(); // a message about the screen behind doesn't belong on a new dialog
   onOverlayClose?.();
   onOverlayClose = onClose;
   if (!document.querySelector(".overlay")) opener = document.activeElement;

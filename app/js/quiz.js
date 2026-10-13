@@ -51,7 +51,7 @@ async function aiQuestions(notes, count) {
  */
 export async function shareLink(title, questions, challenge = null) {
   const url = `${location.origin}${location.pathname}#s=${await encodeShare({ title, questions, challenge })}`;
-  const text = challenge ? t("I got {got}/{of} on \"{title}\". Can you beat me?", { got: challenge.got, of: challenge.of, title }) : t("Practice test: {title}", { title });
+  const text = challenge ? (challenge.got === challenge.of ? t("I got {got}/{of} on \"{title}\". Can you match it?", { got: challenge.got, of: challenge.of, title }) : t("I got {got}/{of} on \"{title}\". Can you beat me?", { got: challenge.got, of: challenge.of, title })) : t("Practice test: {title}", { title });
   if (navigator.share && matchMedia("(pointer: coarse)").matches) {
     try { await navigator.share({ title, text, url }); return url; } catch { /* fall back to copying */ }
   }
@@ -145,7 +145,7 @@ export function openQuiz({ notes = [], questions: given = null, title = t("Pract
   function drawEnd() {
     const of = questions.length;
     // A score of 0 isn't something to brag about or to beat, so it isn't sent or compared.
-    const beat = challenge?.got > 0 && (score > challenge.got ? t("You beat them.") : score === challenge.got ? t("A tie.") : t("They got {got}. Try again?", { got: challenge.got }));
+    const beat = challenge?.got > 0 && (score > challenge.got ? t("You beat them.") : score === challenge.got ? (score === challenge.of ? t("Both perfect.") : t("A tie.")) : t("They got {got}. Try again?", { got: challenge.got }));
     const tests = shared ? [] : testsFor(notes);
     const next = tests[0];
     const planned = next && state.events.some((e) => e.type === "review" && e.forEvent === next.id);
@@ -189,11 +189,15 @@ export function openQuiz({ notes = [], questions: given = null, title = t("Pract
     const q = questions[i];
     const ok = picked !== null ? q.choices[picked] === q.answer : given !== "" && checkAnswer(given, q.answer);
     if (ok) score++;
+    const letter = q.choices ? String.fromCharCode(65 + q.choices.indexOf(q.answer)) : "";
     if (q.choices) {
+      // Options stay in the tab order (aria-disabled, not disabled) so a screen reader can go back to them
       sheet.querySelectorAll(".choice").forEach((b, n) => {
-        b.disabled = true;
+        b.setAttribute("aria-disabled", "true");
+        const mark = q.choices[n] === q.answer ? t("right answer") : n === picked ? t("your answer") : "";
         if (q.choices[n] === q.answer) b.classList.add("right");
         else if (n === picked) b.classList.add("wrong");
+        if (mark) b.insertAdjacentHTML("beforeend", html`<span class="sr-only"> (${mark})</span>`);
       });
     }
     // Long answers typed from memory rarely match word for word, so the student can mark them
@@ -203,7 +207,7 @@ export function openQuiz({ notes = [], questions: given = null, title = t("Pract
     box.className = `result ${ok ? "ok" : selfMark ? "" : "no"}`;
     box.innerHTML = selfMark
       ? html`<b>${given === "" ? t("Here's the answer:") : t("Compare with the answer:")}</b> <b>${q.answer}</b><span class="row selfmark"><button class="btn small" data-mine="1">${t("I got it")}</button><button class="btn ghost small" data-mine="0">${t("I missed it")}</button></span>`
-      : html`<b>${ok ? t("Correct.") : given === "" && picked === null ? (q.choices ? t("The right answer is marked.") : t("Here's the answer:")) : q.choices ? t("Not quite. The right answer is marked.") : t("Not quite.")}</b> ${ok || q.choices ? "" : raw(html`<b>${q.answer}</b>`)} <button class="btn small" data-next style="margin-left:8px">${next}</button>`;
+      : html`<b>${ok ? t("Correct.") : given === "" && picked === null ? (q.choices ? t("The answer is {letter}.", { letter }) : t("Here's the answer:")) : q.choices ? t("Not quite. The answer is {letter}.", { letter }) : t("Not quite.")}</b>${raw(!ok && q.choices ? html`<span class="sr-only"> ${q.answer}</span>` : "")} ${ok || q.choices ? "" : raw(html`<b>${q.answer}</b>`)} <button class="btn small" data-next style="margin-left:8px">${next}</button>`;
     const go = () => { i++; draw(); };
     $("[data-next]", sheet)?.addEventListener("click", go);
     sheet.querySelectorAll("[data-mine]").forEach((b) => b.addEventListener("click", () => {
@@ -242,7 +246,7 @@ export function openQuiz({ notes = [], questions: given = null, title = t("Pract
     sheet.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeOverlay));
     sheet.querySelector("[data-answer]")?.addEventListener("submit", (e) => { e.preventDefault(); grade($("#quizAnswer", sheet).value.trim()); });
     sheet.querySelector("[data-skip]")?.addEventListener("click", () => grade(""));
-    sheet.querySelectorAll("[data-choice]").forEach((b) => b.addEventListener("click", () => grade(b.textContent, Number(b.dataset.choice))));
+    sheet.querySelectorAll("[data-choice]").forEach((b) => b.addEventListener("click", () => { if (!answered) grade(b.textContent, Number(b.dataset.choice)); }));
     sheet.querySelector("[data-again]")?.addEventListener("click", () => { flip = !flip; questions = build(); i = 0; score = 0; draw(); });
     sheet.querySelector("[data-leave]")?.addEventListener("click", () => onLeave?.());
     sheet.querySelectorAll("[data-share]").forEach((b) => b.addEventListener("click", () => shareLink(title, questions)));

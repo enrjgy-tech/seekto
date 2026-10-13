@@ -59,3 +59,14 @@ export function translatePage(root = document) {
 export function replyIn() {
   return { en: "", es: " Reply in Spanish.", pt: " Reply in Brazilian Portuguese." }[lang] || "";
 }
+
+/** The first day of the week where the person is: Sunday in the US, Canada, Brazil, Mexico and a few
+ * other places, Monday elsewhere. */
+export function weekStart(locale = uiLocale()) {
+  try {
+    const info = new Intl.Locale(locale);
+    const first = info.weekInfo?.firstDay ?? info.getWeekInfo?.().firstDay;
+    if (first) return first % 7;
+  } catch { /* older browsers */ }
+  return /-(?:US|CA|BR|MX|PH|JP|IL|IN|ZA|KR|TW|HK|PE|CO|VE|GT|SV|HN|NI|PA|DO|PR)$/i.test(locale) || locale === "en" ? 0 : 1;
+}

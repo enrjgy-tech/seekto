@@ -294,6 +294,10 @@ export function findDates(text, ref = new Date(), { locale } = {}) {
     const date = word === "next" || /next week/.test(tail) ? nextWeek(today, target) : tail ? addDays(upcoming(today, target), 7) : upcoming(today, target);
     add(date, m.index, m[0], tail ? 1.3 : 1, { weekday: target, bare: !word || /^(this coming|this|coming|on|by|until|till|before|for|the)$/.test(word) ? !tail : false });
   }
+  // "the Tuesday after half term", "the Monday after Thanksgiving": the date depends on a school
+  // calendar Seekto doesn't know, so it isn't guessed
+  const HOLIDAY = /^\s+(?:after|before)\s+(?:the\s+)?(?:half[- ]term|break|spring break|winter break|fall break|reading week|holidays?|vacation|thanksgiving|easter|christmas|diwali|carnival|carnaval|semana santa|the long weekend|long weekend|exams|midterms|finals)\b/i;
+  found.splice(0, found.length, ...found.filter((f) => !(f.weekday !== undefined && HOLIDAY.test(source.slice(f.end)))));
   for (const m of all(/\b(mon|tues?|wed|thu(?:rs?)?|fri|sat|sun)\.(?=[\s,])/gi)) add(upcoming(today, WEEKDAYS[m[1].toLowerCase()]), m.index, m[0], 1, { weekday: WEEKDAYS[m[1].toLowerCase()], abbr: true });
   // Spanish: "el viernes", "el próximo martes", "el jueves que viene", "el viernes de la próxima semana"
   for (const m of all(new RegExp(`(?<![${L}])((?:(?:el|este|para el|hasta el|del|al)\\s+)?(pr[oó]ximo\\s+)?(domingo|lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado)(\\s+(?:de\\s+la\\s+(?:pr[oó]xima\\s+semana|semana\\s+que\\s+viene)|que\\s+viene|pasado))?)(?![${L}])`, "giu"))) {
@@ -376,7 +380,7 @@ const EVENT_WORDS = [
   ["reading", "assignment"], ["forum", "assignment"], ["discussion post", "assignment"], ["submission", "assignment"], ["sign up", "assignment"], ["deadline", "assignment"],
   ["submitted", "assignment"], ["submit", "assignment"], ["hand in", "assignment"], ["handed in", "assignment"], ["turn in", "assignment"], ["turned in", "assignment"],
   ["read", "assignment"], ["due", "assignment"],
-  ["field trip", "event"], ["school trip", "event"], ["museum trip", "event"], ["excursion", "event"], ["picture day", "event"], ["photo day", "event"],
+  ["uploaded", "assignment"], ["upload", "assignment"], ["field trip", "event"], ["school trip", "event"], ["museum trip", "event"], ["excursion", "event"], ["picture day", "event"], ["photo day", "event"],
   // Spanish
   ["examen parcial", "test", 1], ["examen final", "test", 1], ["examen", "test", 1], ["parcial", "test", 1], ["prueba", "test", 1], ["control", "test", 1], ["simulacro", "test", 1],
   ["recuperatorio", "test", 1], ["cuestionario", "test", 1], ["evaluación", "test", 1],
@@ -390,7 +394,7 @@ const EVENT_WORDS = [
   ["redação", "assignment", 1], ["redacao", "assignment", 1], ["dever de casa", "assignment", 1], ["dever", "assignment", 1], ["leitura", "assignment", 1], ["fórum", "assignment", 1],
   // from KeuqS's Portuguese support (#11)
   ["exame", "test", 1], ["ensaio", "assignment", 1], ["tarefa", "assignment", 1], ["prazo", "assignment", 1],
-  ["excursión", "event", 1], ["excursão", "event", 1], ["salida de campo", "event", 1], ["coloquio", "test", 1], ["práctica", "assignment", 1],
+  ["excursión", "event", 1], ["subir", "assignment", 1], ["subirla", "assignment", 1], ["subirlo", "assignment", 1], ["excursão", "event", 1], ["salida de campo", "event", 1], ["coloquio", "test", 1], ["práctica", "assignment", 1],
 ];
 const EVENT_RES = EVENT_WORDS.map(([word, type, romance]) => [new RegExp(`(?<![${L}])${word}(?:s|es)?(?![${L}])`, "iu"), word, type, !!romance]);
 
@@ -469,8 +473,16 @@ function pickDates(part, dates, hit) {
   // Corrections: "Wednesday, no, Thursday", "the 6th. No, wait, the 7th". The first date after the first
   // correction that follows a date wins.
   for (const c of part.matchAll(CORRECTION)) {
-    if (!dates.some((d) => d.index < c.index)) continue;
+    const before = dates.filter((d) => d.index < c.index).pop();
+    if (!before) continue;
     const after = live.find((d) => d.index > c.index);
+    // "el 15 de noviembre, no, perdón, el 16": a bare day corrects only the day, so it keeps the month
+    if (after && /^(?:(?:el|dia|the|on the)\s+)?\d{1,2}(?:st|nd|rd|th|º)?$/i.test(after.match.trim()) && /[\p{L}]{3,}|\//u.test(before.match.replace(/^(?:el|dia|the|on the)\s+/i, ""))) {
+      const day = Number(after.match.match(/\d{1,2}/)[0]);
+      const [y, m] = before.date.split("-").map(Number);
+      const fixed = new Date(y, m - 1, day);
+      if (fixed.getMonth() === m - 1) return [{ ...after, date: toISO(fixed) }];
+    }
     if (after) return [after];
     break;
   }
@@ -496,7 +508,7 @@ function pickDates(part, dates, hit) {
   return picked;
 }
 
-const TITLE_SKIP = new Set(["the", "a", "an", "our", "your", "my", "their", "his", "her", "this", "that", "is", "are", "will", "be", "and", "so", "next", "big", "on", "um", "uh", "like", "okay", "ok", "also", "then", "don't", "forget", "remember", "just", "itself", "whole", "first", "second"]);
+const TITLE_SKIP = new Set(["o", "os", "as", "el", "la", "los", "las", "the", "a", "an", "our", "your", "my", "their", "his", "her", "this", "that", "is", "are", "will", "be", "and", "so", "next", "big", "on", "um", "uh", "like", "okay", "ok", "also", "then", "don't", "forget", "remember", "just", "itself", "whole", "first", "second"]);
 const ROMANCE_STOP = new Set(["es", "será", "sera", "se", "va", "hay", "para", "el", "la", "los", "las", "este", "esta", "que", "y", "en", "vence", "tiene", "tienen", "hasta", "antes", "lo", "a", "hoy", "mañana", "pasado", "dentro", "lunes", "martes", "miércoles", "miercoles", "jueves", "viernes", "sábado", "sabado", "domingo", "próximo", "proximo", "próxima", "proxima", "eh", "pues", "bueno", "cierra", "hace", "pasó",
   "é", "vai", "ser", "tem", "uma", "una", "un", "um", "después", "despues", "semanas", "anterior", "siguiente", "seguinte", "pra", "o", "os", "as", "no", "na", "nos", "nas", "e", "em", "até", "hoje", "amanhã", "depois", "daqui", "segunda", "terça", "quarta", "quinta", "sexta", "semana", "dia", "vocês", "gente", "tá", "né", "entregam", "mandam", "me", "então", "só", "mais", "foi", "fica", "ficou", "sai", "pelo", "pela", "tipo", "não", "nao", "já", "ja", "ya", "ahora", "agora", "passou", "pasó", "mudou"]);
 
@@ -518,9 +530,11 @@ function withSubject(name, subject, sep = " ") {
 }
 
 function titleFor(sentence, hit, subject) {
+  // "la tenéis que subir antes del 2": a verb, so the title is just "Entrega"
+  if (hit.romance && /^subir/i.test(hit.word)) return withSubject("Entrega", subject, ": ");
   if (hit.romance) return romanceTitle(sentence, hit, subject);
   if (hit.word === "read") {
-    const words = sentence.slice(hit.index).split(/\s+/).map((w) => w.replace(/[^\w'.-]/g, "")).filter(Boolean);
+    const words = sentence.slice(hit.index).split(/\s+/).map((w) => w.replace(/[^\p{L}\d_'.-]/gu, "")).filter(Boolean);
     const out = [];
     for (const w of words) { if (out.length && /^(for|by|before|on|until|tonight|tomorrow)$/i.test(w)) break; out.push(w); if (out.length >= 6) break; }
     return capitalize(out.join(" "));
@@ -528,17 +542,21 @@ function titleFor(sentence, hit, subject) {
   const due = sentence.toLowerCase().search(/\b(due|deadline)\b/);
   const named = hit;
   if (due >= 0 && hit.type === "assignment" && !/fee|last date/.test(hit.word)) hit = { ...hit, word: "due", index: due };
+  if (/^(?:upload|uploaded)$/.test(hit.word)) hit = { ...hit, word: "due" };
   if (hit.word === "due" || hit.word === "deadline") {
     // "the lab write-up is due Friday" -> words before "due"
     const before = sentence.slice(0, hit.index).split(/\s+/).filter(Boolean);
     const words = [];
     for (let i = before.length - 1; i >= 0 && words.length < 4; i--) {
-      const w = before[i].replace(/[^\w'-]/g, "");
+      const w = before[i].replace(/[^\p{L}\d_'-]/gu, "");
       if (!w) continue;
       if (TITLE_SKIP.has(w.toLowerCase()) || /^(needs?|to|be|has|have|it|that|which|was|were|for|of)$/i.test(w)) { if (words.length) break; continue; }
       if (/[,;:]$/.test(before[i]) && words.length) break;
       words.unshift(w);
     }
+    // "the essay on the French Revolution is due" -> "Essay on the French Revolution due"
+    const lead = sentence.slice(0, hit.index).match(new RegExp(`(?<![\\p{L}])(essay|paper|report|project|presentation|assignment|worksheet|response|reflection|write-up|proposal|poster)\\s+(on|about|for)\\s+(the\\s+)?${words.map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("\\s+")}`, "iu"));
+    if (words.length && lead) words.unshift(lead[1].toLowerCase(), lead[2].toLowerCase(), ...(lead[3] ? ["the"] : []));
     // "Homework: finish questions 1 to 5, due Monday" -> "Homework due", not "5 due"
     if (!words.some((w) => /\p{L}/u.test(w))) words.splice(0, words.length, ...(named.word !== "due" && named.word !== "deadline" ? [named.text] : []));
     return capitalize(`${withSubject(words.length ? words.join(" ") : "Assignment", subject)} due`);
@@ -547,11 +565,14 @@ function titleFor(sentence, hit, subject) {
   const before = sentence.slice(0, hit.index).split(/\s+/).filter(Boolean);
   const lead = [];
   for (let i = before.length - 1; i >= 0 && lead.length < 3; i--) {
-    const w = before[i].replace(/[^\w'-]/g, "");
+    const w = before[i].replace(/[^\p{L}\d_'-]/gu, "");
     if (!w || /[,;:]$/.test(before[i]) || TITLE_SKIP.has(w.toLowerCase()) || /^(on|by|for|of|in|at|to|have|has|we|you|there|there's|got|we've|i|'s)$/i.test(w) || /'s$/.test(w)) break;
     lead.unshift(w);
   }
-  return capitalize(withSubject([...lead, hit.text].join(" "), subject));
+  // "the quiz on chapter 3 is next Thursday" -> "Quiz on chapter 3"
+  const about = sentence.slice(hit.index + hit.text.length).match(/^\s+(on|about|over|covering)\s+((?:the\s+)?[\p{L}\d'-]+(?:\s+[\p{L}\d'-]+){0,3}?)(?=\s+(?:is|are|was|will|this|next|due|on|by|tomorrow|today)\b|[,.;!?]|$)/iu);
+  const topic = about && !findDates(about[2]).length && !/(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)/i.test(about[2]) ? ` ${about[1].toLowerCase()} ${about[2]}` : "";
+  return capitalize(withSubject([...lead, hit.text].join(" ") + topic, subject));
 }
 
 function capitalize(text) {

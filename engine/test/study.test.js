@@ -136,8 +136,16 @@ test("a lesson becomes a fuller test: multiple choice and key-sentence blanks", 
   // A lecture with no "X is Y" sentences still gives a test, from its key sentences
   const history = "Robespierre and the Committee of Public Safety ran France for about a year. They executed thousands of people they considered enemies of the revolution. The guillotine became the symbol of that whole period. A lot of historians argue the terror was a response to foreign invasion and civil war. By 1794 even his allies turned on him and he was executed too.";
   const blanks = makeQuiz([{ title: "History", text: history }], { seed: 2 });
-  assert.ok(blanks.length >= 4, `only ${blanks.length} questions`);
+  assert.ok(blanks.length >= 3, `only ${blanks.length} questions`);
   assert.ok(blanks.every((q) => q.kind === "blank" && q.prompt.includes("_____")));
+  // No stock nouns anyone could guess ("A lot of _____ argue…") and no answer asked twice
+  assert.ok(!blanks.some((q) => /^(historians|people)$/i.test(q.answer) || /a lot of _____/i.test(q.prompt)));
+  assert.equal(new Set(blanks.map((q) => q.answer.toLowerCase())).size, blanks.length);
+  // Options never give the answer away by form: same plural/singular and capitalisation
+  for (const q of quiz.filter((x) => x.choices && x.kind !== "define")) {
+    const plural = (w) => /s$/i.test(w) && !/(?:ss|us|is|ys)$/i.test(w);
+    assert.ok(q.choices.every((c) => plural(c) === plural(q.answer) && /^\p{Lu}/u.test(c) === /^\p{Lu}/u.test(q.answer)), q.choices.join(", "));
+  }
   // Moodle gets the options too
   assert.match(exportQuiz([{ prompt: "Gene", answer: "DNA", choices: ["RNA", "DNA"] }], "gift"), /\{~RNA =DNA\}/);
 });

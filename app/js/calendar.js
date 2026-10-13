@@ -5,7 +5,7 @@ import { uid } from "./store.js";
 import { go } from "./nav.js";
 import { practiceNote } from "./quiz.js";
 import { parseICS, toICS, googleCalendarLink, toISO, fromISO, describeDay } from "../engine/index.js";
-import { t, uiLocale } from "./i18n.js";
+import { t, uiLocale, weekStart } from "./i18n.js";
 
 let month = null;
 let showPast = false;
@@ -94,8 +94,9 @@ export function render(main) {
 function drawMonth() {
   $("#monthLabel").textContent = month.toLocaleDateString(uiLocale(), { month: "long", year: "numeric" });
   const start = new Date(month);
-  start.setDate(1 - month.getDay());
-  const cells = Array.from({ length: 7 }, (_, i) => new Date(2026, 0, 4 + i).toLocaleDateString(uiLocale(), { weekday: "short" })).map((d) => `<div class="dow" aria-hidden="true">${d}</div>`);
+  const first = weekStart();
+  start.setDate(1 - ((month.getDay() - first + 7) % 7));
+  const cells = Array.from({ length: 7 }, (_, i) => new Date(2026, 0, 4 + first + i).toLocaleDateString(uiLocale(), { weekday: "short" })).map((d) => `<div class="dow" aria-hidden="true">${d}</div>`);
   for (let i = 0; i < 42; i++) {
     const day = new Date(start);
     day.setDate(start.getDate() + i);
@@ -121,6 +122,14 @@ function drawAgenda() {
     : `<p class="empty">${t("Nothing coming up. Record a class, import your school calendar, or add a date.")}</p>`;
   $$("[data-del]").forEach((b) => b.addEventListener("click", async () => { await deleteEvent(b.dataset.del); drawAgenda(); drawMonth(); }));
   $$("[data-practice]").forEach((b) => b.addEventListener("click", () => practiceNote(b.dataset.practice)));
+  // One "Remind me" menu open at a time, opening upwards when there's no room below
+  $$(".remind").forEach((d) => d.addEventListener("toggle", () => {
+    if (!d.open) return;
+    $$(".remind[open]").forEach((o) => { if (o !== d) o.open = false; });
+    const menu = d.querySelector(".remind-menu");
+    menu.classList.remove("up");
+    if (menu.getBoundingClientRect().bottom > innerHeight - 8) menu.classList.add("up");
+  }));
   $$("[data-ics]").forEach((b) => b.addEventListener("click", () => {
     const e = state.events.find((x) => x.id === b.dataset.ics);
     if (e) download(`${e.title.replace(/[^\p{L}\d]+/gu, "-").replace(/^-|-$/g, "").slice(0, 40) || "event"}.ics`, icsFor([e]), "text/calendar");

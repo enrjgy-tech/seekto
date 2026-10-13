@@ -50,6 +50,9 @@ export function detectTopic(text) {
   }
   const bestPair = [...pairs].sort((a, b) => b[1] - a[1])[0];
   if (bestPair && bestPair[1] >= 2) return titleCase(bestPair[0]);
+  // Nothing repeats: a name of two or more words said mid-sentence ("the French Revolution")
+  const named = String(text).match(/(?<=[a-z,;]\s+(?:the\s+)?)(?:[A-Z][a-z]+\s+){1,3}[A-Z][a-z]+/);
+  if (named) return named[0];
   const singles = new Map();
   for (const w of list) singles.set(w, (singles.get(w) || 0) + 1);
   const bestWord = [...singles].sort((a, b) => b[1] - a[1] || b[0].length - a[0].length)[0];
@@ -165,6 +168,9 @@ export function findDefinitions(text) {
   return out;
 }
 
+// Nouns anyone could guess from the sentence around them.
+const COMMON_NOUNS = new Set("people person historians scientists researchers experts scholars critics students teachers children others someone everyone anyone things thing example examples reason reasons way ways year years time times question questions problem problems answer answers result results number numbers part parts group groups country countries place places world idea ideas kind kinds type types lot lots side sides point points case cases fact facts process system systems change changes level levels area areas form forms work works life lives person's".split(" "));
+
 // Words that make poor fill-in-the-blank answers: classroom talk, not course content.
 const BLANK_SKIP = new Set("chapter chapters today tomorrow everyone class lesson lecture week weeks review quiz test exam homework page pages section unit tema clase examen semana hoy".split(" "));
 
@@ -203,14 +209,10 @@ export function makeQuiz(notes, { count = 10, flip = false, seed = Date.now() } 
   });
   const allDefs = found.flat();
   const blanks = keySentenceBlanks(notes, found, usedTerms, Math.max(count - defs.length, 3), seed);
-  // Multiple choice: the other definitions for "what does X mean?", other blank answers for blanks
+  // Multiple choice needs three wrong options that look like the right one: the same kind of
+  // answer (definitions with definitions, terms with terms), plural with plural, and capitalised
+  // only if the answer is, so the form of an option never gives it away.
   let k = 0;
-  for (const q of defs) {
-    if (q.kind !== "define") continue;
-    const others = allDefs.filter((d) => d.definition !== q.answer).map((d) => d.definition);
-    if (others.length >= 2) q.choices = shuffle([q.answer, ...shuffle(others, seed + ++k).slice(0, 3)], seed + ++k);
-  }
-  // Words are shown as the lesson writes them ("Robespierre", "mitosis"), so case doesn't give the answer away
   const text = notes.map((n) => n.text).join(" ");
   const shown = (w) => {
     const proper = new RegExp(`[^.!?]\\s${w.charAt(0).toUpperCase()}${w.slice(1).toLowerCase()}(?![\\p{L}])`, "u").test(text);
@@ -218,16 +220,33 @@ export function makeQuiz(notes, { count = 10, flip = false, seed = Date.now() } 
     return proper && !lower ? w.charAt(0).toUpperCase() + w.slice(1).toLowerCase() : w.toLowerCase();
   };
   const stem = (w) => w.toLowerCase().replace(/e?s$/, "").replace(/e$/, "");
-  const words = [...new Set([...blanks.map((b) => b.answer), ...allDefs.filter((d) => !/\s/.test(d.term)).map((d) => d.term)].map(shown))];
+  const plural = (w) => /s$/i.test(w.trim().split(/\s+/).pop()) && !/(?:ss|us|is|ys)$/i.test(w.trim().split(/\s+/).pop());
+  const capital = (w) => /^\p{Lu}/u.test(w);
+  const verbish = (w) => /(?:ed|ing)$/i.test(w);
+  const pick = (answer, pool, sameShape) => {
+    const shaped = sameShape ? pool.filter((w) => plural(w) === plural(answer) && capital(w) === capital(answer) && verbish(w) === verbish(answer)) : pool;
+    const alike = shaped.filter((w, i) => stem(w) !== stem(answer) && shaped.findIndex((x) => stem(x) === stem(w)) === i);
+    return alike.length >= 3 ? shuffle([answer, ...shuffle(alike, seed + ++k).slice(0, 3)], seed + ++k) : undefined;
+  };
+  const terms = allDefs.map((d) => d.term);
+  let asTerm = 0;
+  for (const q of defs) {
+    if (q.kind === "define") q.choices = pick(q.answer, allDefs.map((d) => d.definition), false);
+    // Every other "which term means…" is multiple choice; the rest are typed, which helps recall
+    else if (asTerm++ % 2 === 0) q.choices = pick(q.answer, terms, true);
+  }
+  const words = [...new Set([...blanks.map((b) => b.answer), ...terms.filter((t) => !/\s/.test(t))].map(shown))];
   for (const q of blanks) {
     q.answer = shown(q.answer);
-    const others = words.filter((w) => stem(w) !== stem(q.answer) && !q.prompt.toLowerCase().includes(w.toLowerCase()));
-    const unique = others.filter((w, i) => others.findIndex((x) => stem(x) === stem(w)) === i);
-    if (unique.length >= 2) q.choices = shuffle([q.answer, ...shuffle(unique, seed + ++k).slice(0, 3)], seed + ++k);
+    q.choices = pick(q.answer, words.filter((w) => !q.prompt.toLowerCase().includes(w.toLowerCase())), true);
   }
-  // Definitions first in priority, then blanks; shuffle what's kept so the order isn't predictable.
-  const picked = [...shuffle(defs, seed), ...shuffle(blanks, seed + 1)].slice(0, count);
-  return shuffle(picked, seed + 2);
+  for (const q of [...defs, ...blanks]) if (!q.choices) delete q.choices;
+  // Definitions first in priority, then blanks; shuffle what's kept so the order isn't predictable,
+  // but open on a multiple-choice question when there is one (an easy first tap on a phone).
+  const picked = shuffle([...shuffle(defs, seed), ...shuffle(blanks, seed + 1)].slice(0, count), seed + 2);
+  const first = picked.findIndex((q) => q.choices);
+  if (first > 0) picked.unshift(...picked.splice(first, 1));
+  return picked;
 }
 
 // Sentences about class logistics ("the quiz is on Friday") make poor questions.
@@ -249,8 +268,11 @@ function keySentenceBlanks(notes, found, usedTerms, want, seed) {
       if (LOGISTICS.test(s) || findDates(s).length) continue;
       const parts = s.split(/(\s+)/);
       const word = (p) => p.trim().replace(/[^\p{L}'-]/gu, "").toLowerCase();
-      const content = (p, i) => i > 0 && word(p).length >= 4 && !BLANK_SKIP.has(word(p)) && !STOP.has(word(p));
-      let idx = parts.findIndex((p, i) => usedTerms.has(word(p)) && i > 0);
+      // Not a word anyone could guess from the sentence: no stock nouns ("historians", "people") and
+      // nothing right after a quantifier ("a lot of _____")
+      const content = (p, i) => i > 0 && word(p).length >= 4 && !BLANK_SKIP.has(word(p)) && !STOP.has(word(p)) && !COMMON_NOUNS.has(word(p)) && !/^(?:many|some|most|few|several|all|other|these|those)$/i.test(word(parts[i - 2] || "")) && !/^(?:lot|lots|bunch|number|couple) of$/i.test(`${word(parts[i - 4] || "")} ${word(parts[i - 2] || "")}`);
+      const termStems = new Set([...usedTerms].map((w) => w.replace(/e?s$/, "").replace(/e$/, "")));
+      let idx = parts.findIndex((p, i) => i > 0 && (usedTerms.has(word(p)) || termStems.has(word(p).replace(/e?s$/, "").replace(/e$/, ""))));
       let strength = 3;
       if (idx < 0) { idx = parts.findIndex((p, i) => content(p, i) && topicWords.has(tokens(p)[0])); strength = 2; }
       if (idx < 0) {
@@ -259,6 +281,9 @@ function keySentenceBlanks(notes, found, usedTerms, want, seed) {
         let score = 0;
         parts.forEach((p, i) => {
           if (!content(p, i) || word(p).length < 6) return;
+          // Only a word the lesson repeats, a name, or a long technical-looking word
+          const proper = /^\p{Lu}/u.test(p.trim()) && i > 0;
+          if ((counts.get(word(p)) || 1) < 2 && !proper && word(p).length < 9) return;
           const sc = (counts.get(word(p)) || 1) * 2 + word(p).length / 4;
           if (sc > score) { score = sc; best = i; }
         });
@@ -273,7 +298,14 @@ function keySentenceBlanks(notes, found, usedTerms, want, seed) {
     }
     // Strongest blanks first; weaker ones only fill the test up
     candidates.sort((a, b) => b.strength - a.strength);
-    for (const c of candidates) if (c.strength >= 2 || out.length < want) out.push(c.q);
+    // One question per answer word, so the test doesn't ask for "terror" three times
+    const asked = new Set();
+    for (const c of candidates) {
+      const key = c.q.answer.toLowerCase();
+      if (asked.has(key) || !(c.strength >= 2 || out.length < want)) continue;
+      asked.add(key);
+      out.push(c.q);
+    }
   });
   return shuffle(out, seed + 5);
 }

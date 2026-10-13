@@ -1,14 +1,14 @@
 // The first screen for someone new: the sample class plays straight away, and what Seekto finds
 // lands where it belongs. Dates drop onto the calendar and explained terms become test questions.
 // Record and Paste are right there; the assistant is one tap away.
-import { $, html, raw, esc, friendlyDate } from "./ui.js";
+import { $, html, raw, esc, friendlyDate, announce } from "./ui.js";
 import { state } from "./state.js";
 import { go } from "./nav.js";
 import { sampleScript, loadSample } from "./sample.js";
 import { openPaste } from "./paste.js";
 import { openQuiz, shareLink } from "./quiz.js";
 import { findEvents, findDefinitions, findDates, toISO, fromISO, makeQuiz, formatTime } from "../engine/index.js";
-import { t, uiLocale } from "./i18n.js";
+import { t, uiLocale, weekStart } from "./i18n.js";
 import { defaultTranscriber } from "./ondevice.js";
 import { canListen } from "./voice.js";
 
@@ -40,10 +40,10 @@ export function render(main) {
   const locale = uiLocale();
   const all = findEvents(script.lines.join(" "), { ref, locale, subject: script.subject });
   const last = all.reduce((m, e) => (e.date > m ? e.date : m), toISO(ref));
-  // Whole weeks from Monday, so the strip reads like a calendar, as many weeks as the dates need.
+  // Whole weeks, starting on the day the calendar screen starts on, as many as the dates need.
   const monday = new Date(ref);
   monday.setHours(12, 0, 0, 0);
-  monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+  monday.setDate(monday.getDate() - ((monday.getDay() - weekStart(locale) + 7) % 7));
   const span = Math.min(21, 7 * Math.ceil((Math.round((fromISO(last) - monday) / 86400000) + 1) / 7));
   const days = Array.from({ length: span }, (_, i) => { const d = new Date(monday); d.setDate(d.getDate() + i); return d; });
   const todayISO = toISO(ref);
@@ -57,7 +57,7 @@ export function render(main) {
     <div class="view home">
       <header class="home-head">
         <h1>${t("Your teacher says it once.")}<br>${t("Seekto catches it.")}</h1>
-        <p class="lede">${privateHere ? t("Record a class. The deadlines go on your calendar, and the lesson becomes a practice test you can share with your class. Free, no account, and the transcript is made on your device.") : t("Record a class. The deadlines go on your calendar, and the lesson becomes a practice test you can share with your class. Free and no account. On this device, live transcripts use your browser's speech service; you can switch to private, on-device transcripts in Settings.")}</p>
+        <p class="lede">${privateHere ? t("Record a class. The deadlines go on your calendar, and the lesson becomes a practice test you can share with your class. Free, no account, and the transcript is made on your device.") : t("Record a class. The deadlines go on your calendar, and the lesson becomes a practice test you can share with your class. Free and no account. Here, transcripts use your browser's speech service (Settings has a private option).")}</p>
         <div class="row cta">
           <button class="btn big rec" data-go-record><span class="dot" aria-hidden="true"></span>${t("Record a class")}</button>
           <button class="btn big ghost" data-paste>${t("Paste notes or a syllabus")}</button>
@@ -66,13 +66,13 @@ export function render(main) {
       </header>
       <section class="stage" aria-label="${t("A sample class, playing")}">
         <div class="panel stage-class">
-          <div class="stage-head"><span class="pulse" id="hPulse" aria-hidden="true"></span><b>${script.title}</b><span class="note-small">${t("sample class (scripted)")}</span><span class="mono note-small" id="hClock">0:00</span></div>
+          <div class="stage-head"><span class="pulse" id="hPulse" aria-hidden="true"></span><b>${script.title}</b><span class="note-small">${t("sample class (scripted)")}</span><span class="mono note-small" id="hClock">0:00</span><button class="btn ghost small" id="hPause" aria-pressed="false">${t("Pause")}</button></div>
           <div class="stage-lines" id="hLines"></div>
         </div>
         <div class="stage-side">
           <div class="panel week">
             <b>${t("Your calendar")}</b>
-            <div class="days" id="hDays">${raw(days.map((d) => html`<div class="dcell ${toISO(d) < todayISO ? "past" : toISO(d) === todayISO ? "today" : ""}" data-day="${toISO(d)}" aria-label="${d.toLocaleDateString(locale, { weekday: "long", month: "long", day: "numeric" })}"><span class="dw">${d.toLocaleDateString(locale, { weekday: "short" })}</span><span class="dn">${d.getDate()}</span></div>`).join(""))}</div>
+            <div class="days" id="hDays">${raw(days.map((d) => html`<div class="dcell ${toISO(d) < todayISO ? "past" : toISO(d) === todayISO ? "today" : ""}" data-day="${toISO(d)}"><span class="sr-only">${d.toLocaleDateString(locale, { weekday: "long", month: "long", day: "numeric" })}</span><span class="dw" aria-hidden="true">${d.toLocaleDateString(locale, { weekday: "short" })}</span><span class="dn" aria-hidden="true">${d.getDate()}</span></div>`).join(""))}</div>
             <ul class="added" id="hAdded" aria-live="polite"></ul>
           </div>
           <div class="panel testcard">
@@ -101,7 +101,17 @@ export function render(main) {
 
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const pace = reduce ? 0 : (window.seektoDemoPace ?? 1);
-  const wait = (ms) => new Promise((r) => setTimeout(r, ms * pace));
+  // The sample can be paused (it moves by itself, so it needs a way to stop: WCAG 2.2.2)
+  let paused = false;
+  const wait = async (ms) => {
+    await new Promise((r) => setTimeout(r, ms * pace));
+    while (paused && me === run) await new Promise((r) => setTimeout(r, 200));
+  };
+  $("#hPause").addEventListener("click", (e) => {
+    paused = !paused;
+    e.target.setAttribute("aria-pressed", String(paused));
+    e.target.textContent = paused ? t("Play") : t("Pause");
+  });
   let questions = 0;
   (async () => {
     await wait(500);
@@ -141,10 +151,12 @@ export function render(main) {
     await ready;
     if (me !== run || !document.contains(main)) return;
     $("#hPulse").remove();
+    $("#hPause").remove();
     const total = makeQuiz([{ title: note.title, topic: note.topic, text: note.text }]).length;
     $("#hQn").textContent = total;
     $("#hQl").textContent = total === 1 ? t("question, ready") : t("questions, ready");
     $("#hTest").hidden = false;
+    announce(total === 1 ? t("1 question ready. Take the test, or share it with your class.") : t("{n} questions ready. Take the test, or share it with your class.", { n: total }));
     $("#hReplay").hidden = false;
     main.querySelector("[data-take]").addEventListener("click", () => openQuiz({ notes: [note], title: note.title.replace(/^[^:]+:\s*/, "") }));
     main.querySelector("[data-sharetest]").addEventListener("click", () => {

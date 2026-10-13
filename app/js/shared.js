@@ -31,7 +31,7 @@ export async function render(main, code) {
       <header class="shared-head">
         <span class="label">${n > 1 ? t("Practice test · {n} questions", { n }) : t("Practice test · 1 question")}</span>
         <h1>${test.title}</h1>
-        <p class="sub">${c ? t("Your classmate got {got} of {of}. Can you beat that?", { got: c.got, of: c.of }) : t("A classmate shared this with you.")} ${t("Your answers stay on this device.")}</p>
+        <p class="sub">${c ? (c.got === c.of ? t("Your classmate got all {of} right. Can you match that?", { of: c.of }) : t("Your classmate got {got} of {of}. Can you beat that?", { got: c.got, of: c.of })) : t("A classmate shared this with you.")} ${t("Your answers stay on this device.")}</p>
       </header>
       <div id="quizMount" class="shared-quiz"></div>
       <footer class="shared-foot">
