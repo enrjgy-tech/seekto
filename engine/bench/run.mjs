@@ -14,19 +14,47 @@ import { findEvents, findDefinitions, findActionItems } from "../src/index.js";
 const dir = fileURLToPath(new URL("./data/", import.meta.url));
 const args = new Set(process.argv.slice(2));
 
-const items = readdirSync(dir).filter((f) => f.endsWith(".jsonl")).sort().flatMap((file) =>
-  readFileSync(dir + file, "utf8").split("\n").filter(Boolean).map((line) => ({ file, ...JSON.parse(line) })));
+const items = readdirSync(dir)
+  .filter((f) => f.endsWith(".jsonl"))
+  .sort()
+  .flatMap((file) =>
+    readFileSync(dir + file, "utf8")
+      .split("\n")
+      .filter(Boolean)
+      .map((line) => ({ file, ...JSON.parse(line) })),
+  );
 
 // "fresh": written after the rules were finished and scored once; never shown.
 // "dev2": the previous fresh set (r2-*), scored once on October 12, 2026 and then opened up, so its
 // mistakes are printed and rules may be fixed on it.
-const split = (item) => (/^fresh-/.test(item.file) ? "fresh" : /^r2-/.test(item.file) ? "dev2" : Number(item.id.match(/(\d+)$/)[1]) % 2 === 0 ? "test" : "dev");
-const refDate = (iso) => { const [y, m, d] = iso.split("-").map(Number); return new Date(y, m - 1, d, 12); };
-const normTerm = (t) => String(t).toLowerCase().replace(/^(the|a|an|el|la|los|las|un|una|o|os|as)\s+/, "").replace(/[^\p{L}\d ]/gu, "").trim();
-const sameTerm = (a, b) => { a = normTerm(a); b = normTerm(b); return a === b || (a.length > 3 && b.length > 3 && (a.includes(b) || b.includes(a))); };
+const split = (item) =>
+  /^fresh-/.test(item.file)
+    ? "fresh"
+    : /^r2-/.test(item.file)
+      ? "dev2"
+      : Number(item.id.match(/(\d+)$/)[1]) % 2 === 0
+        ? "test"
+        : "dev";
+const refDate = (iso) => {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(y, m - 1, d, 12);
+};
+const normTerm = (t) =>
+  String(t)
+    .toLowerCase()
+    .replace(/^(the|a|an|el|la|los|las|un|una|o|os|as)\s+/, "")
+    .replace(/[^\p{L}\d ]/gu, "")
+    .trim();
+const sameTerm = (a, b) => {
+  a = normTerm(a);
+  b = normTerm(b);
+  return a === b || (a.length > 3 && b.length > 3 && (a.includes(b) || b.includes(a)));
+};
 const normOwner = (o) => (o == null ? null : String(o).toLowerCase());
 
-function blank() { return { tp: 0, fp: 0, fn: 0 }; }
+function blank() {
+  return { tp: 0, fp: 0, fn: 0 };
+}
 function prf({ tp, fp, fn }) {
   const p = tp + fp ? tp / (tp + fp) : 1;
   const r = tp + fn ? tp / (tp + fn) : 1;
@@ -37,7 +65,16 @@ const totals = {};
 const mistakes = [];
 for (const item of items) {
   const s = split(item);
-  for (const key of [s, "all"]) totals[key] ??= { events: blank(), definitions: blank(), actions: blank(), owners: { right: 0, total: 0 }, dues: { right: 0, total: 0 }, items: 0, perfect: 0 };
+  for (const key of [s, "all"])
+    totals[key] ??= {
+      events: blank(),
+      definitions: blank(),
+      actions: blank(),
+      owners: { right: 0, total: 0 },
+      dues: { right: 0, total: 0 },
+      items: 0,
+      perfect: 0,
+    };
   const ref = refDate(item.ref);
   const wrong = [];
 
@@ -55,7 +92,7 @@ for (const item of items) {
   }
 
   // Definitions: only scored in files that label them.
-  let df = { tp: 0, fp: 0, fn: 0 };
+  const df = { tp: 0, fp: 0, fn: 0 };
   const scoresDefs = /^(defs|es-pt|(?:fresh|r2)-(?:lectures|school|espt))/.test(item.file);
   if (scoresDefs) {
     const got = findDefinitions(item.text, { lang: item.lang }).map((d) => d.term);
@@ -63,7 +100,10 @@ for (const item of items) {
     const used = new Set();
     for (const w of want) {
       const i = got.findIndex((g, j) => !used.has(j) && sameTerm(g, w));
-      if (i >= 0) { used.add(i); df.tp++; } else df.fn++;
+      if (i >= 0) {
+        used.add(i);
+        df.tp++;
+      } else df.fn++;
     }
     df.fp = got.length - used.size;
     if (df.fp || df.fn) wrong.push(`definitions: got [${got}] want [${want}]`);
@@ -71,7 +111,7 @@ for (const item of items) {
 
   // Action items: only scored in meeting files. A found item counts if one is expected;
   // owners are checked in order.
-  let ac = { tp: 0, fp: 0, fn: 0 };
+  const ac = { tp: 0, fp: 0, fn: 0 };
   const owners = { right: 0, total: 0 };
   const dues = { right: 0, total: 0 };
   if (/meetings/.test(item.file)) {
@@ -92,12 +132,20 @@ for (const item of items) {
         remaining.splice(i, 1);
       }
     }
-    if (ac.fp || ac.fn || owners.right < owners.total || dues.right < dues.total) wrong.push(`actions: got [${got.map((g) => `${g.owner ?? "nobody"}: ${g.task}${g.due ? ` (by ${g.due})` : ""}`).join(" | ")}] want [${want.map((w) => `${w.owner ?? "nobody"}${w.due ? ` by ${w.due}` : ""}`).join(", ")}]`);
+    if (ac.fp || ac.fn || owners.right < owners.total || dues.right < dues.total)
+      wrong.push(
+        `actions: got [${got.map((g) => `${g.owner ?? "nobody"}: ${g.task}${g.due ? ` (by ${g.due})` : ""}`).join(" | ")}] want [${want.map((w) => `${w.owner ?? "nobody"}${w.due ? ` by ${w.due}` : ""}`).join(", ")}]`,
+      );
   }
 
   for (const key of [s, "all"]) {
     const t = totals[key];
-    for (const [name, part] of [["events", ev], ["definitions", df], ["actions", ac]]) for (const k of ["tp", "fp", "fn"]) t[name][k] += part[k];
+    for (const [name, part] of [
+      ["events", ev],
+      ["definitions", df],
+      ["actions", ac],
+    ])
+      for (const k of ["tp", "fp", "fn"]) t[name][k] += part[k];
     t.owners.right += owners.right;
     t.owners.total += owners.total;
     t.dues.right += dues.right;
@@ -105,7 +153,8 @@ for (const item of items) {
     t.items++;
     if (!wrong.length) t.perfect++;
   }
-  if (wrong.length && (s === "dev" || s === "dev2")) mistakes.push({ id: item.id, locale: item.locale, ref: item.ref, text: item.text, wrong, note: item.note });
+  if (wrong.length && (s === "dev" || s === "dev2"))
+    mistakes.push({ id: item.id, locale: item.locale, ref: item.ref, text: item.text, wrong, note: item.note });
 }
 
 const result = {};
@@ -124,12 +173,27 @@ for (const [key, t] of Object.entries(totals)) {
 if (args.has("--check")) {
   const floor = JSON.parse(readFileSync(new URL("./floor.json", import.meta.url), "utf8"));
   const t = result.test;
-  const now = { deadlinesRecall: t.deadlines.recall, deadlinesPrecision: t.deadlines.precision, definitionsRecall: t.definitions.recall, definitionsPrecision: t.definitions.precision, actionItemsRecall: t.actionItems.recall, actionItemsPrecision: t.actionItems.precision };
+  const now = {
+    deadlinesRecall: t.deadlines.recall,
+    deadlinesPrecision: t.deadlines.precision,
+    definitionsRecall: t.definitions.recall,
+    definitionsPrecision: t.definitions.precision,
+    actionItemsRecall: t.actionItems.recall,
+    actionItemsPrecision: t.actionItems.precision,
+  };
   // One point of slack, so the held-out half isn't used as a target to tune against.
   const SLACK = 0.01;
   const drops = Object.entries(floor).filter(([k, v]) => now[k] + SLACK < v);
-  for (const [k, v] of Object.entries(floor)) console.log(`${now[k] + SLACK < v ? "DROP" : "ok  "} ${k}: ${(now[k] * 100).toFixed(1)}% (floor ${(v * 100).toFixed(1)}%, 1 point of slack)`);
-  if (drops.length) { console.error("\nHeld-out accuracy dropped. A rule change made the engine worse on sentences it was never tuned on."); process.exit(1); }
+  for (const [k, v] of Object.entries(floor))
+    console.log(
+      `${now[k] + SLACK < v ? "DROP" : "ok  "} ${k}: ${(now[k] * 100).toFixed(1)}% (floor ${(v * 100).toFixed(1)}%, 1 point of slack)`,
+    );
+  if (drops.length) {
+    console.error(
+      "\nHeld-out accuracy dropped. A rule change made the engine worse on sentences it was never tuned on.",
+    );
+    process.exit(1);
+  }
 } else if (args.has("--json")) {
   console.log(JSON.stringify(result, null, 2));
 } else {
@@ -138,12 +202,21 @@ if (args.has("--check")) {
     const r = result[key];
     if (!r) continue;
     console.log(`\n${key.toUpperCase()} (${r.items} items, ${r.perfect} fully right)`);
-    console.log(`  deadlines     found ${r.deadlines.tp} of ${r.deadlines.tp + r.deadlines.fn} (recall ${pct(r.deadlines.recall)}), ${r.deadlines.fp} false alarms (precision ${pct(r.deadlines.precision)})`);
-    console.log(`  definitions   found ${r.definitions.tp} of ${r.definitions.tp + r.definitions.fn} (recall ${pct(r.definitions.recall)}), ${r.definitions.fp} false (precision ${pct(r.definitions.precision)})`);
-    console.log(`  action items  found ${r.actionItems.tp} of ${r.actionItems.tp + r.actionItems.fn} (recall ${pct(r.actionItems.recall)}), ${r.actionItems.fp} extra, owner right ${pct(r.owners)}, due date right ${pct(r.dueDates)}`);
+    console.log(
+      `  deadlines     found ${r.deadlines.tp} of ${r.deadlines.tp + r.deadlines.fn} (recall ${pct(r.deadlines.recall)}), ${r.deadlines.fp} false alarms (precision ${pct(r.deadlines.precision)})`,
+    );
+    console.log(
+      `  definitions   found ${r.definitions.tp} of ${r.definitions.tp + r.definitions.fn} (recall ${pct(r.definitions.recall)}), ${r.definitions.fp} false (precision ${pct(r.definitions.precision)})`,
+    );
+    console.log(
+      `  action items  found ${r.actionItems.tp} of ${r.actionItems.tp + r.actionItems.fn} (recall ${pct(r.actionItems.recall)}), ${r.actionItems.fp} extra, owner right ${pct(r.owners)}, due date right ${pct(r.dueDates)}`,
+    );
   }
   if (args.has("--show")) {
     console.log(`\nDev and dev2 mistakes (${mistakes.length}):`);
-    for (const m of mistakes) console.log(`\n${m.id} [${m.locale}, said ${m.ref}] ${m.text}\n  ${m.wrong.join("\n  ")}${m.note ? `\n  note: ${m.note}` : ""}`);
+    for (const m of mistakes)
+      console.log(
+        `\n${m.id} [${m.locale}, said ${m.ref}] ${m.text}\n  ${m.wrong.join("\n  ")}${m.note ? `\n  note: ${m.note}` : ""}`,
+      );
   }
 }

@@ -5,7 +5,11 @@ import { loadSettings } from "./store.js";
 import es from "../i18n/es.js";
 import pt from "../i18n/pt.js";
 
-export const LANGUAGES = [["en", "English"], ["es", "Español"], ["pt", "Português"]];
+export const LANGUAGES = [
+  ["en", "English"],
+  ["es", "Español"],
+  ["pt", "Português"],
+];
 const DICTS = { es, pt };
 
 function pick() {
@@ -33,9 +37,15 @@ export function t(text, vars) {
 
 /** The locale for dates and numbers in the interface, like "es-MX" or "pt-BR". */
 export function uiLocale() {
-  const nav = String(navigator.languages?.[0] || navigator.language || "en-US").split(/[@.]/)[0].replace("_", "-");
+  const nav = String(navigator.languages?.[0] || navigator.language || "en-US")
+    .split(/[@.]/)[0]
+    .replace("_", "-");
   let valid = nav;
-  try { [valid] = Intl.getCanonicalLocales(nav); } catch { valid = ""; }
+  try {
+    [valid] = Intl.getCanonicalLocales(nav);
+  } catch {
+    valid = "";
+  }
   if (valid && valid.toLowerCase().startsWith(lang)) return valid;
   return { en: "en-US", es: "es", pt: "pt-BR" }[lang];
 }
@@ -67,6 +77,10 @@ export function weekStart(locale = uiLocale()) {
     const info = new Intl.Locale(locale);
     const first = info.weekInfo?.firstDay ?? info.getWeekInfo?.().firstDay;
     if (first) return first % 7;
-  } catch { /* older browsers */ }
-  return /-(?:US|CA|BR|MX|PH|JP|IL|IN|ZA|KR|TW|HK|PE|CO|VE|GT|SV|HN|NI|PA|DO|PR)$/i.test(locale) || locale === "en" ? 0 : 1;
+  } catch {
+    /* older browsers */
+  }
+  return /-(?:US|CA|BR|MX|PH|JP|IL|IN|ZA|KR|TW|HK|PE|CO|VE|GT|SV|HN|NI|PA|DO|PR)$/i.test(locale) || locale === "en"
+    ? 0
+    : 1;
 }

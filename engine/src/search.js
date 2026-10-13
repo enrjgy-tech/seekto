@@ -2,9 +2,11 @@
 // Each caption line is one document, so an answer starts on the line that says it.
 
 const STOP = new Set(
-  ("a an and are as at be but by can do does for from has have how i if in is it its me my of on or so " +
+  (
+    "a an and are as at be but by can do does for from has have how i if in is it its me my of on or so " +
     "that the then there this to was we what when where which who why will with you your about into than " +
-    "they them our just very also").split(" ")
+    "they them our just very also"
+  ).split(" "),
 );
 
 /** Light stemming: enough to match "sorted" with "sorting", "items" with "item". */
@@ -17,7 +19,13 @@ export function stem(word) {
 }
 
 export function tokens(text) {
-  return (String(text).toLowerCase().match(/[a-z0-9]+/g) || []).filter((w) => !STOP.has(w)).map(stem);
+  return (
+    String(text)
+      .toLowerCase()
+      .match(/[a-z0-9]+/g) || []
+  )
+    .filter((w) => !STOP.has(w))
+    .map(stem);
 }
 
 function counts(list) {
@@ -30,7 +38,10 @@ function counts(list) {
 export function buildIndex(cues) {
   const docs = cues.map((cue, i) => {
     const words = tokens(cue.text);
-    const context = cues.slice(i, i + 2).map((c) => c.text).join(" ");
+    const context = cues
+      .slice(i, i + 2)
+      .map((c) => c.text)
+      .join(" ");
     return { i, start: cue.start, text: cue.text, context, tf: counts(words), length: words.length };
   });
   const df = new Map();

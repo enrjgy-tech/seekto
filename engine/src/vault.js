@@ -33,11 +33,17 @@ function checkChar(chars) {
 
 /** Upper case, no spaces or dashes. */
 export function normalizeAccountKey(input) {
-  return String(input || "").toUpperCase().replace(/[\s\-_.]/g, "");
+  return String(input || "")
+    .toUpperCase()
+    .replace(/[\s\-_.]/g, "");
 }
 
 export function formatAccountKey(input) {
-  return normalizeAccountKey(input).match(/.{1,4}/g)?.join("-") || "";
+  return (
+    normalizeAccountKey(input)
+      .match(/.{1,4}/g)
+      ?.join("-") || ""
+  );
 }
 
 /** Right length, right characters, and the check character matches (catches most typos). */
@@ -54,12 +60,24 @@ const hex = (buf) => [...new Uint8Array(buf)].map((b) => b.toString(16).padStart
 export async function deriveAccount(accountKey, crypto = globalThis.crypto) {
   if (!isValidAccountKey(accountKey)) throw new Error("That account key isn't right. Check each character.");
   const subtle = crypto.subtle;
-  const base = await subtle.importKey("raw", enc.encode(normalizeAccountKey(accountKey)), "HKDF", false, ["deriveBits", "deriveKey"]);
+  const base = await subtle.importKey("raw", enc.encode(normalizeAccountKey(accountKey)), "HKDF", false, [
+    "deriveBits",
+    "deriveKey",
+  ]);
   const params = (info) => ({ name: "HKDF", hash: "SHA-256", salt: enc.encode(SALT), info: enc.encode(info) });
   const bits = (info, n) => subtle.deriveBits(params(info), base, n);
   const [id, write] = await Promise.all([bits("account-id", 128), bits("write-token", 256)]);
-  const itemKey = await subtle.deriveKey(params("item-ids"), base, { name: "HMAC", hash: "SHA-256", length: 256 }, false, ["sign"]);
-  const dataKey = await subtle.deriveKey(params("data"), base, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
+  const itemKey = await subtle.deriveKey(
+    params("item-ids"),
+    base,
+    { name: "HMAC", hash: "SHA-256", length: 256 },
+    false,
+    ["sign"],
+  );
+  const dataKey = await subtle.deriveKey(params("data"), base, { name: "AES-GCM", length: 256 }, false, [
+    "encrypt",
+    "decrypt",
+  ]);
   return { accountId: hex(id), writeToken: hex(write), itemKey, dataKey, crypto };
 }
 
@@ -85,7 +103,13 @@ const bound = (acct, id, version) => enc.encode(`${acct.accountId}|${id}|${versi
 /** Encrypt bytes for item `id` at `version`. Returns base64 of IV + ciphertext. */
 export async function sealBytes(acct, id, version, bytes) {
   const iv = acct.crypto.getRandomValues(new Uint8Array(12));
-  const ct = new Uint8Array(await acct.crypto.subtle.encrypt({ name: "AES-GCM", iv, additionalData: bound(acct, id, version) }, acct.dataKey, bytes));
+  const ct = new Uint8Array(
+    await acct.crypto.subtle.encrypt(
+      { name: "AES-GCM", iv, additionalData: bound(acct, id, version) },
+      acct.dataKey,
+      bytes,
+    ),
+  );
   const out = new Uint8Array(12 + ct.length);
   out.set(iv);
   out.set(ct, 12);
@@ -96,7 +120,11 @@ export async function sealBytes(acct, id, version, bytes) {
 export async function openBytes(acct, id, version, body) {
   const raw = fromBase64(body);
   try {
-    const pt = await acct.crypto.subtle.decrypt({ name: "AES-GCM", iv: raw.subarray(0, 12), additionalData: bound(acct, id, version) }, acct.dataKey, raw.subarray(12));
+    const pt = await acct.crypto.subtle.decrypt(
+      { name: "AES-GCM", iv: raw.subarray(0, 12), additionalData: bound(acct, id, version) },
+      acct.dataKey,
+      raw.subarray(12),
+    );
     return new Uint8Array(pt);
   } catch {
     throw new Error("An item from storage failed its integrity check and was ignored.");

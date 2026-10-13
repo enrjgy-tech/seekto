@@ -38,7 +38,10 @@ export function isValidCode(code) {
 export function randomId(bytes = 16, crypto = globalThis.crypto) {
   const a = new Uint8Array(bytes);
   crypto.getRandomValues(a);
-  return [...a].map((b) => b.toString(36).padStart(2, "0")).join("").slice(0, bytes * 2);
+  return [...a]
+    .map((b) => b.toString(36).padStart(2, "0"))
+    .join("")
+    .slice(0, bytes * 2);
 }
 
 const stamp = (r) => r.updatedAt || r.createdAt || 0;
@@ -90,7 +93,8 @@ export function incoming(local, localTombstones, payload) {
   }
   for (const t of payload.deleted || []) {
     if (deletedHere.has(t.id)) continue;
-    const store = t.store && STORES.includes(t.store) ? t.store : STORES.find((s) => (local[s] || []).some((r) => r.id === t.id));
+    const store =
+      t.store && STORES.includes(t.store) ? t.store : STORES.find((s) => (local[s] || []).some((r) => r.id === t.id));
     const have = store && (local[store] || []).find((r) => r.id === t.id);
     if (have && stamp(have) > t.at) continue;
     if (have) result.remove.push({ store, id: t.id });

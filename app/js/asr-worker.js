@@ -13,9 +13,21 @@ async function load(model) {
     env.localModelPath = new URL(WHISPER.models, self.location.href).href;
   } else env.allowLocalModels = false;
   if (WHISPER.wasm) env.backends.onnx.wasm.wasmPaths = new URL(WHISPER.wasm, self.location.href).href;
-  const progress = (p) => self.postMessage({ type: "progress", status: p.status, file: p.file, progress: p.progress, loaded: p.loaded, total: p.total });
+  const progress = (p) =>
+    self.postMessage({
+      type: "progress",
+      status: p.status,
+      file: p.file,
+      progress: p.progress,
+      loaded: p.loaded,
+      total: p.total,
+    });
   let device = "wasm";
-  try { if (self.navigator?.gpu && (await self.navigator.gpu.requestAdapter())) device = "webgpu"; } catch { /* no WebGPU */ }
+  try {
+    if (self.navigator?.gpu && (await self.navigator.gpu.requestAdapter())) device = "webgpu";
+  } catch {
+    /* no WebGPU */
+  }
   try {
     asr = await pipeline("automatic-speech-recognition", model, { device, progress_callback: progress });
   } catch (err) {
@@ -30,7 +42,10 @@ async function load(model) {
 
 self.onmessage = async ({ data }) => {
   try {
-    if (data.type === "load") { await load(data.model); return; }
+    if (data.type === "load") {
+      await load(data.model);
+      return;
+    }
     if (data.type === "run") {
       const run = await load(data.model);
       const options = { chunk_length_s: 30, stride_length_s: 5, return_timestamps: true };

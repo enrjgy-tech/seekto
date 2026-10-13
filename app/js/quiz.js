@@ -25,7 +25,8 @@ function promptFor(q) {
 }
 
 function spokenPrompt(q) {
-  if (q.choices) return `${spokenPrompt({ ...q, choices: null })} ${t("Is it: {options}?", { options: q.choices.join(t(", or ")) })}`;
+  if (q.choices)
+    return `${spokenPrompt({ ...q, choices: null })} ${t("Is it: {options}?", { options: q.choices.join(t(", or ")) })}`;
   if (q.kind === "term") return t("Which term means: {prompt}?", { prompt: q.prompt });
   if (q.kind === "define") return t("What does {term} mean?", { term: q.prompt });
   if (q.kind === "blank") return t("Fill in the blank. {prompt}", { prompt: q.prompt.replace(/_{3,}/g, t("blank")) });
@@ -33,10 +34,18 @@ function spokenPrompt(q) {
 }
 
 async function aiQuestions(notes, count) {
-  const material = notes.map((n) => `# ${n.title}\n${noteText(n).slice(0, 6000)}`).join("\n\n").slice(0, 16000);
+  const material = notes
+    .map((n) => `# ${n.title}\n${noteText(n).slice(0, 6000)}`)
+    .join("\n\n")
+    .slice(0, 16000);
   const reply = await chat(state.settings, {
     system: "You write short practice questions from a student's class notes. Reply with JSON only.",
-    messages: [{ role: "user", content: `Write ${count} practice questions from these notes. Mix definitions, "which term" questions and short-answer questions. Reply as a JSON array of {"prompt": "...", "answer": "..."} with short answers.\n\n${material}` }],
+    messages: [
+      {
+        role: "user",
+        content: `Write ${count} practice questions from these notes. Mix definitions, "which term" questions and short-answer questions. Reply as a JSON array of {"prompt": "...", "answer": "..."} with short answers.\n\n${material}`,
+      },
+    ],
     maxTokens: 1800,
   });
   const json = reply.slice(reply.indexOf("["), reply.lastIndexOf("]") + 1);
@@ -51,9 +60,18 @@ async function aiQuestions(notes, count) {
  */
 export async function shareLink(title, questions, challenge = null) {
   const url = `${location.origin}${location.pathname}#s=${await encodeShare({ title, questions, challenge })}`;
-  const text = challenge ? (challenge.got === challenge.of ? t("I got {got}/{of} on \"{title}\". Can you match it?", { got: challenge.got, of: challenge.of, title }) : t("I got {got}/{of} on \"{title}\". Can you beat me?", { got: challenge.got, of: challenge.of, title })) : t("Practice test: {title}", { title });
+  const text = challenge
+    ? challenge.got === challenge.of
+      ? t('I got {got}/{of} on "{title}". Can you match it?', { got: challenge.got, of: challenge.of, title })
+      : t('I got {got}/{of} on "{title}". Can you beat me?', { got: challenge.got, of: challenge.of, title })
+    : t("Practice test: {title}", { title });
   if (navigator.share && matchMedia("(pointer: coarse)").matches) {
-    try { await navigator.share({ title, text, url }); return url; } catch { /* fall back to copying */ }
+    try {
+      await navigator.share({ title, text, url });
+      return url;
+    } catch {
+      /* fall back to copying */
+    }
   }
   await copy(`${text} ${url}`, t("Copied. Paste it in your class chat; anyone can open it, no account needed."));
   return url;
@@ -63,7 +81,9 @@ export async function shareLink(title, questions, challenge = null) {
 function testsFor(notes) {
   const ids = new Set(notes.map((n) => n.id));
   const now = today();
-  return state.events.filter((e) => e.type === "test" && e.date > now && ids.has(e.noteId)).sort((a, b) => a.date.localeCompare(b.date));
+  return state.events
+    .filter((e) => e.type === "test" && e.date > now && ids.has(e.noteId))
+    .sort((a, b) => a.date.localeCompare(b.date));
 }
 
 async function planReviews(test) {
@@ -71,7 +91,15 @@ async function planReviews(test) {
   let added = 0;
   for (const date of dates) {
     if (state.events.some((e) => e.type === "review" && e.forEvent === test.id && e.date === date)) continue;
-    await saveEvent({ id: uid("event"), type: "review", title: t("Review: {title}", { title: test.title }), date, noteId: test.noteId, forEvent: test.id, source: "plan" });
+    await saveEvent({
+      id: uid("event"),
+      type: "review",
+      title: t("Review: {title}", { title: test.title }),
+      date,
+      noteId: test.noteId,
+      forEvent: test.id,
+      source: "plan",
+    });
     added++;
   }
   return { added, dates };
@@ -82,9 +110,25 @@ async function planReviews(test) {
  * mount: render inside this element instead of a dialog (the shared-test page).
  * voice: read questions aloud and listen for answers.
  */
-export function openQuiz({ notes = [], questions: given = null, title = t("Practice test"), voice = false, count = 10, shared = false, challenge = null, mount = null, onLeave = null }) {
+export function openQuiz({
+  notes = [],
+  questions: given = null,
+  title = t("Practice test"),
+  voice = false,
+  count = 10,
+  shared = false,
+  challenge = null,
+  mount = null,
+  onLeave = null,
+}) {
   let flip = false;
-  const build = () => (given ? shuffle(given) : makeQuiz(notes.map((n) => ({ title: n.title, topic: n.topic, text: noteText(n) })), { count, flip }));
+  const build = () =>
+    given
+      ? shuffle(given)
+      : makeQuiz(
+          notes.map((n) => ({ title: n.title, topic: n.topic, text: noteText(n) })),
+          { count, flip },
+        );
   let questions = build();
   let i = 0;
   let score = 0;
@@ -98,14 +142,16 @@ export function openQuiz({ notes = [], questions: given = null, title = t("Pract
 
   function head(extra = "") {
     // On the shared-test page the page itself shows the title
-    return mount ? html`<div class="view-head quiz-head"><span></span>${raw(extra)}</div>` : html`<div class="view-head"><h2 id="quizTitle">${title}</h2>${raw(extra)}${raw(close)}</div>`;
+    return mount
+      ? html`<div class="view-head quiz-head"><span></span>${raw(extra)}</div>`
+      : html`<div class="view-head"><h2 id="quizTitle">${title}</h2>${raw(extra)}${raw(close)}</div>`;
   }
 
   function draw() {
     if (!questions.length) {
       sheet.innerHTML = html`
         ${raw(head())}
-        <p class="empty">${t("These notes don't have enough to make questions yet. Notes where a term is explained (\"mitosis is when…\", \"we call this…\") work best.")}</p>
+        <p class="empty">${t('These notes don\'t have enough to make questions yet. Notes where a term is explained ("mitosis is when…", "we call this…") work best.')}</p>
         ${raw(isReady(state.settings) ? `<button class="btn" data-ai>${t("Make questions with AI")}</button>` : `<p class="note-small">${t("Connecting an AI model in Settings lets Seekto write questions from any notes.")}</p>`)}`;
       return wire();
     }
@@ -119,11 +165,15 @@ export function openQuiz({ notes = [], questions: given = null, title = t("Pract
       <div class="qcard">
         <span class="label" id="qLabel">${p.label}</span>
         <div class="prompt" id="qPrompt">${raw(esc(p.text).replace(/_{3,}/g, `<span aria-hidden="true">_____</span><span class="sr-only">${esc(t("blank"))}</span>`))}</div>
-        ${raw(q.choices ? html`<div class="choices" role="group" aria-labelledby="qLabel qPrompt">${raw(q.choices.map((c, n) => html`<button type="button" class="choice" data-choice="${n}"><span class="key" aria-hidden="true">${String.fromCharCode(65 + n)}</span><span>${c}</span></button>`).join(""))}</div>` : html`<form class="row" data-answer>
+        ${raw(
+          q.choices
+            ? html`<div class="choices" role="group" aria-labelledby="qLabel qPrompt">${raw(q.choices.map((c, n) => html`<button type="button" class="choice" data-choice="${n}"><span class="key" aria-hidden="true">${String.fromCharCode(65 + n)}</span><span>${c}</span></button>`).join(""))}</div>`
+            : html`<form class="row" data-answer>
           <input type="text" id="quizAnswer" autocomplete="off" placeholder="${t("Your answer")}" aria-labelledby="qLabel qPrompt" style="flex:1">
           ${raw(mic ? `<button type="button" class="iconbtn" data-say title="${esc(t("Answer out loud (uses your browser's speech service)"))}" aria-label="${esc(t("Answer out loud"))}"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>` : "")}
           <button class="btn">${t("Check")}</button>
-        </form>`)}
+        </form>`,
+        )}
         <div class="result" id="quizResult" role="status" aria-live="polite"></div>
       </div>
       <div class="row"><button class="btn ghost small" data-skip>${t("Show answer")}</button>${raw(i === 0 && !shared ? `<button class="btn ghost small" data-share>${t("Share as a link")}</button>` : "")}${raw(q.source && !shared ? html`<span class="note-small">${t("From: {source}", { source: q.source })}</span>` : "")}</div>
@@ -137,7 +187,10 @@ export function openQuiz({ notes = [], questions: given = null, title = t("Pract
       if (answered || e.ctrlKey || e.metaKey || e.altKey || /input|textarea/i.test(e.target.tagName)) return;
       const n = "abcde".indexOf(e.key.toLowerCase());
       const b = n >= 0 && sheet.querySelector(`[data-choice="${n}"]`);
-      if (b) { e.preventDefault(); b.click(); }
+      if (b) {
+        e.preventDefault();
+        b.click();
+      }
     };
     if (voice) runVoice(q);
   }
@@ -145,7 +198,15 @@ export function openQuiz({ notes = [], questions: given = null, title = t("Pract
   function drawEnd() {
     const of = questions.length;
     // A score of 0 isn't something to brag about or to beat, so it isn't sent or compared.
-    const beat = challenge?.got > 0 && (score > challenge.got ? t("You beat them.") : score === challenge.got ? (score === challenge.of ? t("Both perfect.") : t("A tie.")) : t("They got {got}. Try again?", { got: challenge.got }));
+    const beat =
+      challenge?.got > 0 &&
+      (score > challenge.got
+        ? t("You beat them.")
+        : score === challenge.got
+          ? score === challenge.of
+            ? t("Both perfect.")
+            : t("A tie.")
+          : t("They got {got}. Try again?", { got: challenge.got }));
     const tests = shared ? [] : testsFor(notes);
     const next = tests[0];
     const planned = next && state.events.some((e) => e.type === "review" && e.forEvent === next.id);
@@ -158,11 +219,15 @@ export function openQuiz({ notes = [], questions: given = null, title = t("Pract
         <button class="btn ghost" data-again>${shared ? t("Try again") : t("Try again the other way round")}</button>
         ${raw(isReady(state.settings) && notes.length ? `<button class="btn ghost" data-ai>${t("New questions with AI")}</button>` : "")}
       </div>
-      ${raw(next ? html`<section class="panel plan">
+      ${raw(
+        next
+          ? html`<section class="panel plan">
         <b>${t("{title} is {date}.", { title: next.title, date: friendlyDate(next.date) })}</b>
         <p class="sub">${planned ? t("Your reviews are on the calendar.") : t("Short reviews a few days apart help it stick. Seekto can put them on your calendar.")}</p>
         ${raw(planned ? "" : `<div class="row"><button class="btn small" data-plan>${t("Plan reviews before it")}</button></div>`)}
-      </section>` : "")}
+      </section>`
+          : "",
+      )}
       ${raw(shared ? "" : exportBlock())}
       ${raw(shared && onLeave ? `<section class="panel made"><b>${t("Make tests like this from your own classes")}</b><p class="sub">${t("Seekto turns a class recording or your notes into deadlines on your calendar and a practice test. Free, open source, no account.")}</p><div class="row"><button class="btn" data-leave>${t("Make your own")}</button><a class="btn ghost" href="https://github.com/enrjgy-tech/seekto" target="_blank" rel="noopener">${t("See how it works")}</a></div></section>` : "")}`;
     if (voice) speak(t("Done. You got {score} out of {of}.", { score, of }));
@@ -172,13 +237,21 @@ export function openQuiz({ notes = [], questions: given = null, title = t("Pract
     $("[data-plan]", sheet)?.addEventListener("click", async (e) => {
       e.target.disabled = true;
       const { added, dates } = await planReviews(next);
-      toast(added ? (added > 1 ? t("Added {n} reviews: {dates}", { n: added, dates: dates.map(friendlyDate).join(", ") }) : t("Added 1 review: {dates}", { dates: dates.map(friendlyDate).join(", ") })) : t("Too close to the test to space reviews out. Practice today!"));
+      toast(
+        added
+          ? added > 1
+            ? t("Added {n} reviews: {dates}", { n: added, dates: dates.map(friendlyDate).join(", ") })
+            : t("Added 1 review: {dates}", { dates: dates.map(friendlyDate).join(", ") })
+          : t("Too close to the test to space reviews out. Practice today!"),
+      );
       drawEnd();
     });
   }
 
   function exportBlock() {
-    return `<details><summary class="label" style="cursor:pointer">${t("Export this test")}</summary><div class="row" style="margin-top:10px">${formats().map(([f, label]) => `<button class="btn ghost small" data-export="${f}">${label}</button>`).join("")}</div>
+    return `<details><summary class="label" style="cursor:pointer">${t("Export this test")}</summary><div class="row" style="margin-top:10px">${formats()
+      .map(([f, label]) => `<button class="btn ghost small" data-export="${f}">${label}</button>`)
+      .join("")}</div>
       <p class="note-small" style="margin-top:8px">${t("Import the file into Quizlet, Anki, Google Forms, Kahoot or Moodle.")}</p></details>`;
   }
 
@@ -208,12 +281,17 @@ export function openQuiz({ notes = [], questions: given = null, title = t("Pract
     box.innerHTML = selfMark
       ? html`<b>${given === "" ? t("Here's the answer:") : t("Compare with the answer:")}</b> <b>${q.answer}</b><span class="row selfmark"><button class="btn small" data-mine="1">${t("I got it")}</button><button class="btn ghost small" data-mine="0">${t("I missed it")}</button></span>`
       : html`<b>${ok ? t("Correct.") : given === "" && picked === null ? (q.choices ? t("The answer is {letter}.", { letter }) : t("Here's the answer:")) : q.choices ? t("Not quite. The answer is {letter}.", { letter }) : t("Not quite.")}</b>${raw(!ok && q.choices ? html`<span class="sr-only"> ${q.answer}</span>` : "")} ${ok || q.choices ? "" : raw(html`<b>${q.answer}</b>`)} <button class="btn small" data-next style="margin-left:8px">${next}</button>`;
-    const go = () => { i++; draw(); };
+    const go = () => {
+      i++;
+      draw();
+    };
     $("[data-next]", sheet)?.addEventListener("click", go);
-    sheet.querySelectorAll("[data-mine]").forEach((b) => b.addEventListener("click", () => {
-      if (b.dataset.mine === "1") score++;
-      go();
-    }));
+    sheet.querySelectorAll("[data-mine]").forEach((b) =>
+      b.addEventListener("click", () => {
+        if (b.dataset.mine === "1") score++;
+        go();
+      }),
+    );
     ($("[data-next]", sheet) || $("[data-mine]", sheet)).focus();
     if ($("#quizAnswer", sheet)) $("#quizAnswer", sheet).readOnly = true;
     if (selfMark) return null;
@@ -236,7 +314,10 @@ export function openQuiz({ notes = [], questions: given = null, title = t("Pract
       }
       if (ok === null) return; // the student marks long answers on screen
       await speak(ok ? t("Correct.") : t("Not quite. The answer is {answer}.", { answer: q.answer }));
-      if (document.contains(sheet)) { i++; draw(); }
+      if (document.contains(sheet)) {
+        i++;
+        draw();
+      }
     } catch (err) {
       toast(err.message);
     }
@@ -244,39 +325,66 @@ export function openQuiz({ notes = [], questions: given = null, title = t("Pract
 
   function wire() {
     sheet.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeOverlay));
-    sheet.querySelector("[data-answer]")?.addEventListener("submit", (e) => { e.preventDefault(); grade($("#quizAnswer", sheet).value.trim()); });
+    sheet.querySelector("[data-answer]")?.addEventListener("submit", (e) => {
+      e.preventDefault();
+      grade($("#quizAnswer", sheet).value.trim());
+    });
     sheet.querySelector("[data-skip]")?.addEventListener("click", () => grade(""));
-    sheet.querySelectorAll("[data-choice]").forEach((b) => b.addEventListener("click", () => { if (!answered) grade(b.textContent, Number(b.dataset.choice)); }));
-    sheet.querySelector("[data-again]")?.addEventListener("click", () => { flip = !flip; questions = build(); i = 0; score = 0; draw(); });
+    sheet.querySelectorAll("[data-choice]").forEach((b) =>
+      b.addEventListener("click", () => {
+        if (!answered) grade(b.textContent, Number(b.dataset.choice));
+      }),
+    );
+    sheet.querySelector("[data-again]")?.addEventListener("click", () => {
+      flip = !flip;
+      questions = build();
+      i = 0;
+      score = 0;
+      draw();
+    });
     sheet.querySelector("[data-leave]")?.addEventListener("click", () => onLeave?.());
-    sheet.querySelectorAll("[data-share]").forEach((b) => b.addEventListener("click", () => shareLink(title, questions)));
-    sheet.querySelector("[data-challenge]")?.addEventListener("click", () => shareLink(title, questions, { got: score, of: questions.length }));
+    sheet
+      .querySelectorAll("[data-share]")
+      .forEach((b) => b.addEventListener("click", () => shareLink(title, questions)));
+    sheet
+      .querySelector("[data-challenge]")
+      ?.addEventListener("click", () => shareLink(title, questions, { got: score, of: questions.length }));
     sheet.querySelector("[data-say]")?.addEventListener("click", async () => {
       try {
         toast(t("Listening…"));
         const heard = await listenOnce();
         $("#quizAnswer", sheet).value = heard;
         if (heard) grade(heard);
-      } catch (err) { toast(err.message); }
+      } catch (err) {
+        toast(err.message);
+      }
     });
     sheet.querySelector("[data-ai]")?.addEventListener("click", async (e) => {
       e.target.disabled = true;
       e.target.textContent = t("Writing questions…");
       try {
         questions = await aiQuestions(notes, count);
-        i = 0; score = 0; draw();
+        i = 0;
+        score = 0;
+        draw();
       } catch (err) {
         toast(err.message || t("The AI couldn't write questions."));
         e.target.disabled = false;
         e.target.textContent = t("Try again with AI");
       }
     });
-    sheet.querySelectorAll("[data-export]").forEach((b) => b.addEventListener("click", () => {
-      const [fmt, , ext] = formats().find(([f]) => f === b.dataset.export);
-      const text = exportQuiz(questions, fmt);
-      download(`${title.replace(/[^\w-]+/g, "-").toLowerCase()}-${fmt}.${ext}`, text, ext === "csv" ? "text/csv" : "text/plain");
-      copy(text, t("Downloaded and copied"));
-    }));
+    sheet.querySelectorAll("[data-export]").forEach((b) =>
+      b.addEventListener("click", () => {
+        const [fmt, , ext] = formats().find(([f]) => f === b.dataset.export);
+        const text = exportQuiz(questions, fmt);
+        download(
+          `${title.replace(/[^\w-]+/g, "-").toLowerCase()}-${fmt}.${ext}`,
+          text,
+          ext === "csv" ? "text/csv" : "text/plain",
+        );
+        copy(text, t("Downloaded and copied"));
+      }),
+    );
   }
 
   draw();

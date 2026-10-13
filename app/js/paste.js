@@ -31,7 +31,20 @@ export function openPaste() {
     const topic = detectTopic(text);
     const createdAt = fromISO(day).setHours(12);
     const work = mode() === "work";
-    const note = { id: uid("note"), kind: "typed", createdAt, date: day, title: work ? `${t("Meeting")}: ${topic}` : subject === "General" ? topic : `${subject}: ${topic}`, subject: work ? "Meeting" : subject, topic, text, cues: [], marks: [], mine: [], ...(work ? { mode: "work" } : {}) };
+    const note = {
+      id: uid("note"),
+      kind: "typed",
+      createdAt,
+      date: day,
+      title: work ? `${t("Meeting")}: ${topic}` : subject === "General" ? topic : `${subject}: ${topic}`,
+      subject: work ? "Meeting" : subject,
+      topic,
+      text,
+      cues: [],
+      marks: [],
+      mine: [],
+      ...(work ? { mode: "work" } : {}),
+    };
     await addDates(note);
     await saveNote(note);
     const events = state.events.filter((e) => e.noteId === note.id);
@@ -39,7 +52,7 @@ export function openPaste() {
     $("#pasteOut", sheet).innerHTML = html`
       <section class="panel" style="gap:10px">
         <b>${events.length === 1 ? t("1 date added to your calendar") : t("{n} dates added to your calendar", { n: events.length })}${asks ? ` · ${asks === 1 ? t("1 question for your practice test") : t("{n} questions for your practice test", { n: asks })}` : ""}</b>
-        ${raw(events.length ? `<div class="agenda">${events.map((e) => html`<div class="event"><span class="when">${friendlyDate(e.date)}</span><span>${e.title}</span><span class="kind ${e.type}">${typeLabel(e.type)}</span></div>`).join("")}</div>` : html`<p class="note-small">${t("No dates found. Seekto looks for things like \"the quiz is on Friday\" or \"due October 20\".")}</p>`)}
+        ${raw(events.length ? `<div class="agenda">${events.map((e) => html`<div class="event"><span class="when">${friendlyDate(e.date)}</span><span>${e.title}</span><span class="kind ${e.type}">${typeLabel(e.type)}</span></div>`).join("")}</div>` : html`<p class="note-small">${t('No dates found. Seekto looks for things like "the quiz is on Friday" or "due October 20".')}</p>`)}
         <div class="row">
           <button class="btn" data-quiz>${t("Take the practice test")}</button>
           ${raw(events.length ? html`<button class="btn ghost" data-remind>${t("Remind me about these")}</button>` : "")}
@@ -47,8 +60,17 @@ export function openPaste() {
         </div>
       </section>`;
     $("[data-quiz]", sheet).addEventListener("click", () => openQuiz({ notes: [note], title: topic }));
-    $("[data-remind]", sheet)?.addEventListener("click", () => download("seekto-reminders.ics", toICS(events, { labels: { tomorrow: t("Tomorrow"), today: t("Today") } }), "text/calendar"));
-    $("[data-open]", sheet).addEventListener("click", () => { closeOverlay(); go(`note/${note.id}`); });
+    $("[data-remind]", sheet)?.addEventListener("click", () =>
+      download(
+        "seekto-reminders.ics",
+        toICS(events, { labels: { tomorrow: t("Tomorrow"), today: t("Today") } }),
+        "text/calendar",
+      ),
+    );
+    $("[data-open]", sheet).addEventListener("click", () => {
+      closeOverlay();
+      go(`note/${note.id}`);
+    });
   });
   requestAnimationFrame(() => $("#pasteText", sheet)?.focus());
 }

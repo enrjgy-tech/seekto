@@ -24,11 +24,23 @@ const events = [
   { title: "Math midterm", date: "2026-11-03", type: "test", subject: "Math" },
   { title: "Old quiz", date: "2026-10-01", type: "test" },
 ];
-const notes = [{ id: "n1", title: "Cells", text: "Mitosis means one cell dividing into two identical cells. The nucleus holds DNA." }];
+const notes = [
+  {
+    id: "n1",
+    title: "Cells",
+    text: "Mitosis means one cell dividing into two identical cells. The nucleus holds DNA.",
+  },
+];
 
 test("answers from the calendar", () => {
-  assert.match(answerLocally(classify("When is my math test?"), { events, today }).text, /^Your next one is Math chapter 5 quiz, Friday, Oct 16 \(in 4 days\)\. After that: Math midterm/);
-  assert.match(answerLocally(classify("when is my history test"), { events, today }).text, /don't see an upcoming history test/);
+  assert.match(
+    answerLocally(classify("When is my math test?"), { events, today }).text,
+    /^Your next one is Math chapter 5 quiz, Friday, Oct 16 \(in 4 days\)\. After that: Math midterm/,
+  );
+  assert.match(
+    answerLocally(classify("when is my history test"), { events, today }).text,
+    /don't see an upcoming history test/,
+  );
   assert.match(answerLocally(classify("what's due this week"), { events, today }).text, /Math chapter 5 quiz/);
   assert.doesNotMatch(answerLocally(classify("what's due this week"), { events, today }).text, /English essay/);
   assert.equal(answerLocally(classify("What's due today?"), { events, today }).text, "Nothing on your calendar today.");
@@ -68,6 +80,13 @@ test("understands questions in Spanish and Portuguese", () => {
 });
 
 test("answers can be translated", () => {
-  const tr = (s, v) => ({ "Nothing on your calendar this week.": "Nada esta semana." }[s] || s).replace(/\{(\w+)\}/g, (m, k) => v?.[k] ?? m);
-  assert.equal(answerLocally({ intent: "due", range: "week" }, { events: [], today: "2026-10-12", tr }).text, "Nada esta semana.");
+  const tr = (s, v) =>
+    (({ "Nothing on your calendar this week.": "Nada esta semana." })[s] || s).replace(
+      /\{(\w+)\}/g,
+      (m, k) => v?.[k] ?? m,
+    );
+  assert.equal(
+    answerLocally({ intent: "due", range: "week" }, { events: [], today: "2026-10-12", tr }).text,
+    "Nada esta semana.",
+  );
 });

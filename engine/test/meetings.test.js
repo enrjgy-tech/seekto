@@ -36,7 +36,10 @@ test("finds action items with owners and due dates", () => {
 });
 
 test("handles curly apostrophes, pairs of owners and explicit lists", () => {
-  const items = findActionItems("Next steps: Ana and Joe will draft the proposal by October 20. We’ll send the notes to everyone Monday.", { ref });
+  const items = findActionItems(
+    "Next steps: Ana and Joe will draft the proposal by October 20. We’ll send the notes to everyone Monday.",
+    { ref },
+  );
   assert.equal(items[0].owner, "Ana and Joe");
   assert.equal(items[0].task, "Draft the proposal by October 20");
   assert.equal(items[0].due, "2026-10-20");

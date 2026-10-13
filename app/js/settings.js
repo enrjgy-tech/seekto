@@ -12,7 +12,27 @@ import { go } from "./nav.js";
 import { canListen } from "./voice.js";
 import { t, LANGUAGES } from "./i18n.js";
 
-const LANGS = [["", t("Detect automatically")], ["english", t("English")], ["spanish", t("Spanish")], ["french", t("French")], ["german", t("German")], ["portuguese", t("Portuguese")], ["italian", t("Italian")], ["chinese", t("Chinese")], ["japanese", t("Japanese")], ["korean", t("Korean")], ["hindi", t("Hindi")], ["arabic", t("Arabic")], ["russian", t("Russian")], ["vietnamese", t("Vietnamese")], ["turkish", t("Turkish")], ["polish", t("Polish")], ["dutch", t("Dutch")], ["indonesian", t("Indonesian")], ["ukrainian", t("Ukrainian")]];
+const LANGS = [
+  ["", t("Detect automatically")],
+  ["english", t("English")],
+  ["spanish", t("Spanish")],
+  ["french", t("French")],
+  ["german", t("German")],
+  ["portuguese", t("Portuguese")],
+  ["italian", t("Italian")],
+  ["chinese", t("Chinese")],
+  ["japanese", t("Japanese")],
+  ["korean", t("Korean")],
+  ["hindi", t("Hindi")],
+  ["arabic", t("Arabic")],
+  ["russian", t("Russian")],
+  ["vietnamese", t("Vietnamese")],
+  ["turkish", t("Turkish")],
+  ["polish", t("Polish")],
+  ["dutch", t("Dutch")],
+  ["indonesian", t("Indonesian")],
+  ["ukrainian", t("Ukrainian")],
+];
 import { hasSamples, removeSamples } from "./sample.js";
 import { disconnect } from "./cloud.js";
 
@@ -24,8 +44,16 @@ const GROUPS = [
   [t("Advanced"), ["custom"]],
 ];
 // Provider labels and model hints are written in the engine; these are the ones that are words, not names.
-const PROVIDER_LABELS = { none: t("No AI model (works offline)"), ollama: t("Ollama on this computer"), custom: t("Other OpenAI-compatible service") };
-const MODEL_HINTS = { openrouter: t("a model ID from openrouter.ai/models (free ones end in :free)"), openai: t("a model ID from your OpenAI account"), custom: t("the service's model ID") };
+const PROVIDER_LABELS = {
+  none: t("No AI model (works offline)"),
+  ollama: t("Ollama on this computer"),
+  custom: t("Other OpenAI-compatible service"),
+};
+const MODEL_HINTS = {
+  openrouter: t("a model ID from openrouter.ai/models (free ones end in :free)"),
+  openai: t("a model ID from your OpenAI account"),
+  custom: t("the service's model ID"),
+};
 const providerLabel = (id) => PROVIDER_LABELS[id] || PROVIDERS[id].label;
 const modelHint = (id) => MODEL_HINTS[id] || PROVIDERS[id].modelHint || "";
 
@@ -51,7 +79,14 @@ export function render(main, section) {
         <label class="row radio-row"><input type="radio" name="asr" value="device" ${raw(transcriber === "device" || !canListen ? "checked" : "")} style="width:auto"> <span><b>${t("Private, on this device.")}</b> <span class="note-small">${t("Recommended. Whisper runs in your browser when you stop recording, so audio never leaves this device. Works offline after a one-time download, in about 100 languages. Slower on phones.")}</span></span></label>
         <label class="row radio-row"><input type="radio" name="asr" value="browser" ${raw(transcriber !== "device" && canListen ? "checked" : "")} ${raw(canListen ? "" : "disabled")} style="width:auto"> <span><b>${t("Live, with your browser's speech service.")}</b> <span class="note-small">${t("You see words as they're spoken. In Chrome and Edge, audio is processed online by the browser maker.")}${canListen ? "" : " " + t("Not available in this browser.")}</span></span></label>
         <div class="row">
-          <label class="field" style="min-width:200px"><span class="label">${t("Model")}</span><select id="asrQuality">${raw(Object.entries(ASR_MODELS).map(([k, m]) => html`<option value="${k}" ${k === (s.asrQuality || "fast") ? "selected" : ""}>${m.label}</option>`).join(""))}</select></label>
+          <label class="field" style="min-width:200px"><span class="label">${t("Model")}</span><select id="asrQuality">${raw(
+            Object.entries(ASR_MODELS)
+              .map(
+                ([k, m]) =>
+                  html`<option value="${k}" ${k === (s.asrQuality || "fast") ? "selected" : ""}>${m.label}</option>`,
+              )
+              .join(""),
+          )}</select></label>
           <label class="field" style="min-width:200px"><span class="label">${t("Language")}</span><select id="asrLanguage">${raw(LANGS.map(([code, name]) => html`<option value="${code}" ${code === (s.asrLanguage || "") ? "selected" : ""}>${name}</option>`).join(""))}</select></label>
         </div>
         <div class="row"><button class="btn ghost small" id="asrPrepare">${t("Download the model now")}</button><span class="note-small" id="asrPrepStatus"></span></div>
@@ -116,11 +151,17 @@ export function render(main, section) {
   const help = () => {
     const id = $("#provider").value;
     const hints = {
-      ollama: t("Install Ollama, run a model (for example: ollama run llama3.2), and allow this site: set OLLAMA_ORIGINS to this site's address, then restart Ollama."),
-      openrouter: t("Create a free key at openrouter.ai. Models ending in :free cost nothing (with daily limits). Paid models need credits."),
+      ollama: t(
+        "Install Ollama, run a model (for example: ollama run llama3.2), and allow this site: set OLLAMA_ORIGINS to this site's address, then restart Ollama.",
+      ),
+      openrouter: t(
+        "Create a free key at openrouter.ai. Models ending in :free cost nothing (with daily limits). Paid models need credits.",
+      ),
       openai: t("Use an API key from your OpenAI account. Usage is billed by OpenAI."),
       anthropic: t("Use an API key from console.anthropic.com. Usage is billed by Anthropic."),
-      custom: t("Any service with an OpenAI-compatible /chat/completions endpoint, such as LM Studio or a self-hosted server."),
+      custom: t(
+        "Any service with an OpenAI-compatible /chat/completions endpoint, such as LM Studio or a self-hosted server.",
+      ),
     };
     $("#providerHelp").textContent = hints[id] || "";
   };
@@ -132,11 +173,20 @@ export function render(main, section) {
     $("#urlField").hidden = !(id === "custom" || id === "ollama");
     $("#model").placeholder = modelHint(id);
     $("#baseUrl").placeholder = prov.baseUrl || "https://…/v1";
-    if (id === "none") { updateSettings({ provider: "none" }); window.dispatchEvent(new Event("seekto:model")); toast(t("AI turned off")); }
+    if (id === "none") {
+      updateSettings({ provider: "none" });
+      window.dispatchEvent(new Event("seekto:model"));
+      toast(t("AI turned off"));
+    }
     help();
   });
   help();
-  const read = () => ({ provider: $("#provider").value, model: $("#model").value.trim(), apiKey: $("#apiKey").value.trim(), baseUrl: $("#baseUrl").value.trim() });
+  const read = () => ({
+    provider: $("#provider").value,
+    model: $("#model").value.trim(),
+    apiKey: $("#apiKey").value.trim(),
+    baseUrl: $("#baseUrl").value.trim(),
+  });
   $("#saveModel").addEventListener("click", () => {
     updateSettings(read());
     window.dispatchEvent(new Event("seekto:model"));
@@ -146,45 +196,84 @@ export function render(main, section) {
     const out = $("#testResult");
     out.textContent = t("Testing…");
     try {
-      const reply = await chat(read(), { messages: [{ role: "user", content: "Reply with the single word: ready" }], maxTokens: 10 });
+      const reply = await chat(read(), {
+        messages: [{ role: "user", content: "Reply with the single word: ready" }],
+        maxTokens: 10,
+      });
       out.textContent = t('Connected. The model said: "{reply}"', { reply: reply.trim().slice(0, 40) });
     } catch (err) {
       out.textContent = err.message;
     }
   });
-  main.querySelectorAll("input[name=asr]").forEach((r) => r.addEventListener("change", () => updateSettings({ transcriber: r.value })));
+  main
+    .querySelectorAll("input[name=asr]")
+    .forEach((r) => r.addEventListener("change", () => updateSettings({ transcriber: r.value })));
   $("#asrQuality").addEventListener("change", (e) => updateSettings({ asrQuality: e.target.value }));
   $("#asrLanguage").addEventListener("change", (e) => updateSettings({ asrLanguage: e.target.value }));
-  $("#uiLang").addEventListener("change", (e) => { updateSettings({ uiLang: e.target.value }); location.reload(); });
+  $("#uiLang").addEventListener("change", (e) => {
+    updateSettings({ uiLang: e.target.value });
+    location.reload();
+  });
   $("#asrPrepare").addEventListener("click", async (e) => {
     e.target.disabled = true;
     const out = $("#asrPrepStatus");
     try {
-      const device = await prepareAsr(state.settings.asrQuality || "fast", (p) => { if (out.isConnected) out.textContent = progressText(p); });
-      out.textContent = device === "webgpu" ? t("Ready. It runs on your graphics chip (WebGPU) and works offline now.") : t("Ready. It runs on your processor (WebAssembly) and works offline now.");
+      const device = await prepareAsr(state.settings.asrQuality || "fast", (p) => {
+        if (out.isConnected) out.textContent = progressText(p);
+      });
+      out.textContent =
+        device === "webgpu"
+          ? t("Ready. It runs on your graphics chip (WebGPU) and works offline now.")
+          : t("Ready. It runs on your processor (WebAssembly) and works offline now.");
     } catch (err) {
       out.textContent = err.message;
       e.target.disabled = false;
     }
   });
   main.querySelectorAll("[data-setmode]").forEach((b) => b.addEventListener("click", () => setMode(b.dataset.setmode)));
-  $("#noSamples")?.addEventListener("click", async (e) => { await removeSamples(); e.target.remove(); toast(t("Samples removed")); });
+  $("#noSamples")?.addEventListener("click", async (e) => {
+    await removeSamples();
+    e.target.remove();
+    toast(t("Samples removed"));
+  });
   $("#speak").addEventListener("change", (e) => updateSettings({ speak: e.target.checked }));
-  const drawDevices = () => { const box = $("#setDevices"); if (!box) return; box.innerHTML = devicesListHtml(); wireForget(box, drawDevices); };
+  const drawDevices = () => {
+    const box = $("#setDevices");
+    if (!box) return;
+    box.innerHTML = devicesListHtml();
+    wireForget(box, drawDevices);
+  };
   drawDevices();
   const offDevices = onStatus(drawDevices);
   const offAccount = renderAccount($("#accountPanel"));
-  const off = () => { offDevices(); offAccount(); };
+  const off = () => {
+    offDevices();
+    offAccount();
+  };
   $("#setConnect").addEventListener("click", () => window.dispatchEvent(new Event("seekto:connect")));
   $("#saveIce").addEventListener("click", () => {
     const v = $("#ice").value.trim();
-    try { if (v && !JSON.parse(v).every((x) => x.urls)) throw new Error(); } catch { return toast(t('That isn\'t a valid list. Use [{ "urls": "turn:…" }].')); }
+    try {
+      if (v && !JSON.parse(v).every((x) => x.urls)) throw new Error();
+    } catch {
+      return toast(t('That isn\'t a valid list. Use [{ "urls": "turn:…" }].'));
+    }
     updateSettings({ iceServers: v });
     toast(t("Saved. New connections will use these servers."));
   });
-  $("#saveSignal").addEventListener("click", () => { updateSettings({ signalServer: $("#signal").value.trim() || "https://ntfy.sh" }); toast(t("Saved. Reload to use it.")); });
+  $("#saveSignal").addEventListener("click", () => {
+    updateSettings({ signalServer: $("#signal").value.trim() || "https://ntfy.sh" });
+    toast(t("Saved. Reload to use it."));
+  });
   $("#backup").addEventListener("click", async () => {
-    const data = { app: "seekto", version: 1, exported: new Date().toISOString(), notes: await all("notes"), events: await all("events"), projects: await all("projects") };
+    const data = {
+      app: "seekto",
+      version: 1,
+      exported: new Date().toISOString(),
+      notes: await all("notes"),
+      events: await all("events"),
+      projects: await all("projects"),
+    };
     download(`seekto-backup-${data.exported.slice(0, 10)}.json`, JSON.stringify(data, null, 2), "application/json");
   });
   $("#restore").addEventListener("change", async (e) => {
@@ -199,12 +288,17 @@ export function render(main, section) {
     }
   });
   $("#wipe").addEventListener("click", async (e) => {
-    if (e.target.dataset.sure !== "1") { e.target.dataset.sure = "1"; e.target.textContent = t("Tap again to delete everything"); return; }
+    if (e.target.dataset.sure !== "1") {
+      e.target.dataset.sure = "1";
+      e.target.textContent = t("Tap again to delete everything");
+      return;
+    }
     await clearAll();
     disconnect({ forgetKey: true });
     await loadAll();
     toast(t("Everything was deleted from this device. Your storage copy, if you have one, is untouched."));
-    e.target.dataset.sure = ""; e.target.textContent = t("Delete everything");
+    e.target.dataset.sure = "";
+    e.target.textContent = t("Delete everything");
   });
   $("#openResearch").addEventListener("click", () => go("research"));
   if (section === "ai") requestAnimationFrame(() => $("#aiPanel")?.scrollIntoView({ block: "start" }));

@@ -13,7 +13,9 @@ export function parseTime(value) {
 /** Parse the text of a .vtt or .srt file. Repeated lines (common in auto-captions) are merged. */
 export function parseCaptions(text) {
   const cues = [];
-  for (const block of String(text).replace(/\r/g, "").split(/\n\s*\n/)) {
+  for (const block of String(text)
+    .replace(/\r/g, "")
+    .split(/\n\s*\n/)) {
     const lines = block.split("\n");
     const timing = lines.findIndex((line) => line.includes("-->"));
     if (timing < 0) continue;

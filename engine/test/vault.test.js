@@ -2,7 +2,17 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { webcrypto } from "node:crypto";
 import {
-  makeAccountKey, normalizeAccountKey, formatAccountKey, isValidAccountKey, deriveAccount, itemId, sealItem, openItem, sealBytes, openBytes, matchCode,
+  makeAccountKey,
+  normalizeAccountKey,
+  formatAccountKey,
+  isValidAccountKey,
+  deriveAccount,
+  itemId,
+  sealItem,
+  openItem,
+  sealBytes,
+  openBytes,
+  matchCode,
 } from "../src/index.js";
 
 const rand = (n) => webcrypto.getRandomValues(new Uint8Array(n));

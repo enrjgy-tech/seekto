@@ -1,18 +1,34 @@
 // Notes, organized by date and subject, and a note page with the recording, transcript,
 // marks, your typed notes, questions, a quiz and the dates found in it.
 import { $, $$, html, raw, toast, esc, download, readFile, friendlyDate } from "./ui.js";
-import { state, saveNote, deleteNote, saveEvent, hasEvent, noteText, today, locale as currentLocale } from "./state.js";
+import { state, saveNote, deleteNote, noteText, today, locale as currentLocale } from "./state.js";
 import { get, uid, put } from "./store.js";
 import { go } from "./nav.js";
 import {
-  formatTime, buildIndex, search, parseCaptions, parseTranscriptText, detectSubject, detectTopic,
-  findEvents, findDates, findDefinitions, searchNotes, toISO, fromISO, isReady, chat, stem, tokens,
+  formatTime,
+  buildIndex,
+  search,
+  parseCaptions,
+  parseTranscriptText,
+  detectSubject,
+  detectTopic,
+  findEvents,
+  findDates,
+  findDefinitions,
+  searchNotes,
+  toISO,
+  fromISO,
+  isReady,
+  chat,
+  stem,
+  tokens,
 } from "../engine/index.js";
 
 /** Escape a transcript line and highlight what Seekto found in it: deadline dates and defined terms. */
 function marked(text, ref, locale) {
   const spans = [];
-  if (findEvents(text, { ref, locale }).length) for (const d of findDates(text, ref, { locale })) spans.push([d.index, d.end]);
+  if (findEvents(text, { ref, locale }).length)
+    for (const d of findDates(text, ref, { locale })) spans.push([d.index, d.end]);
   for (const d of findDefinitions(text)) {
     const i = text.toLowerCase().indexOf(d.term.toLowerCase());
     if (i >= 0) spans.push([i, i + d.term.length]);
@@ -69,13 +85,34 @@ export function renderList(main) {
   $("#goRecord").addEventListener("click", () => go("record"));
   $("#newNote").addEventListener("click", async () => {
     const work = state.settings.mode === "work";
-    const note = { id: uid("note"), kind: "typed", createdAt: Date.now(), date: today(), title: work ? t("Meeting notes") : t("Untitled note"), subject: work ? "Meeting" : "General", topic: "", text: "", cues: [], marks: [], mine: [], ...(work ? { mode: "work" } : {}) };
+    const note = {
+      id: uid("note"),
+      kind: "typed",
+      createdAt: Date.now(),
+      date: today(),
+      title: work ? t("Meeting notes") : t("Untitled note"),
+      subject: work ? "Meeting" : "General",
+      topic: "",
+      text: "",
+      cues: [],
+      marks: [],
+      mine: [],
+      ...(work ? { mode: "work" } : {}),
+    };
     await saveNote(note);
     go(`note/${note.id}`);
   });
   $("#importFile").addEventListener("change", (e) => importFile(e.target.files[0]));
-  $("#subjects").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; filter = b.dataset.subject; renderList(main); });
-  $("#noteSearch").addEventListener("input", (e) => { query = e.target.value; drawList(); });
+  $("#subjects").addEventListener("click", (e) => {
+    const b = e.target.closest("button");
+    if (!b) return;
+    filter = b.dataset.subject;
+    renderList(main);
+  });
+  $("#noteSearch").addEventListener("input", (e) => {
+    query = e.target.value;
+    drawList();
+  });
   drawList();
 }
 
@@ -84,7 +121,11 @@ function drawList() {
   if (!box) return;
   let notes = state.notes.filter((n) => filter === "All" || (n.subject || "General") === filter);
   if (query.trim()) {
-    const hits = searchNotes(notes.map((n) => ({ ...n, text: noteText(n) })), query, 30);
+    const hits = searchNotes(
+      notes.map((n) => ({ ...n, text: noteText(n) })),
+      query,
+      30,
+    );
     const ids = [...new Set(hits.map((h) => h.note.id))];
     const titleHits = notes.filter((n) => n.title.toLowerCase().includes(query.toLowerCase())).map((n) => n.id);
     notes = [...new Set([...titleHits, ...ids])].map((id) => notes.find((n) => n.id === id));
@@ -99,21 +140,43 @@ function drawList() {
     if (!groups.has(g)) groups.set(g, []);
     groups.get(g).push(n);
   }
-  box.innerHTML = [...groups].map(([label, list]) => html`
+  box.innerHTML = [...groups]
+    .map(
+      ([label, list]) => html`
     <h3 class="group-title">${label}</h3>
-    <div class="cards">${raw(list.map((n) => html`
+    <div class="cards">${raw(
+      list
+        .map(
+          (n) => html`
       <button class="card" data-id="${n.id}">
         <b>${n.title}</b>
         <span class="meta"><span>${friendlyDate(n.date)}</span><span>${n.subject || "General"}</span>${raw(n.duration ? `<span>${formatTime(n.duration)}</span>` : "")}${raw(n.marks?.length ? `<span>${t("{n} lost", { n: n.marks.length })}</span>` : "")}${raw(n.eventCount ? `<span>${n.eventCount > 1 ? t("{n} dates", { n: n.eventCount }) : t("1 date")}</span>` : "")}</span>
         <p>${preview(n)}</p>
-      </button>`).join(""))}</div>`).join("");
+      </button>`,
+        )
+        .join(""),
+    )}</div>`,
+    )
+    .join("");
   $$(".card", box).forEach((c) => c.addEventListener("click", () => go(`note/${c.dataset.id}`)));
 }
 
 async function importFile(file) {
   if (!file) return;
   const createdAt = Date.now();
-  const note = { id: uid("note"), kind: "import", createdAt, date: today(), title: file.name.replace(/\.[^.]+$/, ""), subject: "General", topic: "", text: "", cues: [], marks: [], mine: [] };
+  const note = {
+    id: uid("note"),
+    kind: "import",
+    createdAt,
+    date: today(),
+    title: file.name.replace(/\.[^.]+$/, ""),
+    subject: "General",
+    topic: "",
+    text: "",
+    cues: [],
+    marks: [],
+    mine: [],
+  };
   if (/^(audio|video)\//.test(file.type)) {
     const audioId = uid("audio");
     await put("audio", { id: audioId, blob: file });
@@ -127,7 +190,8 @@ async function importFile(file) {
   await saveNote(note);
   toast(t("Imported"));
   go(`note/${note.id}`);
-  if (note.audioId && !note.cues.length && (state.settings.transcriber || defaultTranscriber(canListen)) === "device") transcribeNote(note.id);
+  if (note.audioId && !note.cues.length && (state.settings.transcriber || defaultTranscriber(canListen)) === "device")
+    transcribeNote(note.id);
 }
 
 function finishNote(note) {
@@ -140,7 +204,10 @@ function finishNote(note) {
 
 export async function renderDetail(main, id) {
   const note = state.notes.find((n) => n.id === id);
-  if (!note) { main.innerHTML = `<div class="view"><p class="empty">${t("That note doesn't exist anymore.")}</p></div>`; return; }
+  if (!note) {
+    main.innerHTML = `<div class="view"><p class="empty">${t("That note doesn't exist anymore.")}</p></div>`;
+    return;
+  }
   const typed = note.kind === "typed";
   main.innerHTML = html`
     <div class="view">
@@ -160,7 +227,7 @@ export async function renderDetail(main, id) {
       <div class="detail">
         <section class="panel">
           ${raw(note.audioId ? `<audio id="audio" controls preload="metadata"></audio>` : "")}
-          ${raw(typed ? `<textarea id="body" rows="16" placeholder="${esc(t("Write your notes. Dates like \"quiz on Friday\" are added to your calendar."))}">${esc(note.text)}</textarea>` : `<span class="label">${t("Transcript and notes")}</span><div class="transcript" id="lines"></div>`)}
+          ${raw(typed ? `<textarea id="body" rows="16" placeholder="${esc(t('Write your notes. Dates like "quiz on Friday" are added to your calendar.'))}">${esc(note.text)}</textarea>` : `<span class="label">${t("Transcript and notes")}</span><div class="transcript" id="lines"></div>`)}
           ${raw(!typed && !note.cues?.length && note.audioId && canTranscribeHere ? `<div class="field"><span class="label">${t("Transcript")}</span><p class="note-small" id="asrStatus">${transcribing(note.id) || t("Make the transcript on this device: private, works offline after a one-time download, about 100 languages.")}</p><div class="row"><button class="btn small" id="asrGo" ${transcribing(note.id) ? "disabled" : ""}>${t("Transcribe on this device")}</button></div></div>` : "")}
           ${raw(!typed && !note.cues?.length ? `<div class="field"><span class="label">${note.audioId ? t("Or add a transcript") : t("No transcript yet")}</span><p class="note-small">${t("Add a caption file (.vtt or .srt) or paste a transcript with times.")}</p><textarea id="pasteT" rows="4" placeholder="0:00&#10;${esc(t("Today we start chapter 5…"))}"></textarea><div class="row"><button class="btn small" id="useT">${t("Use transcript")}</button><label class="btn ghost small" style="cursor:pointer">${t("Caption file")}<input type="file" id="capFile" accept=".vtt,.srt,.txt" class="sr-only"></label></div></div>` : "")}
         </section>
@@ -177,16 +244,30 @@ export async function renderDetail(main, id) {
     </div>`;
 
   $("#back").addEventListener("click", () => go("notes"));
-  $("#title").addEventListener("change", async (e) => { note.title = e.target.value.trim() || t("Untitled note"); await saveNote(note); });
-  $("#subject").addEventListener("change", async (e) => { note.subject = e.target.value; await saveNote(note); });
+  $("#title").addEventListener("change", async (e) => {
+    note.title = e.target.value.trim() || t("Untitled note");
+    await saveNote(note);
+  });
+  $("#subject").addEventListener("change", async (e) => {
+    note.subject = e.target.value;
+    await saveNote(note);
+  });
   $("#del").addEventListener("click", async () => {
-    if ($("#del").dataset.sure !== "1") { $("#del").dataset.sure = "1"; $("#del").textContent = t("Tap again to delete"); return; }
+    if ($("#del").dataset.sure !== "1") {
+      $("#del").dataset.sure = "1";
+      $("#del").textContent = t("Tap again to delete");
+      return;
+    }
     await deleteNote(note.id);
     toast(t("Note deleted"));
     go("notes");
   });
-  $("#quiz").addEventListener("click", () => openQuiz({ notes: [note], title: t("Quiz: {title}", { title: note.title }) }));
-  $("#export").addEventListener("click", () => download(`${note.title.replace(/[^\w-]+/g, "-")}.md`, toMarkdown(note), "text/markdown"));
+  $("#quiz").addEventListener("click", () =>
+    openQuiz({ notes: [note], title: t("Quiz: {title}", { title: note.title }) }),
+  );
+  $("#export").addEventListener("click", () =>
+    download(`${note.title.replace(/[^\w-]+/g, "-")}.md`, toMarkdown(note), "text/markdown"),
+  );
   $("#summary").addEventListener("click", () => summarize(note));
   main.querySelector("[data-followup]")?.addEventListener("click", () => openFollowUp(note));
   $("#findDates").addEventListener("click", async () => {
@@ -204,26 +285,54 @@ export async function renderDetail(main, id) {
         note.text = e.target.value;
         finishNote(note);
         const added = await addDates(note);
-        if (added) { toast(added > 1 ? t("Added {n} dates to your calendar", { n: added }) : t("Added 1 date to your calendar")); drawEvents(note); }
+        if (added) {
+          toast(added > 1 ? t("Added {n} dates to your calendar", { n: added }) : t("Added 1 date to your calendar"));
+          drawEvents(note);
+        }
         await saveNote(note);
         const box = $("#meetingBox");
-        if (box) { box.innerHTML = meetingPanelHtml(note); box.querySelector("[data-followup]")?.addEventListener("click", () => openFollowUp(note)); }
+        if (box) {
+          box.innerHTML = meetingPanelHtml(note);
+          box.querySelector("[data-followup]")?.addEventListener("click", () => openFollowUp(note));
+        }
       }, 1200);
     });
   }
-  $("#asrGo")?.addEventListener("click", (e) => { e.target.disabled = true; transcribeNote(note.id); });
+  $("#asrGo")?.addEventListener("click", (e) => {
+    e.target.disabled = true;
+    transcribeNote(note.id);
+  });
   const view = main.firstElementChild;
   const onAsr = (e) => {
-    if (!view.isConnected) { window.removeEventListener("seekto:asr", onAsr); return; }
+    if (!view.isConnected) {
+      window.removeEventListener("seekto:asr", onAsr);
+      return;
+    }
     if (e.detail.id !== note.id) return;
-    if (e.detail.done) { toast(!e.detail.added ? t("Transcribed.") : e.detail.added > 1 ? t("Transcribed. Added {n} dates to your calendar.", { n: e.detail.added }) : t("Transcribed. Added 1 date to your calendar.")); renderDetail(main, id); return; }
+    if (e.detail.done) {
+      toast(
+        !e.detail.added
+          ? t("Transcribed.")
+          : e.detail.added > 1
+            ? t("Transcribed. Added {n} dates to your calendar.", { n: e.detail.added })
+            : t("Transcribed. Added 1 date to your calendar."),
+      );
+      renderDetail(main, id);
+      return;
+    }
     const st = $("#asrStatus");
     if (st) st.textContent = e.detail.error || e.detail.text;
     if (e.detail.error && $("#asrGo")) $("#asrGo").disabled = false;
   };
   window.addEventListener("seekto:asr", onAsr);
-  $("#useT")?.addEventListener("click", async () => { await addTranscript(note, $("#pasteT").value); renderDetail(main, id); });
-  $("#capFile")?.addEventListener("change", async (e) => { await addTranscript(note, await readFile(e.target.files[0])); renderDetail(main, id); });
+  $("#useT")?.addEventListener("click", async () => {
+    await addTranscript(note, $("#pasteT").value);
+    renderDetail(main, id);
+  });
+  $("#capFile")?.addEventListener("change", async (e) => {
+    await addTranscript(note, await readFile(e.target.files[0]));
+    renderDetail(main, id);
+  });
 
   if (note.audioId) {
     const rec = await get("audio", note.audioId);
@@ -232,7 +341,9 @@ export async function renderDetail(main, id) {
   drawLines(note);
   drawEvents(note);
 
-  const index = buildIndex(note.cues?.length ? note.cues : (note.text || "").split(/(?<=[.!?])\s+/).map((t, i) => ({ start: i, text: t })));
+  const index = buildIndex(
+    note.cues?.length ? note.cues : (note.text || "").split(/(?<=[.!?])\s+/).map((t, i) => ({ start: i, text: t })),
+  );
   $("#askForm").addEventListener("submit", (e) => {
     e.preventDefault();
     const q = $("#ask").value.trim();
@@ -240,7 +351,12 @@ export async function renderDetail(main, id) {
     const res = search(index, q);
     const terms = new Set(tokens(q));
     $("#answers").innerHTML = res.length
-      ? res.map((r) => html`<div class="ans">${raw(note.cues?.length ? `<button class="btn small" data-seek="${r.start}" style="justify-self:start">▶ ${formatTime(r.start)}</button>` : "")}<span>${raw(esc(r.context).replace(/[A-Za-z0-9]+/g, (w) => (terms.has(stem(w.toLowerCase())) ? `<mark>${w}</mark>` : w)))}</span></div>`).join("")
+      ? res
+          .map(
+            (r) =>
+              html`<div class="ans">${raw(note.cues?.length ? `<button class="btn small" data-seek="${r.start}" style="justify-self:start">▶ ${formatTime(r.start)}</button>` : "")}<span>${raw(esc(r.context).replace(/[A-Za-z0-9]+/g, (w) => (terms.has(stem(w.toLowerCase())) ? `<mark>${w}</mark>` : w)))}</span></div>`,
+          )
+          .join("")
       : `<p class="empty">${isReady(state.settings) ? t("Nothing in this note matches. Try other words, or ask the assistant.") : t("Nothing in this note matches. Try other words.")}</p>`;
     $$("[data-seek]", $("#answers")).forEach((b) => b.addEventListener("click", () => seek(Number(b.dataset.seek))));
     if (res[0] && note.cues?.length) seek(res[0].start);
@@ -249,10 +365,16 @@ export async function renderDetail(main, id) {
 
 function seek(t) {
   const audio = $("#audio");
-  if (audio) { audio.currentTime = t; audio.play().catch(() => {}); }
+  if (audio) {
+    audio.currentTime = t;
+    audio.play().catch(() => {});
+  }
   const line = $(`.line[data-t="${t}"]`);
   $$(".line.on").forEach((l) => l.classList.remove("on"));
-  if (line) { line.classList.add("on"); line.scrollIntoView({ block: "center", behavior: "smooth" }); }
+  if (line) {
+    line.classList.add("on");
+    line.scrollIntoView({ block: "center", behavior: "smooth" });
+  }
 }
 
 function drawLines(note) {
@@ -266,23 +388,34 @@ function drawLines(note) {
     ...(note.mine || []).map((m) => ({ start: m.start, text: `✎ ${m.text}`, cls: "mine" })),
   ].sort((a, b) => a.start - b.start);
   box.innerHTML = rows.length
-    ? rows.map((r) => `<button class="line ${r.cls}" data-t="${r.start}"><span class="t">${formatTime(r.start)}</span><span>${r.cls ? esc(r.text) : marked(r.text, ref, locale)}</span></button>`).join("")
+    ? rows
+        .map(
+          (r) =>
+            `<button class="line ${r.cls}" data-t="${r.start}"><span class="t">${formatTime(r.start)}</span><span>${r.cls ? esc(r.text) : marked(r.text, ref, locale)}</span></button>`,
+        )
+        .join("")
     : `<p class="empty">${t("No transcript lines.")}</p>`;
   $$(".line", box).forEach((l) => l.addEventListener("click", () => seek(Number(l.dataset.t))));
   const audio = $("#audio");
-  if (audio) audio.addEventListener("timeupdate", () => {
-    const t = audio.currentTime;
-    let cur = null;
-    for (const l of $$(".line", box)) if (Number(l.dataset.t) <= t) cur = l;
-    $$(".line.on", box).forEach((l) => l !== cur && l.classList.remove("on"));
-    cur?.classList.add("on");
-  });
+  if (audio)
+    audio.addEventListener("timeupdate", () => {
+      const t = audio.currentTime;
+      let cur = null;
+      for (const l of $$(".line", box)) if (Number(l.dataset.t) <= t) cur = l;
+      $$(".line.on", box).forEach((l) => l !== cur && l.classList.remove("on"));
+      cur?.classList.add("on");
+    });
 }
 
 function drawEvents(note) {
   const list = state.events.filter((e) => e.noteId === note.id);
   $("#noteEvents").innerHTML = list.length
-    ? list.map((e) => html`<div class="event"><span class="when">${friendlyDate(e.date)}</span><span>${e.title}</span><span class="kind ${e.type}">${typeLabel(e.type)}</span></div>`).join("")
+    ? list
+        .map(
+          (e) =>
+            html`<div class="event"><span class="when">${friendlyDate(e.date)}</span><span>${e.title}</span><span class="kind ${e.type}">${typeLabel(e.type)}</span></div>`,
+        )
+        .join("")
     : `<p class="empty">${t("No dates found in this note.")}</p>`;
 }
 
@@ -299,13 +432,16 @@ async function addTranscript(note, content) {
 async function summarize(note) {
   const box = $("#summaryBox");
   if (!isReady(state.settings)) {
-    box.innerHTML = t("Summaries use an AI model. <a href=\"#settings\">Choose one in Settings</a> (on your computer, free cloud or paid).");
+    box.innerHTML = t(
+      'Summaries use an AI model. <a href="#settings">Choose one in Settings</a> (on your computer, free cloud or paid).',
+    );
     return;
   }
   box.textContent = t("Summarizing…");
   try {
     box.textContent = await chat(state.settings, {
-      system: "You summarize a student's class notes into short study notes: 3 to 6 key points, key terms with definitions, and anything due or on a test. Plain text with bullets.",
+      system:
+        "You summarize a student's class notes into short study notes: 3 to 6 key points, key terms with definitions, and anything due or on a test. Plain text with bullets.",
       messages: [{ role: "user", content: noteText(note).slice(0, 20000) || note.title }],
       maxTokens: 700,
     });
@@ -316,10 +452,16 @@ async function summarize(note) {
 
 function toMarkdown(note) {
   const lines = [
-    `# ${note.title}`, "", `${note.date} · ${note.subject}${note.topic ? ` · ${note.topic}` : ""}`, "",
-    ...(note.mine?.length ? [`## ${t("My notes")}`, ...note.mine.map((m) => `- [${formatTime(m.start)}] ${m.text}`), ""] : []),
+    `# ${note.title}`,
+    "",
+    `${note.date} · ${note.subject}${note.topic ? ` · ${note.topic}` : ""}`,
+    "",
+    ...(note.mine?.length
+      ? [`## ${t("My notes")}`, ...note.mine.map((m) => `- [${formatTime(m.start)}] ${m.text}`), ""]
+      : []),
     ...(note.marks?.length ? [`## ${t("Lost here")}`, ...note.marks.map((m) => `- ${formatTime(m.start)}`), ""] : []),
-    `## ${t("Transcript")}`, ...(note.cues?.length ? note.cues.map((c) => `[${formatTime(c.start)}] ${c.text}`) : [note.text || ""]),
+    `## ${t("Transcript")}`,
+    ...(note.cues?.length ? note.cues.map((c) => `[${formatTime(c.start)}] ${c.text}`) : [note.text || ""]),
   ];
   return lines.join("\n");
 }

@@ -29,7 +29,16 @@ export function cleanShared(value) {
     .map((q) => {
       const out = { kind: q.k, prompt: str(q.p, 600), answer: str(q.a, 400) };
       // Multiple choice: 2 to 5 options, one of them the answer
-      const choices = Array.isArray(q.o) ? [...new Set(q.o.slice(0, 5).map((c) => str(c, 400)).filter(Boolean))] : [];
+      const choices = Array.isArray(q.o)
+        ? [
+            ...new Set(
+              q.o
+                .slice(0, 5)
+                .map((c) => str(c, 400))
+                .filter(Boolean),
+            ),
+          ]
+        : [];
       if (choices.length >= 2 && choices.includes(out.answer)) out.choices = choices;
       return out;
     });
@@ -37,13 +46,23 @@ export function cleanShared(value) {
   const out = { title: str(value.t, 120) || "Practice test", questions };
   // "Beat my score": how the person who sent the link did
   const [got, of] = Array.isArray(value.c) ? value.c.map(Number) : [];
-  if (Number.isInteger(got) && Number.isInteger(of) && of > 0 && got >= 0 && got <= of && of <= MAX_QUESTIONS) out.challenge = { got, of };
+  if (Number.isInteger(got) && Number.isInteger(of) && of > 0 && got >= 0 && got <= of && of <= MAX_QUESTIONS)
+    out.challenge = { got, of };
   return out;
 }
 
 /** Questions ({ kind, prompt, answer, choices? }), a title and optionally the sender's score -> the part of a link after "#s=". */
 export async function encodeShare({ title, questions, challenge = null }) {
-  const value = { v: 1, t: str(title, 120), q: questions.slice(0, MAX_QUESTIONS).map((q) => ({ k: q.kind, p: str(q.prompt, 600), a: str(q.answer, 400), ...(q.choices?.length ? { o: q.choices.slice(0, 5).map((c) => str(c, 400)) } : {}) })) };
+  const value = {
+    v: 1,
+    t: str(title, 120),
+    q: questions.slice(0, MAX_QUESTIONS).map((q) => ({
+      k: q.kind,
+      p: str(q.prompt, 600),
+      a: str(q.answer, 400),
+      ...(q.choices?.length ? { o: q.choices.slice(0, 5).map((c) => str(c, 400)) } : {}),
+    })),
+  };
   if (challenge) value.c = [challenge.got, challenge.of];
   return toBase64Url(await pipe(new TextEncoder().encode(JSON.stringify(value)), new CompressionStream("deflate-raw")));
 }
@@ -72,7 +91,10 @@ export function sharedToText({ questions }) {
     else if (q.kind === "blank") line = q.prompt.replace(/_{3,}/, q.answer);
     else line = `${q.prompt.replace(/[?.!\s]+$/, "")}: ${q.answer}`;
     const key = line?.toLowerCase();
-    if (line && !seen.has(key)) { seen.add(key); lines.push(line); }
+    if (line && !seen.has(key)) {
+      seen.add(key);
+      lines.push(line);
+    }
   }
   return lines.join("\n");
 }

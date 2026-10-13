@@ -36,16 +36,36 @@ export async function render(main, code) {
       <div id="quizMount" class="shared-quiz"></div>
       <footer class="shared-foot">
         <button class="btn ghost small" id="save">${t("Save to my notes")}</button>
-        <span class="note-small">${raw(t("Made with <a href=\"#\" id=\"home\">Seekto</a>, free and open source"))}</span>
+        <span class="note-small">${raw(t('Made with <a href="#" id="home">Seekto</a>, free and open source'))}</span>
       </footer>
     </div>`;
-  openQuiz({ questions: test.questions, title: test.title, shared: true, challenge: c || null, mount: $("#quizMount"), onLeave: () => leave() });
+  openQuiz({
+    questions: test.questions,
+    title: test.title,
+    shared: true,
+    challenge: c || null,
+    mount: $("#quizMount"),
+    onLeave: () => leave(),
+  });
   $("#save").addEventListener("click", async () => {
     const text = sharedToText(test);
-    const note = { id: uid("note"), kind: "typed", createdAt: Date.now(), date: today(), title: test.title, text, subject: detectSubject(text) || "General", topic: detectTopic(text), shared: true };
+    const note = {
+      id: uid("note"),
+      kind: "typed",
+      createdAt: Date.now(),
+      date: today(),
+      title: test.title,
+      text,
+      subject: detectSubject(text) || "General",
+      topic: detectTopic(text),
+      shared: true,
+    };
     await saveNote(note);
     leave(`note/${note.id}`);
   });
-  $("#home").addEventListener("click", (e) => { e.preventDefault(); leave(); });
+  $("#home").addEventListener("click", (e) => {
+    e.preventDefault();
+    leave();
+  });
   return () => document.body.classList.remove("standalone");
 }

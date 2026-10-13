@@ -1,0 +1,6 @@
+site/
+engine/bench/data/
+docs/media/
+*.md
+*.html
+*.sql

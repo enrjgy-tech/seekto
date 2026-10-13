@@ -11,7 +11,10 @@
     "vendor": "node pipeline/vendor-transformers.mjs",
     "serve": "npx --yes serve@14.2.4 site",
     "i18n": "node pipeline/i18n.mjs",
-    "test:browser": "node test/smoke.mjs"
+    "test:browser": "node test/smoke.mjs",
+    "lint": "npx --yes eslint@10.1.0 .",
+    "format": "npx --yes prettier@3.8.1 --write \"app/**/*.{js,css}\" \"engine/**/*.{js,mjs}\" \"pipeline/**/*.mjs\" \"test/**/*.mjs\" \"*.mjs\"",
+    "format:check": "npx --yes prettier@3.8.1 --check \"app/**/*.{js,css}\" \"engine/**/*.{js,mjs}\" \"pipeline/**/*.mjs\" \"test/**/*.mjs\" \"*.mjs\""
   },
   "engines": {
     "node": ">=20"

@@ -11,15 +11,24 @@ test("knows when a model is ready", () => {
 });
 
 test("builds OpenAI-compatible requests with a system message", () => {
-  const { url, init } = buildRequest({ provider: "ollama", model: "llama3.2" }, { system: "Be brief.", messages: [{ role: "user", content: "Hi" }] });
+  const { url, init } = buildRequest(
+    { provider: "ollama", model: "llama3.2" },
+    { system: "Be brief.", messages: [{ role: "user", content: "Hi" }] },
+  );
   assert.equal(url, "http://localhost:11434/v1/chat/completions");
   const body = JSON.parse(init.body);
-  assert.deepEqual(body.messages, [{ role: "system", content: "Be brief." }, { role: "user", content: "Hi" }]);
+  assert.deepEqual(body.messages, [
+    { role: "system", content: "Be brief." },
+    { role: "user", content: "Hi" },
+  ]);
   assert.equal(init.headers.authorization, undefined);
 });
 
 test("builds Anthropic requests for the browser", () => {
-  const { url, init } = buildRequest({ provider: "anthropic", model: "m", apiKey: "k" }, { system: "S", messages: [{ role: "user", content: "Hi" }] });
+  const { url, init } = buildRequest(
+    { provider: "anthropic", model: "m", apiKey: "k" },
+    { system: "S", messages: [{ role: "user", content: "Hi" }] },
+  );
   assert.equal(url, "https://api.anthropic.com/v1/messages");
   assert.equal(init.headers["anthropic-dangerous-direct-browser-access"], "true");
   assert.equal(JSON.parse(init.body).system, "S");

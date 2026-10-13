@@ -26,10 +26,13 @@ for (const entry of entries.filter((e) => e.isDirectory()).sort((a, b) => a.name
   if (pack.id !== entry.name) errors.push(`${where}: id "${pack.id}" must match the folder name`);
   if (!new RegExp(schema.properties.id.pattern).test(pack.id || "")) errors.push(`${where}: id has invalid characters`);
   if (!kinds.has(pack.source?.kind)) errors.push(`${where}: source.kind must be one of ${[...kinds].join(", ")}`);
-  if (pack.source?.kind !== "original" && !pack.source?.url) errors.push(`${where}: source.url is required for ${pack.source?.kind}`);
-  if (!licenses.has(pack.license?.spdx)) errors.push(`${where}: license.spdx must be one of ${[...licenses].join(", ")}`);
+  if (pack.source?.kind !== "original" && !pack.source?.url)
+    errors.push(`${where}: source.url is required for ${pack.source?.kind}`);
+  if (!licenses.has(pack.license?.spdx))
+    errors.push(`${where}: license.spdx must be one of ${[...licenses].join(", ")}`);
   if (!pack.license?.attribution) errors.push(`${where}: license.attribution is required`);
-  if (pack.video && !/^[A-Za-z0-9_-]{11}$/.test(pack.video.id || "")) errors.push(`${where}: video.id must be an 11-character YouTube ID`);
+  if (pack.video && !/^[A-Za-z0-9_-]{11}$/.test(pack.video.id || ""))
+    errors.push(`${where}: video.id must be an 11-character YouTube ID`);
   let cues = [];
   try {
     cues = parseCaptions(await readFile(join(root, entry.name, pack.transcript || ""), "utf8"));
@@ -37,7 +40,14 @@ for (const entry of entries.filter((e) => e.isDirectory()).sort((a, b) => a.name
     errors.push(`${where}: transcript "${pack.transcript}" can't be read (${err.message})`);
   }
   if (!cues.length) errors.push(`${where}: transcript has no timed lines`);
-  index.push({ id: pack.id, title: pack.title, subject: pack.subject || null, video: pack.video?.id || null, license: pack.license?.spdx, lines: cues.length });
+  index.push({
+    id: pack.id,
+    title: pack.title,
+    subject: pack.subject || null,
+    video: pack.video?.id || null,
+    license: pack.license?.spdx,
+    lines: cues.length,
+  });
 }
 
 if (errors.length) {

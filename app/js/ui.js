@@ -5,7 +5,10 @@ export const $ = (sel, root = document) => root.querySelector(sel);
 export const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 
 export function esc(value) {
-  return String(value ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  return String(value ?? "").replace(
+    /[&<>"']/g,
+    (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c],
+  );
 }
 
 /** Tagged template that escapes interpolated values unless they are wrapped with raw(). */
@@ -13,7 +16,12 @@ export function html(strings, ...values) {
   return strings.reduce((out, s, i) => {
     if (i >= values.length) return out + s;
     const v = values[i];
-    const text = v && v.__raw !== undefined ? v.__raw : Array.isArray(v) ? v.map((x) => (x && x.__raw !== undefined ? x.__raw : esc(x))).join("") : esc(v);
+    const text =
+      v && v.__raw !== undefined
+        ? v.__raw
+        : Array.isArray(v)
+          ? v.map((x) => (x && x.__raw !== undefined ? x.__raw : esc(x))).join("")
+          : esc(v);
     return out + s + text;
   }, "");
 }
@@ -31,7 +39,12 @@ let toastTimer;
 /** Hide the current message, for example when the person moves to another screen. */
 // A message shown right before moving ("Saved. Added 2 dates…") stays; older ones go.
 let toastAt = 0;
-export function clearToast() { if (Date.now() - toastAt < 800) return; clearTimeout(toastTimer); const el = $("#toast"); if (el) el.hidden = true; }
+export function clearToast() {
+  if (Date.now() - toastAt < 800) return;
+  clearTimeout(toastTimer);
+  const el = $("#toast");
+  if (el) el.hidden = true;
+}
 /** A short message at the top of the screen, also read out by screen readers. */
 export function toast(message) {
   const el = $("#toast");
@@ -66,7 +79,8 @@ export async function copy(text, ok = t("Copied")) {
 
 let onOverlayClose = null;
 let opener = null;
-const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select, textarea, summary, [tabindex]:not([tabindex="-1"])';
+const FOCUSABLE =
+  'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select, textarea, summary, [tabindex]:not([tabindex="-1"])';
 
 /**
  * Open a dialog. Focus moves into it, Tab stays inside it, Esc closes it, and focus goes back
@@ -82,19 +96,26 @@ export function openOverlay(content, onClose = null) {
   root.innerHTML = `<div class="overlay" role="dialog" aria-modal="true"><div class="sheet" tabindex="-1">${content}</div></div>`;
   const dialog = $(".overlay", root);
   const sheet = $(".sheet", root);
-  dialog.addEventListener("click", (e) => { if (e.target === dialog) closeOverlay(); });
+  dialog.addEventListener("click", (e) => {
+    if (e.target === dialog) closeOverlay();
+  });
   document.addEventListener("keydown", onKey);
   for (const el of document.querySelectorAll(".app")) el.inert = true;
   // Name the dialog after its heading, whenever its content changes.
   const name = () => {
     const h = sheet.querySelector("h1, h2, h3");
-    if (h) { h.id ||= "dialogTitle"; dialog.setAttribute("aria-labelledby", h.id); }
+    if (h) {
+      h.id ||= "dialogTitle";
+      dialog.setAttribute("aria-labelledby", h.id);
+    }
   };
   namer?.disconnect();
   namer = new MutationObserver(name);
   namer.observe(sheet, { childList: true });
   name();
-  requestAnimationFrame(() => { if (!sheet.contains(document.activeElement)) (sheet.querySelector("input, textarea, select") || sheet).focus(); });
+  requestAnimationFrame(() => {
+    if (!sheet.contains(document.activeElement)) (sheet.querySelector("input, textarea, select") || sheet).focus();
+  });
   return sheet;
 }
 
@@ -104,11 +125,19 @@ function onKey(e) {
   const sheet = $(".overlay .sheet");
   if (!sheet) return;
   const items = [...sheet.querySelectorAll(FOCUSABLE)].filter((el) => el.offsetParent !== null);
-  if (!items.length) { e.preventDefault(); return sheet.focus(); }
+  if (!items.length) {
+    e.preventDefault();
+    return sheet.focus();
+  }
   const first = items[0];
   const last = items[items.length - 1];
-  if (e.shiftKey && (document.activeElement === first || document.activeElement === sheet)) { e.preventDefault(); last.focus(); }
-  else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  if (e.shiftKey && (document.activeElement === first || document.activeElement === sheet)) {
+    e.preventDefault();
+    last.focus();
+  } else if (!e.shiftKey && document.activeElement === last) {
+    e.preventDefault();
+    first.focus();
+  }
 }
 
 export function closeOverlay() {

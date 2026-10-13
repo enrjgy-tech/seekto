@@ -12,12 +12,22 @@ let showPast = false;
 
 /** The event type as shown to the user; the English type stays the CSS class. */
 export function typeLabel(type) {
-  const labels = { test: t("test"), assignment: t("assignment"), review: t("review"), task: t("task"), event: t("event") };
+  const labels = {
+    test: t("test"),
+    assignment: t("assignment"),
+    review: t("review"),
+    task: t("task"),
+    event: t("event"),
+  };
   return labels[type] || type;
 }
 
 function typeFor(title) {
-  return /test|exam|quiz|midterm|final/i.test(title) ? "test" : /due|essay|paper|project|homework|assignment|lab|report|reading|presentation/i.test(title) ? "assignment" : "event";
+  return /test|exam|quiz|midterm|final/i.test(title)
+    ? "test"
+    : /due|essay|paper|project|homework|assignment|lab|report|reading|presentation/i.test(title)
+      ? "assignment"
+      : "event";
 }
 
 // Exported events carry reminders (the day before and the morning of), in the interface language
@@ -30,11 +40,18 @@ export function remindAll() {
   const upcoming = state.events.filter((e) => e.date >= now);
   if (!upcoming.length) return toast(t("Nothing coming up yet."));
   download("seekto-reminders.ics", icsFor(upcoming), "text/calendar");
-  toast(upcoming.length === 1 ? t("Open the file to add 1 date with reminders to your calendar.") : t("Open the file to add {n} dates with reminders to your calendar.", { n: upcoming.length }));
+  toast(
+    upcoming.length === 1
+      ? t("Open the file to add 1 date with reminders to your calendar.")
+      : t("Open the file to add {n} dates with reminders to your calendar.", { n: upcoming.length }),
+  );
 }
 
 export function render(main) {
-  if (!month) { const d = new Date(); month = new Date(d.getFullYear(), d.getMonth(), 1); }
+  if (!month) {
+    const d = new Date();
+    month = new Date(d.getFullYear(), d.getMonth(), 1);
+  }
   main.innerHTML = html`
     <div class="view">
       <div class="view-head">
@@ -69,29 +86,53 @@ export function render(main) {
         <p class="note-small">${t("Seekto also adds dates it hears when you record a class, and dates you type in notes. Live syncing with school sites is on the roadmap.")}</p>
       </section>
     </div>`;
-  $("#prev").addEventListener("click", () => { month = new Date(month.getFullYear(), month.getMonth() - 1, 1); drawMonth(); });
-  $("#next").addEventListener("click", () => { month = new Date(month.getFullYear(), month.getMonth() + 1, 1); drawMonth(); });
-  $("#past").addEventListener("change", (e) => { showPast = e.target.checked; drawAgenda(); });
+  $("#prev").addEventListener("click", () => {
+    month = new Date(month.getFullYear(), month.getMonth() - 1, 1);
+    drawMonth();
+  });
+  $("#next").addEventListener("click", () => {
+    month = new Date(month.getFullYear(), month.getMonth() + 1, 1);
+    drawMonth();
+  });
+  $("#past").addEventListener("change", (e) => {
+    showPast = e.target.checked;
+    drawAgenda();
+  });
   $("#ics").addEventListener("change", async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     const events = parseICS(await readFile(file));
     let added = 0;
     for (const ev of events) {
-      const item = { id: uid("event"), title: ev.title, date: ev.date, time: ev.time, type: typeFor(ev.title), source: "import", description: ev.description, url: ev.url };
+      const item = {
+        id: uid("event"),
+        title: ev.title,
+        date: ev.date,
+        time: ev.time,
+        type: typeFor(ev.title),
+        source: "import",
+        description: ev.description,
+        url: ev.url,
+      };
       if (hasEvent(item)) continue;
       await saveEvent(item);
       added++;
     }
     const skipped = events.length - added;
     const imported = skipped
-      ? (added === 1 ? t("Imported 1 event ({skipped} already here)", { skipped }) : t("Imported {n} events ({skipped} already here)", { n: added, skipped }))
-      : (added === 1 ? t("Imported 1 event") : t("Imported {n} events", { n: added }));
+      ? added === 1
+        ? t("Imported 1 event ({skipped} already here)", { skipped })
+        : t("Imported {n} events ({skipped} already here)", { n: added, skipped })
+      : added === 1
+        ? t("Imported 1 event")
+        : t("Imported {n} events", { n: added });
     toast(events.length ? imported : t("No events found in that file"));
     render(main);
   });
   $("#remindAll").addEventListener("click", remindAll);
-  $("#exportIcs").addEventListener("click", () => download("seekto-calendar.ics", icsFor(state.events), "text/calendar"));
+  $("#exportIcs").addEventListener("click", () =>
+    download("seekto-calendar.ics", icsFor(state.events), "text/calendar"),
+  );
   $("#addForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     const title = $("#evTitle").value.trim();
@@ -108,7 +149,9 @@ function drawMonth() {
   const start = new Date(month);
   const first = weekStart();
   start.setDate(1 - ((month.getDay() - first + 7) % 7));
-  const cells = Array.from({ length: 7 }, (_, i) => new Date(2026, 0, 4 + first + i).toLocaleDateString(uiLocale(), { weekday: "short" })).map((d) => `<div class="dow" aria-hidden="true">${d}</div>`);
+  const cells = Array.from({ length: 7 }, (_, i) =>
+    new Date(2026, 0, 4 + first + i).toLocaleDateString(uiLocale(), { weekday: "short" }),
+  ).map((d) => `<div class="dow" aria-hidden="true">${d}</div>`);
   for (let i = 0; i < 42; i++) {
     const day = new Date(start);
     day.setDate(start.getDate() + i);
@@ -116,7 +159,12 @@ function drawMonth() {
     const evs = state.events.filter((e) => e.date === iso);
     const label = `${day.toLocaleDateString(uiLocale(), { weekday: "long", month: "long", day: "numeric" })}${evs.length ? `: ${evs.map((e) => e.title).join(", ")}` : ""}`;
     cells.push(html`<div class="day ${day.getMonth() !== month.getMonth() ? "other" : ""} ${iso === today() ? "today" : ""} ${evs.length ? "has" : ""}" role="listitem" aria-label="${label}" ${raw(iso === today() ? 'aria-current="date"' : "")} title="${evs.map((e) => e.title).join(", ")}">
-      <span class="n" aria-hidden="true">${day.getDate()}</span>${raw(evs.slice(0, 3).map((e) => html`<span class="ev ${e.type}" aria-hidden="true">${e.title}</span>`).join(""))}</div>`);
+      <span class="n" aria-hidden="true">${day.getDate()}</span>${raw(
+        evs
+          .slice(0, 3)
+          .map((e) => html`<span class="ev ${e.type}" aria-hidden="true">${e.title}</span>`)
+          .join(""),
+      )}</div>`);
   }
   $("#grid").setAttribute("role", "list");
   $("#grid").innerHTML = cells.join("");
@@ -126,26 +174,52 @@ function drawAgenda() {
   const now = today();
   const list = state.events.filter((e) => showPast || e.date >= now);
   $("#agenda").innerHTML = list.length
-    ? list.map((e) => html`<div class="event">
+    ? list
+        .map(
+          (e) => html`<div class="event">
         <span class="when">${e.date >= now ? describeDay(e.date, now, { tr: t, locale: uiLocale() }) : friendlyDate(e.date)}</span>
         <span>${e.title}${raw(e.noteId ? html` <a href="#note/${e.noteId}" class="note-small">${t("from your notes")}</a>` : e.source === "import" ? html` <span class="note-small">${t("imported")}</span>` : "")}</span>
         <span class="row">${raw(e.type === "review" && e.noteId ? html`<button class="btn small" data-practice="${e.noteId}">${t("Practice")}</button>` : html`<span class="kind ${e.type}">${typeLabel(e.type)}</span>`)}${raw(e.date >= now ? html`<details class="remind"><summary class="btn ghost small" aria-label="${t("Remind me about {title}", { title: e.title })}">${t("Remind me")}</summary><div class="remind-menu"><a class="btn ghost small" href="${googleCalendarLink({ title: e.title, date: e.date })}" target="_blank" rel="noopener">${t("Google Calendar")}</a><button class="btn ghost small" data-ics="${e.id}">${t("Apple or Outlook (.ics)")}</button><p class="note-small">${t("The .ics file reminds you the day before and that morning. Google Calendar uses your usual reminders.")}</p></div></details>` : "")}<button class="btn ghost small" data-del="${e.id}" aria-label="${t("Remove {title}", { title: e.title })}">${t("Remove")}</button></span>
-      </div>`).join("")
+      </div>`,
+        )
+        .join("")
     : `<p class="empty">${t("Nothing coming up. Record a class, import your school calendar, or add a date.")}</p>`;
-  $$("[data-del]").forEach((b) => b.addEventListener("click", async () => { await deleteEvent(b.dataset.del); drawAgenda(); drawMonth(); }));
+  $$("[data-del]").forEach((b) =>
+    b.addEventListener("click", async () => {
+      await deleteEvent(b.dataset.del);
+      drawAgenda();
+      drawMonth();
+    }),
+  );
   $$("[data-practice]").forEach((b) => b.addEventListener("click", () => practiceNote(b.dataset.practice)));
   // One "Remind me" menu open at a time, opening upwards when there's no room below
-  $$(".remind").forEach((d) => d.addEventListener("toggle", () => {
-    if (!d.open) return;
-    $$(".remind[open]").forEach((o) => { if (o !== d) o.open = false; });
-    const menu = d.querySelector(".remind-menu");
-    menu.classList.remove("up");
-    if (menu.getBoundingClientRect().bottom > innerHeight - 8) menu.classList.add("up");
-  }));
-  $$("[data-ics]").forEach((b) => b.addEventListener("click", () => {
-    const e = state.events.find((x) => x.id === b.dataset.ics);
-    if (e) download(`${e.title.replace(/[^\p{L}\d]+/gu, "-").replace(/^-|-$/g, "").slice(0, 40) || "event"}.ics`, icsFor([e]), "text/calendar");
-  }));
+  $$(".remind").forEach((d) =>
+    d.addEventListener("toggle", () => {
+      if (!d.open) return;
+      $$(".remind[open]").forEach((o) => {
+        if (o !== d) o.open = false;
+      });
+      const menu = d.querySelector(".remind-menu");
+      menu.classList.remove("up");
+      if (menu.getBoundingClientRect().bottom > innerHeight - 8) menu.classList.add("up");
+    }),
+  );
+  $$("[data-ics]").forEach((b) =>
+    b.addEventListener("click", () => {
+      const e = state.events.find((x) => x.id === b.dataset.ics);
+      if (e)
+        download(
+          `${
+            e.title
+              .replace(/[^\p{L}\d]+/gu, "-")
+              .replace(/^-|-$/g, "")
+              .slice(0, 40) || "event"
+          }.ics`,
+          icsFor([e]),
+          "text/calendar",
+        );
+    }),
+  );
 }
 
 export { go, fromISO };

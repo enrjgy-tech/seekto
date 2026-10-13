@@ -12,7 +12,8 @@ function open() {
     try {
       const req = indexedDB.open(DB, 2);
       req.onupgradeneeded = () => {
-        for (const s of STORES) if (!req.result.objectStoreNames.contains(s)) req.result.createObjectStore(s, { keyPath: "id" });
+        for (const s of STORES)
+          if (!req.result.objectStoreNames.contains(s)) req.result.createObjectStore(s, { keyPath: "id" });
       };
       req.onsuccess = () => resolve(req.result);
       req.onerror = () => resolve(null);
@@ -46,13 +47,19 @@ export async function get(store, id) {
 
 export async function put(store, value) {
   const db = await open();
-  if (!db) { memory[store].set(value.id, value); return; }
+  if (!db) {
+    memory[store].set(value.id, value);
+    return;
+  }
   await tx(db, store, "readwrite", (s) => s.put(value));
 }
 
 export async function remove(store, id) {
   const db = await open();
-  if (!db) { memory[store].delete(id); return; }
+  if (!db) {
+    memory[store].delete(id);
+    return;
+  }
   await tx(db, store, "readwrite", (s) => s.delete(id));
 }
 
@@ -70,7 +77,15 @@ export function uid(prefix = "id") {
 
 // Small settings live in localStorage; it can throw in some contexts, so every access is guarded.
 const SETTINGS_KEY = "seekto.settings";
-const DEFAULTS = { provider: "none", model: "", apiKey: "", baseUrl: "", speak: true, onboarded: false, signalServer: "https://ntfy.sh" };
+const DEFAULTS = {
+  provider: "none",
+  model: "",
+  apiKey: "",
+  baseUrl: "",
+  speak: true,
+  onboarded: false,
+  signalServer: "https://ntfy.sh",
+};
 
 export function loadSettings() {
   try {
@@ -81,7 +96,11 @@ export function loadSettings() {
 }
 
 export function saveSettings(settings) {
-  try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch { /* not available */ }
+  try {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  } catch {
+    /* not available */
+  }
 }
 
 /** Ids of every stored recording, without loading the audio. */

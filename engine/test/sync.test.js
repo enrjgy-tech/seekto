@@ -2,7 +2,19 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { webcrypto } from "node:crypto";
 import {
-  makeCode, normalizeCode, isValidCode, randomId, manifest, outgoing, incoming, chunk, frames, makeAssembler, channelBinding, deviceName, proof,
+  makeCode,
+  normalizeCode,
+  isValidCode,
+  randomId,
+  manifest,
+  outgoing,
+  incoming,
+  chunk,
+  frames,
+  makeAssembler,
+  channelBinding,
+  deviceName,
+  proof,
 } from "../src/sync.js";
 
 test("makes readable 6-character codes and cleans typed ones", () => {
@@ -44,17 +56,32 @@ const laptop = {
 test("sends only what the other device lacks or has older, with needed audio", () => {
   const laptopManifest = manifest(laptop, [], []);
   const out = outgoing(phone, [], ["a1"], laptopManifest);
-  assert.deepEqual(out.records.notes.map((n) => n.id), ["n1", "n2"]);
-  assert.deepEqual(out.records.events.map((e) => e.id), ["e1"]);
+  assert.deepEqual(
+    out.records.notes.map((n) => n.id),
+    ["n1", "n2"],
+  );
+  assert.deepEqual(
+    out.records.events.map((e) => e.id),
+    ["e1"],
+  );
   assert.deepEqual(out.audio, ["a1"]);
   const back = outgoing(laptop, [], [], manifest(phone, [], ["a1"]));
-  assert.deepEqual(back.records.notes.map((n) => n.id), ["n3"]);
-  assert.deepEqual(back.records.projects.map((p) => p.id), ["p1"]);
+  assert.deepEqual(
+    back.records.notes.map((n) => n.id),
+    ["n3"],
+  );
+  assert.deepEqual(
+    back.records.projects.map((p) => p.id),
+    ["p1"],
+  );
 });
 
 test("newest change wins when records arrive", () => {
   const res = incoming(laptop, [], outgoing(phone, [], [], manifest(laptop)));
-  assert.deepEqual(res.put.map((p) => `${p.store}:${p.record.id}`), ["notes:n1", "notes:n2", "events:e1"]);
+  assert.deepEqual(
+    res.put.map((p) => `${p.store}:${p.record.id}`),
+    ["notes:n1", "notes:n2", "events:e1"],
+  );
   const stale = incoming(phone, [], { records: { notes: [{ id: "n2", title: "old", updatedAt: 250 }] } });
   assert.deepEqual(stale.put, []);
 });
@@ -101,8 +128,8 @@ test("names devices and proves a shared secret", async () => {
 });
 
 test("frames stay under the server's size limit, even with escaping and accents", () => {
-  const sdp = 'v=0\r\no=- 1 2 IN IP4 127.0.0.1\r\na=fingerprint:sha-256 AB:CD\r\n'.repeat(120);
-  const text = JSON.stringify({ type: "offer", sdp, name: "Éloïse's \"iPhone\"".repeat(40) });
+  const sdp = "v=0\r\no=- 1 2 IN IP4 127.0.0.1\r\na=fingerprint:sha-256 AB:CD\r\n".repeat(120);
+  const text = JSON.stringify({ type: "offer", sdp, name: 'Éloïse\'s "iPhone"'.repeat(40) });
   const out = frames(text, "abc", 3800);
   const add = makeAssembler();
   let whole = null;
@@ -121,6 +148,12 @@ test("proofs are bound to the connection and to who is proving", async () => {
   assert.equal(channel, channelBinding(answer, offer));
   const base = await proof("s", "n", webcrypto, { channel, prover: "dev-a" });
   assert.notEqual(base, await proof("s", "n", webcrypto, { channel, prover: "dev-b" }));
-  assert.notEqual(base, await proof("s", "n", webcrypto, { channel: channelBinding(offer, "a=fingerprint:sha-256 CC:33"), prover: "dev-a" }));
+  assert.notEqual(
+    base,
+    await proof("s", "n", webcrypto, {
+      channel: channelBinding(offer, "a=fingerprint:sha-256 CC:33"),
+      prover: "dev-a",
+    }),
+  );
   assert.notEqual(base, await proof("other", "n", webcrypto, { channel, prover: "dev-a" }));
 });

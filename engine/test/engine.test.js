@@ -1,7 +1,16 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { parseCaptions, parseTranscriptText, parseTime, formatTime, buildIndex, search, videoId, watchUrl } from "../src/index.js";
+import {
+  parseCaptions,
+  parseTranscriptText,
+  parseTime,
+  formatTime,
+  buildIndex,
+  search,
+  videoId,
+  watchUrl,
+} from "../src/index.js";
 
 const sample = await readFile(new URL("../../packs/sample-binary-search/transcript.vtt", import.meta.url), "utf8");
 const cues = parseCaptions(sample);
@@ -15,7 +24,8 @@ test("parses times in VTT, SRT and short forms", () => {
 });
 
 test("parses SRT with tags and merges repeated lines", () => {
-  const srt = "1\n00:00:01,000 --> 00:00:03,500\nHello <i>there</i>\n\n2\n00:00:03,500 --> 00:00:05,000\nHello there\n\n3\n00:00:05,000 --> 00:00:06,000\nNext";
+  const srt =
+    "1\n00:00:01,000 --> 00:00:03,500\nHello <i>there</i>\n\n2\n00:00:03,500 --> 00:00:05,000\nHello there\n\n3\n00:00:05,000 --> 00:00:06,000\nNext";
   assert.deepEqual(parseCaptions(srt), [
     { start: 1, end: 5, text: "Hello there" },
     { start: 5, end: 6, text: "Next" },

@@ -64,7 +64,9 @@ export async function deleteEvent(id, { remote = false, from } = {}) {
 
 export async function saveProject(project, { remote = false, from } = {}) {
   await saveRecord("projects", project, remote, from);
-  state.projects = [project, ...state.projects.filter((p) => p.id !== project.id)].sort((a, b) => b.createdAt - a.createdAt);
+  state.projects = [project, ...state.projects.filter((p) => p.id !== project.id)].sort(
+    (a, b) => b.createdAt - a.createdAt,
+  );
 }
 
 export async function deleteProject(id, { remote = false, from } = {}) {

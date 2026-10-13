@@ -5,11 +5,41 @@
 
 export const PROVIDERS = {
   none: { label: "No AI model (works offline)", tier: "none" },
-  ollama: { label: "Ollama on this computer", tier: "local", baseUrl: "http://localhost:11434/v1", needsKey: false, modelHint: "llama3.2" },
-  openrouter: { label: "OpenRouter", tier: "free or paid cloud", baseUrl: "https://openrouter.ai/api/v1", needsKey: true, modelHint: "a model ID from openrouter.ai/models (free ones end in :free)" },
-  openai: { label: "OpenAI", tier: "paid cloud", baseUrl: "https://api.openai.com/v1", needsKey: true, modelHint: "a model ID from your OpenAI account" },
-  anthropic: { label: "Anthropic (Claude)", tier: "paid cloud", baseUrl: "https://api.anthropic.com/v1", needsKey: true, modelHint: "claude-sonnet-5-5" },
-  custom: { label: "Other OpenAI-compatible service", tier: "cloud or local", baseUrl: "", needsKey: false, modelHint: "the service's model ID" },
+  ollama: {
+    label: "Ollama on this computer",
+    tier: "local",
+    baseUrl: "http://localhost:11434/v1",
+    needsKey: false,
+    modelHint: "llama3.2",
+  },
+  openrouter: {
+    label: "OpenRouter",
+    tier: "free or paid cloud",
+    baseUrl: "https://openrouter.ai/api/v1",
+    needsKey: true,
+    modelHint: "a model ID from openrouter.ai/models (free ones end in :free)",
+  },
+  openai: {
+    label: "OpenAI",
+    tier: "paid cloud",
+    baseUrl: "https://api.openai.com/v1",
+    needsKey: true,
+    modelHint: "a model ID from your OpenAI account",
+  },
+  anthropic: {
+    label: "Anthropic (Claude)",
+    tier: "paid cloud",
+    baseUrl: "https://api.anthropic.com/v1",
+    needsKey: true,
+    modelHint: "claude-sonnet-5-5",
+  },
+  custom: {
+    label: "Other OpenAI-compatible service",
+    tier: "cloud or local",
+    baseUrl: "",
+    needsKey: false,
+    modelHint: "the service's model ID",
+  },
 };
 
 /** Is this configuration complete enough to call? */
@@ -59,7 +89,11 @@ export function buildRequest(settings, { system = "", messages = [], maxTokens =
 
 /** Pull the reply text out of either API's response. */
 export function readReply(provider, json) {
-  if (provider === "anthropic") return (json.content || []).filter((c) => c.type === "text").map((c) => c.text).join("");
+  if (provider === "anthropic")
+    return (json.content || [])
+      .filter((c) => c.type === "text")
+      .map((c) => c.text)
+      .join("");
   return json.choices?.[0]?.message?.content ?? "";
 }
 
@@ -74,7 +108,7 @@ export async function chat(settings, options, fetchImpl = globalThis.fetch) {
     throw new Error(
       settings.provider === "ollama"
         ? "Couldn't reach Ollama. Make sure it's running and allows this site (set OLLAMA_ORIGINS)."
-        : "Couldn't reach the AI service. Check your connection."
+        : "Couldn't reach the AI service. Check your connection.",
     );
   }
   const json = await res.json().catch(() => ({}));

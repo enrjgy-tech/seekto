@@ -6,13 +6,18 @@
  * Merges tiny fragments into sentences, drops empty and repeated "hallucinated" lines.
  */
 export function whisperCues(output, { offset = 0 } = {}) {
-  const chunks = Array.isArray(output?.chunks) && output.chunks.length
-    ? output.chunks
-    : output?.text ? [{ timestamp: [0, null], text: output.text }] : [];
+  const chunks =
+    Array.isArray(output?.chunks) && output.chunks.length
+      ? output.chunks
+      : output?.text
+        ? [{ timestamp: [0, null], text: output.text }]
+        : [];
   const cues = [];
   let last = "";
   for (const c of chunks) {
-    const text = String(c.text || "").replace(/\s+/g, " ").trim();
+    const text = String(c.text || "")
+      .replace(/\s+/g, " ")
+      .trim();
     if (!text || /^\[(?:music|blank_audio|silence|inaudible)\]$/i.test(text) || /^\(.*\)$/.test(text)) continue;
     if (text.toLowerCase() === last) continue; // Whisper sometimes repeats a line over silence
     last = text.toLowerCase();
@@ -25,7 +30,11 @@ export function whisperCues(output, { offset = 0 } = {}) {
       prev.text = `${prev.text} ${text}`;
       prev.end = end;
     } else {
-      cues.push({ start: Math.round(start * 10) / 10, end: end == null ? null : Math.round(end * 10) / 10, text: text.charAt(0).toUpperCase() + text.slice(1) });
+      cues.push({
+        start: Math.round(start * 10) / 10,
+        end: end == null ? null : Math.round(end * 10) / 10,
+        text: text.charAt(0).toUpperCase() + text.slice(1),
+      });
     }
   }
   return cues;

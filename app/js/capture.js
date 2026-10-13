@@ -24,13 +24,26 @@ export async function addDates(note, { sample = false } = {}) {
   const found = findEvents(text, { ref, subject, locale: locale() }).map((e) => ({ ...e, source: "recording" }));
   if (isMeeting(note)) {
     for (const a of findActionItems(text, { ref, locale: locale() })) {
-      if (a.due) found.push({ date: a.due, type: "task", title: `${a.owner && !["Team", "Me"].includes(a.owner) ? `${a.owner}: ` : ""}${a.task}`, sentence: a.sentence, source: "meeting" });
+      if (a.due)
+        found.push({
+          date: a.due,
+          type: "task",
+          title: `${a.owner && !["Team", "Me"].includes(a.owner) ? `${a.owner}: ` : ""}${a.task}`,
+          sentence: a.sentence,
+          source: "meeting",
+        });
     }
   }
   let added = 0;
   for (const e of found) {
     if (hasEvent(e)) continue;
-    await saveEvent({ id: uid("event"), ...e, subject: note.subject, noteId: note.id, ...(sample ? { sample: true } : {}) });
+    await saveEvent({
+      id: uid("event"),
+      ...e,
+      subject: note.subject,
+      noteId: note.id,
+      ...(sample ? { sample: true } : {}),
+    });
     added++;
   }
   note.eventCount = state.events.filter((e) => e.noteId === note.id).length;
@@ -49,7 +62,10 @@ export async function transcribeNote(id) {
   const { get } = await import("./store.js");
   const { saveNote } = await import("./state.js");
   const { detectSubject, detectTopic } = await import("../engine/index.js");
-  const tell = (text) => { running.set(id, text); window.dispatchEvent(new CustomEvent("seekto:asr", { detail: { id, text } })); };
+  const tell = (text) => {
+    running.set(id, text);
+    window.dispatchEvent(new CustomEvent("seekto:asr", { detail: { id, text } }));
+  };
   tell(t("Starting…"));
   try {
     const note = state.notes.find((n) => n.id === id);
@@ -63,9 +79,11 @@ export async function transcribeNote(id) {
     const fresh = state.notes.find((n) => n.id === id) || note;
     fresh.cues = cues;
     fresh.text = cues.map((c) => c.text).join(" ");
-    if (!fresh.subject || fresh.subject === "General") fresh.subject = fresh.mode === "work" ? "Meeting" : detectSubject(fresh.text) || "General";
+    if (!fresh.subject || fresh.subject === "General")
+      fresh.subject = fresh.mode === "work" ? "Meeting" : detectSubject(fresh.text) || "General";
     fresh.topic = detectTopic(fresh.text) || fresh.topic;
-    if (fresh.autoTitle || /^(Recording|Meeting: Recording|General: Recording)$/.test(fresh.title)) fresh.title = `${fresh.mode === "work" ? "Meeting" : fresh.subject}: ${fresh.topic}`;
+    if (fresh.autoTitle || /^(Recording|Meeting: Recording|General: Recording)$/.test(fresh.title))
+      fresh.title = `${fresh.mode === "work" ? "Meeting" : fresh.subject}: ${fresh.topic}`;
     delete fresh.pendingTranscript;
     delete fresh.autoTitle;
     const added = await addDates(fresh);

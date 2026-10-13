@@ -8,25 +8,51 @@ let cancel = null;
 function since(ts) {
   if (!ts) return t("not synced yet");
   const m = Math.round((Date.now() - ts) / 60000);
-  return m < 1 ? t("synced just now") : m < 60 ? t("synced {n} min ago", { n: m }) : t("synced {date}", { date: new Date(ts).toLocaleString(uiLocale(), { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) });
+  return m < 1
+    ? t("synced just now")
+    : m < 60
+      ? t("synced {n} min ago", { n: m })
+      : t("synced {date}", {
+          date: new Date(ts).toLocaleString(uiLocale(), {
+            month: "short",
+            day: "numeric",
+            hour: "numeric",
+            minute: "2-digit",
+          }),
+        });
 }
 
 export function devicesListHtml() {
   const on = new Set(connected().map((p) => p.id));
   const list = paired();
   if (!list.length) return `<p class="empty">${t("No devices connected yet.")}</p>`;
-  return list.map((p) => html`<div class="event"><span class="when">${on.has(p.id) ? `● ${t("Connected")}` : t("Offline")}</span><span>${p.name} <span class="note-small">${since(p.lastSync)}</span></span><button class="btn ghost small" data-forget="${p.id}">${t("Remove")}</button></div>`).join("");
+  return list
+    .map(
+      (p) =>
+        html`<div class="event"><span class="when">${on.has(p.id) ? `● ${t("Connected")}` : t("Offline")}</span><span>${p.name} <span class="note-small">${since(p.lastSync)}</span></span><button class="btn ghost small" data-forget="${p.id}">${t("Remove")}</button></div>`,
+    )
+    .join("");
 }
 
 export function wireForget(root, redraw) {
-  root.querySelectorAll("[data-forget]").forEach((b) => b.addEventListener("click", () => { forget(b.dataset.forget); toast(t("Device removed")); redraw(); }));
+  root.querySelectorAll("[data-forget]").forEach((b) =>
+    b.addEventListener("click", () => {
+      forget(b.dataset.forget);
+      toast(t("Device removed"));
+      redraw();
+    }),
+  );
 }
 
 export function openConnect(mode = "choose") {
   cancel?.();
   cancel = null;
   let off = () => {};
-  const sheet = openOverlay("", () => { cancel?.(); cancel = null; off(); });
+  const sheet = openOverlay("", () => {
+    cancel?.();
+    cancel = null;
+    off();
+  });
   const close = () => closeOverlay();
 
   function choose() {
@@ -42,9 +68,17 @@ export function openConnect(mode = "choose") {
       <span class="label">${t("Your devices")}</span>
       <div class="agenda" id="devList">${raw(devicesListHtml())}</div>`;
     wire();
-    sheet.querySelectorAll("[data-mode]").forEach((b) => b.addEventListener("click", () => (b.dataset.mode === "show" ? show() : enter())));
-    $("#saveName", sheet).addEventListener("click", () => { renameMe($("#myName", sheet).value); toast(t("Renamed")); });
-    wireForget(sheet, () => { $("#devList", sheet).innerHTML = devicesListHtml(); wireForget(sheet, choose); });
+    sheet
+      .querySelectorAll("[data-mode]")
+      .forEach((b) => b.addEventListener("click", () => (b.dataset.mode === "show" ? show() : enter())));
+    $("#saveName", sheet).addEventListener("click", () => {
+      renameMe($("#myName", sheet).value);
+      toast(t("Renamed"));
+    });
+    wireForget(sheet, () => {
+      $("#devList", sheet).innerHTML = devicesListHtml();
+      wireForget(sheet, choose);
+    });
   }
 
   function show() {
@@ -62,14 +96,26 @@ export function openConnect(mode = "choose") {
       },
       onRequest({ name, check }) {
         return new Promise((resolve) => {
-          $("#request", sheet).innerHTML = html`<div class="qcard"><b>${t("{name} wants to connect.", { name })}</b><p class="sub">${t("Check that it shows the same number:")}</p><div class="mono check-number">${check}</div><p class="sub">${t("Allow only if the numbers match and it's your device. It will get a copy of your notes, recordings, calendar and assignments.")}</p><div class="row"><button class="btn" data-allow>${t("The numbers match, allow")}</button><button class="btn ghost" data-deny>${t("Don't allow")}</button></div></div>`;
+          $("#request", sheet).innerHTML =
+            html`<div class="qcard"><b>${t("{name} wants to connect.", { name })}</b><p class="sub">${t("Check that it shows the same number:")}</p><div class="mono check-number">${check}</div><p class="sub">${t("Allow only if the numbers match and it's your device. It will get a copy of your notes, recordings, calendar and assignments.")}</p><div class="row"><button class="btn" data-allow>${t("The numbers match, allow")}</button><button class="btn ghost" data-deny>${t("Don't allow")}</button></div></div>`;
           $("[data-allow]", sheet).focus();
-          $("[data-allow]", sheet).addEventListener("click", () => { $("#request", sheet).innerHTML = `<p class="note-small">${t("Waiting for the other device to confirm the number…")}</p>`; resolve(true); });
-          $("[data-deny]", sheet).addEventListener("click", () => { $("#request", sheet).innerHTML = ""; resolve(false); });
+          $("[data-allow]", sheet).addEventListener("click", () => {
+            $("#request", sheet).innerHTML =
+              `<p class="note-small">${t("Waiting for the other device to confirm the number…")}</p>`;
+            resolve(true);
+          });
+          $("[data-deny]", sheet).addEventListener("click", () => {
+            $("#request", sheet).innerHTML = "";
+            resolve(false);
+          });
         });
       },
-      onPaired(peer) { done(peer); },
-      onError(err) { $("#codeStatus", sheet).textContent = err.message; },
+      onPaired(peer) {
+        done(peer);
+      },
+      onError(err) {
+        $("#codeStatus", sheet).textContent = err.message;
+      },
     });
   }
 
@@ -86,17 +132,30 @@ export function openConnect(mode = "choose") {
       cancel?.();
       $("#joinStatus", sheet).textContent = t("Looking for the other device…");
       cancel = joinPairing($("#codeIn", sheet).value, {
-        onWaiting() { $("#joinStatus", sheet).textContent = t("Looking for the device showing the code…"); },
+        onWaiting() {
+          $("#joinStatus", sheet).textContent = t("Looking for the device showing the code…");
+        },
         onCheck(check) {
           return new Promise((resolve) => {
-            $("#joinStatus", sheet).innerHTML = html`<span class="sub">${t("Check that the other device shows the same number:")}</span><span class="mono check-number">${check}</span><span class="row"><button type="button" class="btn" data-same>${t("The numbers match")}</button><button type="button" class="btn ghost" data-differ>${t("They don't match")}</button></span>`;
+            $("#joinStatus", sheet).innerHTML =
+              html`<span class="sub">${t("Check that the other device shows the same number:")}</span><span class="mono check-number">${check}</span><span class="row"><button type="button" class="btn" data-same>${t("The numbers match")}</button><button type="button" class="btn ghost" data-differ>${t("They don't match")}</button></span>`;
             $("[data-same]", sheet).focus();
-            $("[data-same]", sheet).addEventListener("click", () => { $("#joinStatus", sheet).textContent = t("Now tap Allow on the other device."); resolve(true); });
-            $("[data-differ]", sheet).addEventListener("click", () => { $("#joinStatus", sheet).textContent = t("Not connected. Nothing was shared. Try again with a new code."); resolve(false); });
+            $("[data-same]", sheet).addEventListener("click", () => {
+              $("#joinStatus", sheet).textContent = t("Now tap Allow on the other device.");
+              resolve(true);
+            });
+            $("[data-differ]", sheet).addEventListener("click", () => {
+              $("#joinStatus", sheet).textContent = t("Not connected. Nothing was shared. Try again with a new code.");
+              resolve(false);
+            });
           });
         },
-        onPaired(peer) { done(peer); },
-        onError(err) { $("#joinStatus", sheet).textContent = err.message; },
+        onPaired(peer) {
+          done(peer);
+        },
+        onError(err) {
+          $("#joinStatus", sheet).textContent = err.message;
+        },
       });
     });
   }
@@ -114,6 +173,14 @@ export function openConnect(mode = "choose") {
     sheet.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", close));
   }
 
-  off = onStatus(() => { const list = $("#devList", sheet); if (list) { list.innerHTML = devicesListHtml(); wireForget(sheet, choose); } });
-  if (mode === "show") show(); else if (mode === "enter") enter(); else choose();
+  off = onStatus(() => {
+    const list = $("#devList", sheet);
+    if (list) {
+      list.innerHTML = devicesListHtml();
+      wireForget(sheet, choose);
+    }
+  });
+  if (mode === "show") show();
+  else if (mode === "enter") enter();
+  else choose();
 }

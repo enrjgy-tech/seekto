@@ -17,7 +17,8 @@ let run = 0;
 /** Highlight dates and the defined term in one line, like a highlighter. */
 function marked(text, ref, locale, subject) {
   const spans = [];
-  if (findEvents(text, { ref, locale, subject }).length) for (const d of findDates(text, ref, { locale })) spans.push([d.index, d.end]);
+  if (findEvents(text, { ref, locale, subject }).length)
+    for (const d of findDates(text, ref, { locale })) spans.push([d.index, d.end]);
   for (const d of findDefinitions(text)) {
     const i = text.toLowerCase().indexOf(d.term.toLowerCase());
     if (i >= 0) spans.push([i, i + d.term.length]);
@@ -45,7 +46,11 @@ export function render(main) {
   monday.setHours(12, 0, 0, 0);
   monday.setDate(monday.getDate() - ((monday.getDay() - weekStart(locale) + 7) % 7));
   const span = Math.min(21, 7 * Math.ceil((Math.round((fromISO(last) - monday) / 86400000) + 1) / 7));
-  const days = Array.from({ length: span }, (_, i) => { const d = new Date(monday); d.setDate(d.getDate() + i); return d; });
+  const days = Array.from({ length: span }, (_, i) => {
+    const d = new Date(monday);
+    d.setDate(d.getDate() + i);
+    return d;
+  });
   const todayISO = toISO(ref);
   // The practice test this class becomes, so the counter ends on the number of questions it really has.
   const quiz = makeQuiz([{ title: script.title, topic: script.topic, text: script.lines.join(" ") }]);
@@ -156,13 +161,21 @@ export function render(main) {
     $("#hQn").textContent = total;
     $("#hQl").textContent = total === 1 ? t("question, ready") : t("questions, ready");
     $("#hTest").hidden = false;
-    announce(total === 1 ? t("1 question ready. Take the test, or share it with your class.") : t("{n} questions ready. Take the test, or share it with your class.", { n: total }));
+    announce(
+      total === 1
+        ? t("1 question ready. Take the test, or share it with your class.")
+        : t("{n} questions ready. Take the test, or share it with your class.", { n: total }),
+    );
     $("#hReplay").hidden = false;
-    main.querySelector("[data-take]").addEventListener("click", () => openQuiz({ notes: [note], title: note.title.replace(/^[^:]+:\s*/, "") }));
+    main
+      .querySelector("[data-take]")
+      .addEventListener("click", () => openQuiz({ notes: [note], title: note.title.replace(/^[^:]+:\s*/, "") }));
     main.querySelector("[data-sharetest]").addEventListener("click", () => {
       const qs = makeQuiz([{ title: note.title, topic: note.topic, text: note.text }]);
       shareLink(note.title.replace(/^[^:]+:\s*/, ""), qs);
     });
   })();
-  return () => { run++; };
+  return () => {
+    run++;
+  };
 }

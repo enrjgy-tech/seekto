@@ -36,7 +36,11 @@ let cleanup = null;
 // Someone who hasn't recorded, pasted or chatted yet starts on the demo; everyone else on the assistant.
 function firstVisit() {
   let chatted = false;
-  try { chatted = JSON.parse(sessionStorage.getItem("seekto.chat") || "[]").length > 0; } catch { /* not available */ }
+  try {
+    chatted = JSON.parse(sessionStorage.getItem("seekto.chat") || "[]").length > 0;
+  } catch {
+    /* not available */
+  }
   return !chatted && !state.notes.some((n) => !n.sample);
 }
 
@@ -77,7 +81,9 @@ function render(e) {
 
 function updateModelPill() {
   const s = state.settings;
-  $("#modelPill").textContent = isReady(s) ? t("AI: {name}", { name: PROVIDERS[s.provider].label }) : t("AI: off (works offline)");
+  $("#modelPill").textContent = isReady(s)
+    ? t("AI: {name}", { name: PROVIDERS[s.provider].label })
+    : t("AI: off (works offline)");
 }
 
 for (const b of $$("[data-go]")) b.addEventListener("click", () => go(b.dataset.go));
@@ -88,7 +94,13 @@ window.addEventListener("seekto:model", updateModelPill);
 function updateDevicePill() {
   const n = connected().length;
   const total = paired().length;
-  $("#devicePill").textContent = total ? (n ? (n > 1 ? t("{n} devices connected", { n }) : t("1 device connected")) : t("Devices offline")) : "";
+  $("#devicePill").textContent = total
+    ? n
+      ? n > 1
+        ? t("{n} devices connected", { n })
+        : t("1 device connected")
+      : t("Devices offline")
+    : "";
 }
 
 $("#connectBtn").addEventListener("click", () => openConnect());

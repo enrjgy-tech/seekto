@@ -11,10 +11,36 @@ import { transcribe, canListen } from "./voice.js";
 import { defaultTranscriber } from "./ondevice.js";
 import { t, speechLang } from "./i18n.js";
 
-const SUBJECTS = ["Auto-detect", "Math", "English", "Biology", "Chemistry", "Physics", "History", "Computer Science", "Economics", "Psychology", "Other"];
+const SUBJECTS = [
+  "Auto-detect",
+  "Math",
+  "English",
+  "Biology",
+  "Chemistry",
+  "Physics",
+  "History",
+  "Computer Science",
+  "Economics",
+  "Psychology",
+  "Other",
+];
 
 // The recording keeps going if you switch views, so it lives at module level.
-const rec = { active: false, startedAt: 0, cues: [], marks: [], mine: [], interim: "", chunks: [], recorder: null, stream: null, speech: null, wake: null, subject: "Auto-detect", title: "" };
+const rec = {
+  active: false,
+  startedAt: 0,
+  cues: [],
+  marks: [],
+  mine: [],
+  interim: "",
+  chunks: [],
+  recorder: null,
+  stream: null,
+  speech: null,
+  wake: null,
+  subject: "Auto-detect",
+  title: "",
+};
 let tick = null;
 
 // Transcribe on this device (after recording) when chosen in Settings, or when the browser can't listen.
@@ -27,8 +53,12 @@ export function render(main) {
       <div class="view-head"><h1>${words().recordTitle}</h1></div>
       <section class="panel recorder">
         <div class="row" style="justify-content:center">
-          ${raw(mode() === "work" ? "" : html`<label class="field" style="min-width:220px"><span class="label">${t("Subject")}</span>
-            <select id="recSubject">${raw(SUBJECTS.map((s) => html`<option value="${s}" ${s === rec.subject ? "selected" : ""}>${s === "Auto-detect" ? t("Auto-detect") : s}</option>`).join(""))}</select></label>`)}
+          ${raw(
+            mode() === "work"
+              ? ""
+              : html`<label class="field" style="min-width:220px"><span class="label">${t("Subject")}</span>
+            <select id="recSubject">${raw(SUBJECTS.map((s) => html`<option value="${s}" ${s === rec.subject ? "selected" : ""}>${s === "Auto-detect" ? t("Auto-detect") : s}</option>`).join(""))}</select></label>`,
+          )}
           <label class="field" style="min-width:220px"><span class="label">${t("Title (optional)")}</span>
             <input type="text" id="recTitle" placeholder="${t("Seekto names it for you")}" value="${rec.title}"></label>
         </div>
@@ -58,7 +88,11 @@ export function render(main) {
     }
     start();
   });
-  $("#markBtn").addEventListener("click", () => { rec.marks.push({ start: elapsed(), label: t("Lost here") }); drawLive(); toast(t("Marked")); });
+  $("#markBtn").addEventListener("click", () => {
+    rec.marks.push({ start: elapsed(), label: t("Lost here") });
+    drawLive();
+    toast(t("Marked"));
+  });
   $("#mineForm").addEventListener("submit", (e) => {
     e.preventDefault();
     const v = $("#mineInput").value.trim();
@@ -68,11 +102,16 @@ export function render(main) {
     drawLive();
   });
   $("#recSubject")?.addEventListener("change", (e) => (rec.subject = e.target.value));
-  $("#consent")?.addEventListener("change", (e) => { if (e.target.checked) $("#consentHint").hidden = true; });
+  $("#consent")?.addEventListener("change", (e) => {
+    if (e.target.checked) $("#consentHint").hidden = true;
+  });
   $("#recTitle").addEventListener("input", (e) => (rec.title = e.target.value));
   drawLive();
   clearInterval(tick);
-  tick = setInterval(() => { const t = $("#recTimer"); if (t) t.textContent = formatTime(elapsed()); }, 500);
+  tick = setInterval(() => {
+    const t = $("#recTimer");
+    if (t) t.textContent = formatTime(elapsed());
+  }, 500);
   return () => clearInterval(tick);
 }
 
@@ -84,43 +123,65 @@ function drawLive() {
     ...rec.marks.map((m) => ({ start: m.start, text: `⚑ ${m.label}`, cls: "mark" })),
     ...rec.mine.map((m) => ({ start: m.start, text: `✎ ${m.text}`, cls: "mine" })),
   ].sort((a, b) => a.start - b.start);
-  box.innerHTML = rows.map((r) => `<div class="line ${r.cls}"><span class="t">${formatTime(r.start)}</span><span>${esc(r.text)}</span></div>`).join("") +
-    (rec.interim ? `<div class="line"><span class="t">${formatTime(elapsed())}</span><span class="interim">${esc(rec.interim)}</span></div>` : "");
+  box.innerHTML =
+    rows
+      .map(
+        (r) =>
+          `<div class="line ${r.cls}"><span class="t">${formatTime(r.start)}</span><span>${esc(r.text)}</span></div>`,
+      )
+      .join("") +
+    (rec.interim
+      ? `<div class="line"><span class="t">${formatTime(elapsed())}</span><span class="interim">${esc(rec.interim)}</span></div>`
+      : "");
   box.scrollTop = box.scrollHeight;
 }
 
 async function start() {
   try {
-    rec.stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+    rec.stream = await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: true, noiseSuppression: true },
+    });
   } catch {
     return toast(t("Microphone access was blocked. Allow it in your browser's site settings."));
   }
   Object.assign(rec, { active: true, startedAt: Date.now(), cues: [], marks: [], mine: [], interim: "", chunks: [] });
-  const type = ["audio/webm;codecs=opus", "audio/mp4", "audio/webm"].find((t) => window.MediaRecorder?.isTypeSupported?.(t));
+  const type = ["audio/webm;codecs=opus", "audio/mp4", "audio/webm"].find((t) =>
+    window.MediaRecorder?.isTypeSupported?.(t),
+  );
   rec.recorder = new MediaRecorder(rec.stream, type ? { mimeType: type } : undefined);
   rec.recorder.ondataavailable = (e) => e.data.size && rec.chunks.push(e.data);
   rec.recorder.start(5000);
   let lineStart = 0;
-  rec.speech = onDevice() ? null : transcribe({
-    lang: speechLang(),
-    onLine: ({ text, final }) => {
-      if (!rec.interim) lineStart = Math.max(0, elapsed() - 2);
-      if (final) {
-        if (text) rec.cues.push({ start: lineStart, text: text.charAt(0).toUpperCase() + text.slice(1) });
-        rec.interim = "";
-      } else rec.interim = text;
-      drawLive();
-    },
-    onError: (err) => toast(err.message),
-  });
-  try { rec.wake = await navigator.wakeLock?.request("screen"); } catch { /* optional */ }
+  rec.speech = onDevice()
+    ? null
+    : transcribe({
+        lang: speechLang(),
+        onLine: ({ text, final }) => {
+          if (!rec.interim) lineStart = Math.max(0, elapsed() - 2);
+          if (final) {
+            if (text) rec.cues.push({ start: lineStart, text: text.charAt(0).toUpperCase() + text.slice(1) });
+            rec.interim = "";
+          } else rec.interim = text;
+          drawLive();
+        },
+        onError: (err) => toast(err.message),
+      });
+  try {
+    rec.wake = await navigator.wakeLock?.request("screen");
+  } catch {
+    /* optional */
+  }
   window.dispatchEvent(new Event("seekto:render"));
 }
 
 async function stop() {
   rec.active = false;
   rec.speech?.stop();
-  try { rec.wake?.release(); } catch { /* optional */ }
+  try {
+    rec.wake?.release();
+  } catch {
+    /* optional */
+  }
   const duration = (Date.now() - rec.startedAt) / 1000;
   const done = new Promise((r) => (rec.recorder.onstop = r));
   rec.recorder.stop();
@@ -137,17 +198,42 @@ async function stop() {
   const audioId = uid("audio");
   await put("audio", { id: audioId, blob: new Blob(rec.chunks, { type: rec.recorder.mimeType || "audio/webm" }) });
   const note = {
-    id: uid("note"), kind: "recording", createdAt, date: toISO(new Date(createdAt)), duration,
+    id: uid("note"),
+    kind: "recording",
+    createdAt,
+    date: toISO(new Date(createdAt)),
+    duration,
     title: rec.title.trim() || `${subject === "General" ? "" : `${subject}: `}${topic}`,
-    subject, topic, cues: rec.cues, marks: rec.marks, mine: rec.mine, text, audioId, ...(work ? { mode: "work" } : {}),
+    subject,
+    topic,
+    cues: rec.cues,
+    marks: rec.marks,
+    mine: rec.mine,
+    text,
+    audioId,
+    ...(work ? { mode: "work" } : {}),
   };
   if (work && !rec.title.trim()) note.title = `Meeting: ${topic}`;
   const later = onDevice() && !rec.cues.length;
-  if (later) { note.pendingTranscript = true; if (!rec.title.trim()) { note.autoTitle = true; note.title = work ? t("Meeting: Recording") : t("Recording"); } }
+  if (later) {
+    note.pendingTranscript = true;
+    if (!rec.title.trim()) {
+      note.autoTitle = true;
+      note.title = work ? t("Meeting: Recording") : t("Recording");
+    }
+  }
   const added = await addDates(note);
   await saveNote(note);
   Object.assign(rec, { title: "", cues: [], marks: [], mine: [], interim: "", chunks: [] });
-  toast(later ? t("Saved. Transcribing on this device…") : added ? (added > 1 ? t("Saved. Added {n} dates to your calendar.", { n: added }) : t("Saved. Added 1 date to your calendar.")) : t("Saved to your notes."));
+  toast(
+    later
+      ? t("Saved. Transcribing on this device…")
+      : added
+        ? added > 1
+          ? t("Saved. Added {n} dates to your calendar.", { n: added })
+          : t("Saved. Added 1 date to your calendar.")
+        : t("Saved to your notes."),
+  );
   go(`note/${note.id}`);
   if (later) transcribeNote(note.id);
 }

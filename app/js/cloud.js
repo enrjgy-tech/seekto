@@ -7,29 +7,71 @@ import { state, saveNote, saveEvent, saveProject, deleteNote, deleteEvent, delet
 import { all, put, get, audioIds } from "./store.js";
 import { t, uiLocale } from "./i18n.js";
 import {
-  deriveAccount, itemId, sealItem, openItem, sealBytes, openBytes, makeAccountKey, isValidAccountKey, formatAccountKey, incoming, STORES,
+  deriveAccount,
+  itemId,
+  sealItem,
+  openItem,
+  sealBytes,
+  openBytes,
+  makeAccountKey,
+  isValidAccountKey,
+  formatAccountKey,
+  incoming,
+  STORES,
 } from "../engine/index.js";
 
-const LS = { account: "seekto.account", seen: "seekto.cloud.seen", outbox: "seekto.cloud.outbox", audio: "seekto.cloud.audio" };
+const LS = {
+  account: "seekto.account",
+  seen: "seekto.cloud.seen",
+  outbox: "seekto.cloud.outbox",
+  audio: "seekto.cloud.audio",
+};
 const PART = 768 * 1024; // recording piece size before encryption
 const AUDIO_MANIFEST = 1; // versions 1 and 2 mark recordings; records use timestamps
 const AUDIO_PART = 2;
 const POLL_MS = 60 * 1000;
 
-function read(key, fallback) { try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; } }
-function write(key, value) { try { if (value === null) localStorage.removeItem(key); else localStorage.setItem(key, JSON.stringify(value)); } catch { /* not available */ } }
+function read(key, fallback) {
+  try {
+    return JSON.parse(localStorage.getItem(key)) ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+function write(key, value) {
+  try {
+    if (value === null) localStorage.removeItem(key);
+    else localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    /* not available */
+  }
+}
 
 /** { key, url, apiKey, enabled, cursor, lastSync, error } or null */
-export function account() { return read(LS.account, null); }
-function saveAccount(patch) { const a = { ...(account() || {}), ...patch }; write(LS.account, a); emit(); return a; }
+export function account() {
+  return read(LS.account, null);
+}
+function saveAccount(patch) {
+  const a = { ...(account() || {}), ...patch };
+  write(LS.account, a);
+  emit();
+  return a;
+}
 
 const listeners = new Set();
-export function onCloud(fn) { listeners.add(fn); return () => listeners.delete(fn); }
-function emit() { for (const fn of listeners) fn(); }
+export function onCloud(fn) {
+  listeners.add(fn);
+  return () => listeners.delete(fn);
+}
+function emit() {
+  for (const fn of listeners) fn();
+}
 
 // ---------- The storage: a Supabase project with supabase.sql applied ----------
 export function supabase(url, apiKey) {
-  const base = String(url || "").trim().replace(/\/+$/, "");
+  const base = String(url || "")
+    .trim()
+    .replace(/\/+$/, "");
   const headers = { apikey: apiKey, "Content-Type": "application/json" };
   if (String(apiKey).startsWith("eyJ")) headers.Authorization = `Bearer ${apiKey}`; // older "anon" keys are JWTs
   async function call(path, init) {
@@ -41,7 +83,11 @@ export function supabase(url, apiKey) {
     }
     const text = await res.text();
     let data = text;
-    try { data = JSON.parse(text); } catch { /* not JSON */ }
+    try {
+      data = JSON.parse(text);
+    } catch {
+      /* not JSON */
+    }
     return { res, data };
   }
   async function rpc(fn, args) {
@@ -49,11 +95,36 @@ export function supabase(url, apiKey) {
     if (res.ok) return data;
     const code = data?.code || "";
     const message = data?.message || "";
-    if (code === "PGRST202" || res.status === 404) throw new Error(t("Seekto's setup script hasn't been run in this project yet. Run it in the SQL Editor, then try again."));
-    if (res.status === 401 && !message.includes("seekto")) throw new Error(t("Supabase didn't accept that API key. Use the project's publishable (or anon) key."));
-    if (message.includes("seekto: wrong account or token")) { const e = new Error(t("This account isn't on your storage any more. It may have been deleted, or its key changed on another device.")); e.gone = true; throw e; }
-    if (message.includes("seekto: this storage is full") || message.includes("seekto: this account is out of storage space")) throw new Error(t("Your storage is full (450 MB, shared by everyone using it). Delete old recordings, or raise seekto_max_total_bytes in the setup script and run it again."));
-    if (message.includes("seekto: this storage already has the most accounts")) throw new Error(t("This storage already has the most accounts it allows (10). To add more, change seekto_max_accounts in the setup script and run it again."));
+    if (code === "PGRST202" || res.status === 404)
+      throw new Error(
+        t("Seekto's setup script hasn't been run in this project yet. Run it in the SQL Editor, then try again."),
+      );
+    if (res.status === 401 && !message.includes("seekto"))
+      throw new Error(t("Supabase didn't accept that API key. Use the project's publishable (or anon) key."));
+    if (message.includes("seekto: wrong account or token")) {
+      const e = new Error(
+        t(
+          "This account isn't on your storage any more. It may have been deleted, or its key changed on another device.",
+        ),
+      );
+      e.gone = true;
+      throw e;
+    }
+    if (
+      message.includes("seekto: this storage is full") ||
+      message.includes("seekto: this account is out of storage space")
+    )
+      throw new Error(
+        t(
+          "Your storage is full (450 MB, shared by everyone using it). Delete old recordings, or raise seekto_max_total_bytes in the setup script and run it again.",
+        ),
+      );
+    if (message.includes("seekto: this storage already has the most accounts"))
+      throw new Error(
+        t(
+          "This storage already has the most accounts it allows (10). To add more, change seekto_max_accounts in the setup script and run it again.",
+        ),
+      );
     throw new Error(message || t("Supabase returned an error ({status}).", { status: res.status }));
   }
   return {
@@ -66,7 +137,8 @@ export function supabase(url, apiKey) {
     },
     register: (a) => rpc("seekto_register", { p_account: a.accountId, p_token: a.writeToken }),
     put: (a, items) => rpc("seekto_put", { p_account: a.accountId, p_token: a.writeToken, p_items: items }),
-    changes: (a, since) => rpc("seekto_changes", { p_account: a.accountId, p_token: a.writeToken, p_since: since, p_limit: 500 }),
+    changes: (a, since) =>
+      rpc("seekto_changes", { p_account: a.accountId, p_token: a.writeToken, p_since: since, p_limit: 500 }),
     get: (a, ids) => rpc("seekto_get", { p_account: a.accountId, p_token: a.writeToken, p_ids: ids }),
     forget: (a) => rpc("seekto_forget", { p_account: a.accountId, p_token: a.writeToken }),
   };
@@ -75,14 +147,18 @@ export function supabase(url, apiKey) {
 /** Check a project before using it. Returns a list of { ok, text } lines; throws on hard failures. */
 export async function testStorage(url, apiKey) {
   // https for hosted projects; plain http only for a Supabase running on this computer
-  if (!/^(https:\/\/.+|http:\/\/(localhost|127\.0\.0\.1)(:\d+)?\/?$)/.test(String(url).trim())) throw new Error(t("The project URL starts with https://, like https://abcd1234.supabase.co"));
+  if (!/^(https:\/\/.+|http:\/\/(localhost|127\.0\.0\.1)(:\d+)?\/?$)/.test(String(url).trim()))
+    throw new Error(t("The project URL starts with https://, like https://abcd1234.supabase.co"));
   const s = supabase(url, apiKey);
   const info = await s.info();
-  if (info?.app !== "seekto") throw new Error(t("This project answered, but not like Seekto storage. Run the setup script again."));
+  if (info?.app !== "seekto")
+    throw new Error(t("This project answered, but not like Seekto storage. Run the setup script again."));
   const lines = [{ ok: true, text: t("Seekto storage found (version {version})", { version: info.schema }) }];
-  lines.push((await s.locked())
-    ? { ok: true, text: t("Tables are closed to direct access") }
-    : { ok: false, text: t("Tables are open to direct access. Run the setup script again to close them.") });
+  lines.push(
+    (await s.locked())
+      ? { ok: true, text: t("Tables are closed to direct access") }
+      : { ok: false, text: t("Tables are open to direct access. Run the setup script again to close them.") },
+  );
   return lines;
 }
 
@@ -95,7 +171,11 @@ let soon = null;
 
 const seen = () => read(LS.seen, {});
 const outbox = () => new Set(read(LS.outbox, []));
-function addToOutbox(keys) { const o = outbox(); for (const k of keys) o.add(k); write(LS.outbox, [...o]); }
+function addToOutbox(keys) {
+  const o = outbox();
+  for (const k of keys) o.add(k);
+  write(LS.outbox, [...o]);
+}
 const stamp = (r) => Math.max(3, r.updatedAt || r.createdAt || 3);
 
 async function everything() {
@@ -121,7 +201,11 @@ function batches(items, maxChars = 3_000_000) {
   let cur = [];
   let size = 0;
   for (const it of items) {
-    if (cur.length && (cur.length >= 200 || size + it.body.length > maxChars)) { out.push(cur); cur = []; size = 0; }
+    if (cur.length && (cur.length >= 200 || size + it.body.length > maxChars)) {
+      out.push(cur);
+      cur = [];
+      size = 0;
+    }
     cur.push(it);
     size += it.body.length;
   }
@@ -141,13 +225,21 @@ async function push() {
       const t = tombs.get(id);
       if (!t?.store) continue;
       const iid = await itemId(acct, t.store, id);
-      items.push({ item_id: iid, version: Math.max(3, t.at), body: await sealItem(acct, iid, Math.max(3, t.at), { store: t.store, deleted: t }) });
+      items.push({
+        item_id: iid,
+        version: Math.max(3, t.at),
+        body: await sealItem(acct, iid, Math.max(3, t.at), { store: t.store, deleted: t }),
+      });
     } else if (STORES.includes(kind)) {
       const r = state[kind].find((x) => x.id === id);
       if (!r) continue; // deleted since; its tombstone is in the outbox
       const iid = await itemId(acct, kind, id);
       if (known[iid] >= stamp(r)) continue;
-      items.push({ item_id: iid, version: stamp(r), body: await sealItem(acct, iid, stamp(r), { store: kind, record: r }) });
+      items.push({
+        item_id: iid,
+        version: stamp(r),
+        body: await sealItem(acct, iid, stamp(r), { store: kind, record: r }),
+      });
     }
   }
   for (const batch of batches(items)) {
@@ -175,11 +267,27 @@ async function pushAudio() {
     const items = [];
     for (let i = 0; i < parts; i++) {
       const iid = await itemId(acct, "audio-part", `${id}:${i}`);
-      items.push({ item_id: iid, version: AUDIO_PART, body: await sealBytes(acct, iid, AUDIO_PART, bytes.subarray(i * PART, (i + 1) * PART)) });
+      items.push({
+        item_id: iid,
+        version: AUDIO_PART,
+        body: await sealBytes(acct, iid, AUDIO_PART, bytes.subarray(i * PART, (i + 1) * PART)),
+      });
     }
     const mid = await itemId(acct, "audio", id);
     for (const batch of batches(items)) await backend.put(acct, batch);
-    await backend.put(acct, [{ item_id: mid, version: AUDIO_MANIFEST, body: await sealItem(acct, mid, AUDIO_MANIFEST, { store: "audio", id, mime: rec.blob.type, parts, size: bytes.length }) }]);
+    await backend.put(acct, [
+      {
+        item_id: mid,
+        version: AUDIO_MANIFEST,
+        body: await sealItem(acct, mid, AUDIO_MANIFEST, {
+          store: "audio",
+          id,
+          mime: rec.blob.type,
+          parts,
+          size: bytes.length,
+        }),
+      },
+    ]);
     done.add(id);
     write(LS.audio, [...done]);
   }
@@ -202,11 +310,18 @@ async function pull() {
   const payload = { records: {}, deleted: [] };
   const recordings = [];
   for (let i = 0; i < fresh.length; i += 100) {
-    const rows = await backend.get(acct, fresh.slice(i, i + 100).map((c) => c.item_id));
+    const rows = await backend.get(
+      acct,
+      fresh.slice(i, i + 100).map((c) => c.item_id),
+    );
     for (const row of rows) {
       if ((known[row.item_id] || 0) >= row.version) continue;
       let value;
-      try { value = await openItem(acct, row.item_id, row.version, row.body); } catch { continue; } // tampered: ignore
+      try {
+        value = await openItem(acct, row.item_id, row.version, row.body);
+      } catch {
+        continue;
+      } // tampered: ignore
       known[row.item_id] = row.version;
       if (value.store === "audio") recordings.push(value);
       else if (value.deleted) payload.deleted.push(value.deleted);
@@ -231,7 +346,11 @@ async function pull() {
     for (let i = 0; i < ids.length; i += 4) {
       for (const row of await backend.get(acct, ids.slice(i, i + 4))) {
         // A damaged or tampered piece leaves this recording for later instead of stopping all sync.
-        try { chunks[ids.indexOf(row.item_id)] = await openBytes(acct, row.item_id, row.version, row.body); } catch { /* skip */ }
+        try {
+          chunks[ids.indexOf(row.item_id)] = await openBytes(acct, row.item_id, row.version, row.body);
+        } catch {
+          /* skip */
+        }
       }
     }
     if (chunks.some((c) => !c)) continue; // still uploading from the other device; next time
@@ -243,7 +362,10 @@ async function pull() {
   }
   saveAccount({ cursor });
   const count = plan.put.length + plan.remove.length;
-  if (count || gotAudio) window.dispatchEvent(new CustomEvent("seekto:synced", { detail: { from: t("your storage"), count, audio: gotAudio > 0 } }));
+  if (count || gotAudio)
+    window.dispatchEvent(
+      new CustomEvent("seekto:synced", { detail: { from: t("your storage"), count, audio: gotAudio > 0 } }),
+    );
 }
 
 /** Push local changes, then pull new ones. Safe to call any time. */
@@ -274,14 +396,18 @@ export async function startCloud() {
   if (!a?.enabled || !isValidAccountKey(a.key)) return;
   acct = await deriveAccount(a.key);
   backend = supabase(a.url, a.apiKey);
-  timer = setInterval(() => { if (document.visibilityState === "visible") syncNow(); }, POLL_MS);
+  timer = setInterval(() => {
+    if (document.visibilityState === "visible") syncNow();
+  }, POLL_MS);
   syncNow();
 }
 
 window.addEventListener("focus", () => syncNow());
 
 // ---------- Setting up, joining, changing the key, leaving ----------
-export function newKey() { return makeAccountKey(); }
+export function newKey() {
+  return makeAccountKey();
+}
 
 /** Turn on storage with a key (new or existing). Uploads what's here and downloads what's there. */
 export async function connectAccount({ key, url, apiKey }) {
@@ -291,7 +417,16 @@ export async function connectAccount({ key, url, apiKey }) {
   await s.register(a);
   write(LS.seen, {});
   write(LS.audio, []);
-  saveAccount({ key: k, url: url.trim(), apiKey: apiKey.trim(), enabled: true, cursor: 0, error: null, gone: false, since: Date.now() });
+  saveAccount({
+    key: k,
+    url: url.trim(),
+    apiKey: apiKey.trim(),
+    enabled: true,
+    cursor: 0,
+    error: null,
+    gone: false,
+    since: Date.now(),
+  });
   const { keys } = await everything();
   addToOutbox(keys);
   await startCloud();
@@ -304,8 +439,13 @@ export function disconnect({ forgetKey = false } = {}) {
   clearInterval(timer);
   acct = null;
   backend = null;
-  if (forgetKey) { write(LS.account, null); write(LS.seen, null); write(LS.outbox, null); write(LS.audio, null); emit(); }
-  else saveAccount({ enabled: false });
+  if (forgetKey) {
+    write(LS.account, null);
+    write(LS.seen, null);
+    write(LS.outbox, null);
+    write(LS.audio, null);
+    emit();
+  } else saveAccount({ enabled: false });
 }
 
 /** Delete everything this account has on the storage, then stop syncing here. */
@@ -339,7 +479,9 @@ export function recoveryKit(a = account()) {
   return [
     t("SEEKTO RECOVERY KIT"),
     "",
-    t("Keep this somewhere safe and private. Anyone with this key can read your Seekto notes, recordings and calendar."),
+    t(
+      "Keep this somewhere safe and private. Anyone with this key can read your Seekto notes, recordings and calendar.",
+    ),
     t("Nobody, including Seekto, can recover your data if you lose this key and all your devices."),
     "",
     `${keyLabel}${a.key}`,

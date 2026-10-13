@@ -12,11 +12,21 @@ import { fileURLToPath } from "node:url";
 const VERSION = "3.0.2"; // keep in step with app/js/config.js
 const FILES = ["transformers.js", "ort-wasm-simd-threaded.jsep.wasm"];
 const site = fileURLToPath(new URL("../site/", import.meta.url));
-if (!existsSync(join(site, "index.html"))) { console.error("Run `npm run build` first."); process.exit(1); }
+if (!existsSync(join(site, "index.html"))) {
+  console.error("Run `npm run build` first.");
+  process.exit(1);
+}
 
 const tmp = mkdtempSync(join(tmpdir(), "seekto-tf-"));
 try {
-  const tgz = execFileSync("npm", ["pack", `@huggingface/transformers@${VERSION}`, "--silent", "--pack-destination", tmp], { encoding: "utf8" }).trim().split("\n").pop();
+  const tgz = execFileSync(
+    "npm",
+    ["pack", `@huggingface/transformers@${VERSION}`, "--silent", "--pack-destination", tmp],
+    { encoding: "utf8" },
+  )
+    .trim()
+    .split("\n")
+    .pop();
   execFileSync("tar", ["-xzf", join(tmp, tgz), "-C", tmp]);
   const out = join(site, "vendor", "transformers");
   mkdirSync(out, { recursive: true });

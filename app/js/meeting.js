@@ -12,7 +12,12 @@ export function meetingPanelHtml(note) {
     ? decisions.map((d) => html`<li>${d.text}</li>`).join("")
     : html`<li class="note-small">${t("None found yet.")}</li>`;
   const act = actions.length
-    ? actions.map((a) => html`<li><b>${a.owner || t("Unassigned")}</b> · ${a.task}${raw(a.due ? html` <span class="note-small">· ${friendlyDate(a.due)}</span>` : "")}</li>`).join("")
+    ? actions
+        .map(
+          (a) =>
+            html`<li><b>${a.owner || t("Unassigned")}</b> · ${a.task}${raw(a.due ? html` <span class="note-small">· ${friendlyDate(a.due)}</span>` : "")}</li>`,
+        )
+        .join("")
     : html`<li class="note-small">${t("None found yet.")}</li>`;
   return html`
     <span class="label">${t("Decisions")}</span><ul class="plain">${raw(dec)}</ul>
@@ -38,15 +43,28 @@ export function openFollowUp(note) {
       <p class="note-small">${t("Check names and dates before you send it. Seekto never sends email for you.")}</p>`;
     sheet.querySelector("[data-close]").addEventListener("click", closeOverlay);
     const read = () => ({ subject: $("#fuSubject", sheet).value, body: $("#fuBody", sheet).value });
-    $("#fuCopy", sheet).addEventListener("click", () => { const e = read(); copy(`Subject: ${e.subject}\n\n${e.body}`, t("Email copied")); });
-    $("#fuMail", sheet).addEventListener("click", (ev) => { ev.preventDefault(); const e = read(); location.href = `mailto:?subject=${encodeURIComponent(e.subject)}&body=${encodeURIComponent(e.body)}`; });
+    $("#fuCopy", sheet).addEventListener("click", () => {
+      const e = read();
+      copy(`Subject: ${e.subject}\n\n${e.body}`, t("Email copied"));
+    });
+    $("#fuMail", sheet).addEventListener("click", (ev) => {
+      ev.preventDefault();
+      const e = read();
+      location.href = `mailto:?subject=${encodeURIComponent(e.subject)}&body=${encodeURIComponent(e.body)}`;
+    });
     $("#fuAi", sheet)?.addEventListener("click", async (ev) => {
       ev.target.disabled = true;
       ev.target.textContent = t("Polishing…");
       try {
         const body = await chat(state.settings, {
-          system: "You tidy up meeting follow-up emails. Keep every fact, name and date. Be brief and friendly. Reply with the email body only.",
-          messages: [{ role: "user", content: `${read().body}\n\nMeeting transcript for context:\n${(note.text || "").slice(0, 8000)}` }],
+          system:
+            "You tidy up meeting follow-up emails. Keep every fact, name and date. Be brief and friendly. Reply with the email body only.",
+          messages: [
+            {
+              role: "user",
+              content: `${read().body}\n\nMeeting transcript for context:\n${(note.text || "").slice(0, 8000)}`,
+            },
+          ],
           maxTokens: 700,
         });
         email = { subject: read().subject, body: body.trim() };

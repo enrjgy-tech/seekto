@@ -28,15 +28,19 @@ export function listenOnce({ lang = speechLang() } = {}) {
     r.interimResults = false;
     r.maxAlternatives = 1;
     let heard = "";
-    r.onresult = (e) => { heard = e.results[0][0].transcript; };
-    r.onerror = (e) => (e.error === "no-speech" || e.error === "aborted" ? resolve("") : reject(new Error(micMessage(e.error))));
+    r.onresult = (e) => {
+      heard = e.results[0][0].transcript;
+    };
+    r.onerror = (e) =>
+      e.error === "no-speech" || e.error === "aborted" ? resolve("") : reject(new Error(micMessage(e.error)));
     r.onend = () => resolve(heard);
     r.start();
   });
 }
 
 function micMessage(code) {
-  if (code === "not-allowed" || code === "service-not-allowed") return t("Microphone access was blocked. Allow it in your browser's site settings.");
+  if (code === "not-allowed" || code === "service-not-allowed")
+    return t("Microphone access was blocked. Allow it in your browser's site settings.");
   if (code === "network") return t("Speech recognition needs an internet connection in this browser.");
   return t("Speech recognition stopped ({code}).", { code });
 }
@@ -62,7 +66,23 @@ export function transcribe({ onLine, onError, lang = speechLang() }) {
     active = false;
     onError?.(new Error(micMessage(e.error)));
   };
-  r.onend = () => { if (active) try { r.start(); } catch { /* already started */ } };
+  r.onend = () => {
+    if (active)
+      try {
+        r.start();
+      } catch {
+        /* already started */
+      }
+  };
   r.start();
-  return { stop() { active = false; try { r.stop(); } catch { /* ignore */ } } };
+  return {
+    stop() {
+      active = false;
+      try {
+        r.stop();
+      } catch {
+        /* ignore */
+      }
+    },
+  };
 }

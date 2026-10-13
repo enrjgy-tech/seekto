@@ -9,10 +9,16 @@ const gpu = typeof navigator !== "undefined" && "gpu" in navigator;
 export const MODELS = {
   fast: { id: "Xenova/whisper-tiny", label: t("Fast (about {size})", { size: gpu ? "150 MB" : "40 MB" }) },
   better: { id: "Xenova/whisper-base", label: t("Better (about {size})", { size: gpu ? "300 MB" : "80 MB" }) },
-  best: { id: "Xenova/whisper-small", label: t("Best, for fast computers (about {size})", { size: gpu ? "1 GB" : "250 MB" }) },
+  best: {
+    id: "Xenova/whisper-small",
+    label: t("Best, for fast computers (about {size})", { size: gpu ? "1 GB" : "250 MB" }),
+  },
 };
 
-export const supported = typeof Worker !== "undefined" && typeof WebAssembly !== "undefined" && typeof (globalThis.AudioContext || globalThis.webkitAudioContext) !== "undefined";
+export const supported =
+  typeof Worker !== "undefined" &&
+  typeof WebAssembly !== "undefined" &&
+  typeof (globalThis.AudioContext || globalThis.webkitAudioContext) !== "undefined";
 
 /**
  * Private by default: transcribe on this device when it can do it comfortably (a graphics chip
@@ -21,10 +27,14 @@ export const supported = typeof Worker !== "undefined" && typeof WebAssembly !==
 export function defaultTranscriber(canListen) {
   // Many school Chromebooks have little memory and slow processors; there the live service is
   // the default unless the device clearly has room (8 GB or more). Private stays one tap away.
-  const lowEndChromebook = typeof navigator !== "undefined" && /CrOS/.test(navigator.userAgent) && !(navigator.deviceMemory >= 8);
+  const lowEndChromebook =
+    typeof navigator !== "undefined" && /CrOS/.test(navigator.userAgent) && !(navigator.deviceMemory >= 8);
   // A computer (mouse or trackpad). Phones and tablets default to the live service, since a 40–150 MB
   // download and transcribing after the class are a poor fit there; on-device stays one tap away.
-  const strong = typeof navigator !== "undefined" && !lowEndChromebook && Boolean(globalThis.matchMedia?.("(pointer: fine)").matches);
+  const strong =
+    typeof navigator !== "undefined" &&
+    !lowEndChromebook &&
+    Boolean(globalThis.matchMedia?.("(pointer: fine)").matches);
   return supported && (strong || !canListen) ? "device" : "browser";
 }
 
@@ -52,8 +62,10 @@ function run(message, onProgress) {
   return new Promise((resolve, reject) => {
     w.onmessage = ({ data }) => {
       if (data.type === "progress") onProgress?.(data);
-      else if (data.type === "ready") { onProgress?.({ status: "ready", device: data.device }); if (message.type === "load") resolve(data.device); }
-      else if (data.type === "result") resolve(data.output);
+      else if (data.type === "ready") {
+        onProgress?.({ status: "ready", device: data.device });
+        if (message.type === "load") resolve(data.device);
+      } else if (data.type === "result") resolve(data.output);
       else if (data.type === "error") reject(new Error(friendly(data.message)));
     };
     w.onerror = (e) => reject(new Error(friendly(e.message || "")));
@@ -62,8 +74,12 @@ function run(message, onProgress) {
 }
 
 function friendly(message) {
-  if (/fetch|network|Failed to load|import/i.test(message)) return t("Couldn't download the transcription model. Check your connection; after the first download it works offline.");
-  if (/memory|OOM|allocation/i.test(message)) return t("This device ran out of memory. Try the Fast model or a shorter recording.");
+  if (/fetch|network|Failed to load|import/i.test(message))
+    return t(
+      "Couldn't download the transcription model. Check your connection; after the first download it works offline.",
+    );
+  if (/memory|OOM|allocation/i.test(message))
+    return t("This device ran out of memory. Try the Fast model or a shorter recording.");
   return t("On-device transcription failed: {message}", { message });
 }
 
@@ -84,7 +100,8 @@ export async function transcribeOnDevice(blob, { quality = "fast", language = nu
 /** "Downloading model… 42%" style text for progress events. */
 export function progressText(p) {
   if (p.status === "decoding") return t("Reading the recording…");
-  if (p.status === "progress" && p.total) return t("Downloading the model (first time only)… {pct}%", { pct: Math.round(p.progress || 0) });
+  if (p.status === "progress" && p.total)
+    return t("Downloading the model (first time only)… {pct}%", { pct: Math.round(p.progress || 0) });
   if (p.status === "ready") return t("Transcribing on this device…");
   if (p.status === "initiate" || p.status === "download") return t("Downloading the model (first time only)…");
   return t("Transcribing on this device…");

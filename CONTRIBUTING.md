@@ -24,6 +24,8 @@ npm run bench -- --check
 npm run i18n
 npm run check:packs
 npm run build
+npm run format    # Prettier, 120 columns
+npm run lint      # ESLint: unused and undefined names, === and the like
 ```
 
 All of these run in CI and must pass. CI also runs `app/supabase.sql` against Postgres and checks it as the browser's role.

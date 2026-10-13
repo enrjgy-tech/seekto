@@ -74,7 +74,8 @@ const CLASS_PT = {
   ],
 };
 
-export const sampleScript = (kind) => (kind === "work" ? MEETING : lang === "es" ? CLASS_ES : lang === "pt" ? CLASS_PT : CLASS);
+export const sampleScript = (kind) =>
+  kind === "work" ? MEETING : lang === "es" ? CLASS_ES : lang === "pt" ? CLASS_PT : CLASS;
 
 /** Load a sample class or meeting. Returns { note, added, decisions, actions }. */
 export async function loadSample(kind = "learning") {
@@ -82,9 +83,19 @@ export async function loadSample(kind = "learning") {
   const createdAt = Date.now();
   const cues = s.lines.map((text, i) => ({ start: i * 9 + 2, text }));
   const note = {
-    id: uid("note"), kind: "recording", sample: true, createdAt, date: toISO(new Date(createdAt)), duration: s.lines.length * 9 + 4,
-    title: s.title, subject: s.subject, topic: kind === "work" ? "Beta launch" : detectTopic(s.lines.join(" ")),
-    cues, marks: kind === "work" ? [] : [{ start: 41, label: t("Lost here") }], mine: [], text: s.lines.join(" "),
+    id: uid("note"),
+    kind: "recording",
+    sample: true,
+    createdAt,
+    date: toISO(new Date(createdAt)),
+    duration: s.lines.length * 9 + 4,
+    title: s.title,
+    subject: s.subject,
+    topic: kind === "work" ? "Beta launch" : detectTopic(s.lines.join(" ")),
+    cues,
+    marks: kind === "work" ? [] : [{ start: 41, label: t("Lost here") }],
+    mine: [],
+    text: s.lines.join(" "),
     ...(kind === "work" ? { mode: "work" } : {}),
   };
   const added = await addDates(note, { sample: true });

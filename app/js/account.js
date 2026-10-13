@@ -1,7 +1,19 @@
 // Settings > Account and storage: set up your own storage, join with a key, or get the
 // account from a connected device. Seekto doesn't host anyone's data.
 import { $, html, raw, toast, download, copy, openOverlay, closeOverlay } from "./ui.js";
-import { account, onCloud, testStorage, newKey, connectAccount, disconnect, deleteCloudCopy, changeKey, recoveryKit, syncNow, startCloud } from "./cloud.js";
+import {
+  account,
+  onCloud,
+  testStorage,
+  newKey,
+  connectAccount,
+  disconnect,
+  deleteCloudCopy,
+  changeKey,
+  recoveryKit,
+  syncNow,
+  startCloud,
+} from "./cloud.js";
 import { connected, requestAccount, onStatus } from "./devices.js";
 import { isValidAccountKey, normalizeAccountKey, formatAccountKey } from "../engine/index.js";
 import { t, uiLocale } from "./i18n.js";
@@ -9,9 +21,23 @@ import { t, uiLocale } from "./i18n.js";
 function ago(ts) {
   if (!ts) return t("not synced yet");
   const m = Math.round((Date.now() - ts) / 60000);
-  return m < 1 ? t("synced just now") : m < 60 ? t("synced {n} min ago", { n: m }) : t("synced {date}", { date: new Date(ts).toLocaleString(uiLocale(), { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) });
+  return m < 1
+    ? t("synced just now")
+    : m < 60
+      ? t("synced {n} min ago", { n: m })
+      : t("synced {date}", {
+          date: new Date(ts).toLocaleString(uiLocale(), {
+            month: "short",
+            day: "numeric",
+            hour: "numeric",
+            minute: "2-digit",
+          }),
+        });
 }
-const host = (url) => String(url || "").replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+const host = (url) =>
+  String(url || "")
+    .replace(/^https?:\/\//, "")
+    .replace(/\/.*$/, "");
 const lastGroup = (key) => formatAccountKey(key).split("-").pop();
 
 /** Draw the panel into `box`; returns a cleanup function. */
@@ -39,9 +65,11 @@ export function renderAccount(box) {
         <h2>${t("Account and storage")}</h2>
         ${raw(status)}
         <div class="row">
-          ${raw(a.gone
-            ? `<button class="btn" data-acct="join">${t("Enter the new key")}</button><button class="btn ghost" data-acct="forget">${t("Forget the old key")}</button>`
-            : `<button class="btn" data-acct="sync">${t("Sync now")}</button><button class="btn ghost" data-acct="show">${t("Show account key")}</button><button class="btn ghost" data-acct="kit">${t("Download recovery kit")}</button>`)}
+          ${raw(
+            a.gone
+              ? `<button class="btn" data-acct="join">${t("Enter the new key")}</button><button class="btn ghost" data-acct="forget">${t("Forget the old key")}</button>`
+              : `<button class="btn" data-acct="sync">${t("Sync now")}</button><button class="btn ghost" data-acct="show">${t("Show account key")}</button><button class="btn ghost" data-acct="kit">${t("Download recovery kit")}</button>`,
+          )}
         </div>
         <details><summary class="note-small" style="cursor:pointer">${t("More")}</summary>
           <div class="row" style="margin-top:10px">
@@ -69,20 +97,43 @@ export function renderAccount(box) {
     on("show", () => showKey());
     on("kit", () => download("seekto-recovery-kit.txt", recoveryKit()));
     on("change", () => changeKeyFlow());
-    on("on", async () => { const a = account(); try { await connectAccount(a); toast(t("Storage sync is on")); } catch (err) { toast(err.message); } });
-    on("off", () => { disconnect(); toast(t("Storage sync is off on this device")); });
-    on("forget", () => { disconnect({ forgetKey: true }); toast(t("The key was removed from this device")); });
+    on("on", async () => {
+      const a = account();
+      try {
+        await connectAccount(a);
+        toast(t("Storage sync is on"));
+      } catch (err) {
+        toast(err.message);
+      }
+    });
+    on("off", () => {
+      disconnect();
+      toast(t("Storage sync is off on this device"));
+    });
+    on("forget", () => {
+      disconnect({ forgetKey: true });
+      toast(t("The key was removed from this device"));
+    });
     on("delete", (e) => {
       const b = e.target;
-      if (b.dataset.sure !== "1") { b.dataset.sure = "1"; b.textContent = t("Tap again: delete it for good"); return; }
-      deleteCloudCopy().then(() => toast(t("The storage copy was deleted. Your devices keep theirs."))).catch((err) => toast(err.message));
+      if (b.dataset.sure !== "1") {
+        b.dataset.sure = "1";
+        b.textContent = t("Tap again: delete it for good");
+        return;
+      }
+      deleteCloudCopy()
+        .then(() => toast(t("The storage copy was deleted. Your devices keep theirs.")))
+        .catch((err) => toast(err.message));
     });
   }
 
   draw();
   const offA = onCloud(draw);
   const offB = onStatus(draw);
-  return () => { offA(); offB(); };
+  return () => {
+    offA();
+    offB();
+  };
 }
 
 // ---------- Step 1: storage ----------
@@ -124,7 +175,11 @@ function setupWizard() {
       <div class="row"><button class="btn" id="next">${t("Test and continue")}</button></div>`;
     wireClose();
     $("#copySql", sheet).addEventListener("click", async () => {
-      try { copy(await (await fetch("supabase.sql")).text(), t("Setup script copied")); } catch { toast(t("Couldn't load the script. Use Download instead.")); }
+      try {
+        copy(await (await fetch("supabase.sql")).text(), t("Setup script copied"));
+      } catch {
+        toast(t("Couldn't load the script. Use Download instead."));
+      }
     });
     $("#next", sheet).addEventListener("click", async () => {
       if (!(await runTest(sheet))) return;
@@ -149,14 +204,21 @@ function setupWizard() {
     $("#copyKey", sheet).addEventListener("click", () => copy(state.key, t("Key copied")));
     $("#kit", sheet).addEventListener("click", () => download("seekto-recovery-kit.txt", recoveryKit(draft)));
     $("#back", sheet).addEventListener("click", step1);
-    $("#confirmKey", sheet).addEventListener("input", (e) => { $("#turnOn", sheet).disabled = normalizeAccountKey(e.target.value) !== lastGroup(state.key); });
+    $("#confirmKey", sheet).addEventListener("input", (e) => {
+      $("#turnOn", sheet).disabled = normalizeAccountKey(e.target.value) !== lastGroup(state.key);
+    });
     $("#turnOn", sheet).addEventListener("click", async (e) => {
       e.target.disabled = true;
       $("#connectStatus", sheet).textContent = t("Encrypting and uploading…");
       try {
         const a = await connectAccount(draft);
         if (a.error) throw new Error(a.error);
-        done(t("Storage sync is on"), t("Your notes, recordings, calendar and assignments are now kept encrypted in your storage. To add another device, connect it with a code and choose Get it from a connected device in Settings, or enter your key there."));
+        done(
+          t("Storage sync is on"),
+          t(
+            "Your notes, recordings, calendar and assignments are now kept encrypted in your storage. To add another device, connect it with a code and choose Get it from a connected device in Settings, or enter your key there.",
+          ),
+        );
       } catch (err) {
         $("#connectStatus", sheet).textContent = err.message;
         e.target.disabled = false;
@@ -168,7 +230,9 @@ function setupWizard() {
     sheet.innerHTML = html`<div class="view-head"><h2>${title}</h2><button class="btn ghost small" data-close>${t("Done")}</button></div><p class="sub">${text}</p>`;
     wireClose();
   }
-  function wireClose() { sheet.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeOverlay)); }
+  function wireClose() {
+    sheet.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeOverlay));
+  }
   step1();
 }
 
@@ -186,9 +250,16 @@ function joinWizard() {
   sheet.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeOverlay));
   $("#joinGo", sheet).addEventListener("click", async (e) => {
     const key = $("#acctKey", sheet).value;
-    if (!isValidAccountKey(key)) { $("#sbTest", sheet).innerHTML = `<p class="note-small" role="alert">${t("That key isn't right. It's 24 letters and numbers; check each one.")}</p>`; return; }
+    if (!isValidAccountKey(key)) {
+      $("#sbTest", sheet).innerHTML =
+        `<p class="note-small" role="alert">${t("That key isn't right. It's 24 letters and numbers; check each one.")}</p>`;
+      return;
+    }
     e.target.disabled = true;
-    if (!(await runTest(sheet))) { e.target.disabled = false; return; }
+    if (!(await runTest(sheet))) {
+      e.target.disabled = false;
+      return;
+    }
     try {
       const a = await connectAccount({ key, url: $("#sbUrl", sheet).value, apiKey: $("#sbKey", sheet).value });
       if (a.error) throw new Error(a.error);
@@ -211,21 +282,23 @@ function fromDevice() {
     <div class="agenda">${raw(devices.map((d) => html`<button class="event" data-peer="${d.id}" style="cursor:pointer;text-align:left"><span class="when">● ${t("Connected")}</span><span>${d.name}</span></button>`).join(""))}</div>
     <div id="askStatus"></div>`;
   sheet.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeOverlay));
-  sheet.querySelectorAll("[data-peer]").forEach((b) => b.addEventListener("click", async () => {
-    const out = $("#askStatus", sheet);
-    try {
-      const { code, result } = await requestAccount(b.dataset.peer);
-      out.innerHTML = html`<p class="sub">${raw(t("On <b>{name}</b>, check that it shows", { name: html`${b.lastElementChild.textContent.trim()}` }))}</p><div class="mono" style="font-size:40px;letter-spacing:0.2em;text-align:center">${code.slice(0, 3)} ${code.slice(3)}</div><p class="sub">${t("then tap Allow there.")}</p>`;
-      const got = await result;
-      out.innerHTML = `<p class="note-small">${t("Connecting to your storage…")}</p>`;
-      const a = await connectAccount(got);
-      if (a.error) throw new Error(a.error);
-      closeOverlay();
-      toast(t("Connected to your account"));
-    } catch (err) {
-      out.innerHTML = html`<p class="note-small" role="alert">${err.message}</p>`;
-    }
-  }));
+  sheet.querySelectorAll("[data-peer]").forEach((b) =>
+    b.addEventListener("click", async () => {
+      const out = $("#askStatus", sheet);
+      try {
+        const { code, result } = await requestAccount(b.dataset.peer);
+        out.innerHTML = html`<p class="sub">${raw(t("On <b>{name}</b>, check that it shows", { name: html`${b.lastElementChild.textContent.trim()}` }))}</p><div class="mono" style="font-size:40px;letter-spacing:0.2em;text-align:center">${code.slice(0, 3)} ${code.slice(3)}</div><p class="sub">${t("then tap Allow there.")}</p>`;
+        const got = await result;
+        out.innerHTML = `<p class="note-small">${t("Connecting to your storage…")}</p>`;
+        const a = await connectAccount(got);
+        if (a.error) throw new Error(a.error);
+        closeOverlay();
+        toast(t("Connected to your account"));
+      } catch (err) {
+        out.innerHTML = html`<p class="note-small" role="alert">${err.message}</p>`;
+      }
+    }),
+  );
 }
 
 /** The prompt on the device that has the account. */
@@ -236,7 +309,11 @@ export function askToShareAccount({ name, code, respond }) {
     <p class="sub">${t("It will be able to read and change everything in your storage. Only allow it if it's your device and it shows this number:")}</p>
     <div class="mono" style="font-size:40px;letter-spacing:0.2em;text-align:center;padding:8px 0">${code.slice(0, 3)} ${code.slice(3)}</div>
     <div class="row"><button class="btn" data-allow>${t("Allow")}</button><button class="btn ghost" data-deny>${t("Don't allow")}</button></div>`;
-  $("[data-allow]", sheet).addEventListener("click", () => { respond(true); closeOverlay(); toast(t("Sent to {name}", { name })); });
+  $("[data-allow]", sheet).addEventListener("click", () => {
+    respond(true);
+    closeOverlay();
+    toast(t("Sent to {name}", { name }));
+  });
   $("[data-deny]", sheet).addEventListener("click", () => closeOverlay());
 }
 
