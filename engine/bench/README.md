@@ -8,8 +8,20 @@ Seekto finds deadlines, definitions and action items with rules, not an AI model
 
 - **Written blind.** The sentences were written by writers who were not allowed to open the code, and were told to make them sound like real people: fillers, self-corrections, reschedules, cancellations, past mentions, two deadlines in one sentence, day-first dates.
 - **Not real recordings.** They are written to sound like classes, but they aren't transcripts of real ones. Real (anonymized) class transcripts are welcome: see [CONTRIBUTING.md](../../CONTRIBUTING.md).
-- **Half is held out.** Items with an even number are the *test* half. Their mistakes are never printed, only counted, and rules are only ever fixed using the *dev* half. The test numbers are the honest ones.
+- **Two kinds of unseen data.** The fresh set (below) was written after the rules were finished. And of the first 360 items, half is held out. Items with an even number are the *test* half. Their mistakes are never printed, only counted, and rules are only ever fixed using the *dev* half. The test numbers are the honest ones.
 - **Conventions.** Weeks start on Monday. "Friday" means the next Friday after today; "next Friday" means Friday of next week; "next week" alone means its Monday. Numbers like 10/11 are month first in US English and day first everywhere else.
+
+## Fresh set: scored once
+
+After the rules were finished, four more writers (again without access to the code) wrote 190 new items: US college lectures, school teachers in the US, UK, Canada and Australia, Spanish and Brazilian Portuguese classes, and meetings in very different workplaces. The files (`data/fresh-*.jsonl`) were committed before they were scored, and they were scored once, on October 12, 2026:
+
+| | Found | Right when found |
+|---|---|---|
+| Deadlines and tests (150 items) | 78% (102 of 131) | 90% have the right date |
+| Definitions (about 100 items) | 35% (16 of 46) | 70% are real definitions |
+| Action items (40 meetings) | 33% (13 of 40) | 57% name the right person, 92% the right due date |
+
+These are lower than the held-out half, which is expected: the held-out half shares writers and styles with the sentences the rules were fixed on. The fresh numbers are the better guide to a class Seekto has never heard. Their mistakes are never printed, and the rules must not be tuned on them; they'll be scored again only at releases.
 
 ## Results on the held-out half
 

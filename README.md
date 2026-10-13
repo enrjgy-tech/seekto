@@ -21,15 +21,18 @@ Free and open source. No account, works without AI, and on computers the transcr
 
 ## How accurate is it?
 
-The rules were measured on 360 sentences written by people who never saw them, the way teachers, syllabi and meetings really sound (fillers, corrections, reschedules, cancellations, day-first dates). Half the set is held out: it is only ever counted, never used to tune the rules.
+The rules are measured on sentences written by people who never saw them, the way teachers, syllabi and meetings really sound (fillers, corrections, reschedules, cancellations, day-first dates), in English, Spanish and Portuguese. Two numbers matter:
 
-| On the held-out half | Found | Right when found |
-|---|---|---|
-| Deadlines and tests (155 sentences) | 88% | 92% have the right date |
-| Definitions (75 sentences) | 57% | 71% are real definitions |
-| Meeting action items (25 meetings) | 82% | 85% name the right person, 94% the right due date |
+- **Held out:** half of the first 360 sentences, only ever counted, never used to fix the rules.
+- **Fresh:** 190 new sentences written after the rules were finished, committed before they were scored, and scored once. This is the closest thing to "a class it has never heard".
 
-Definitions are the weak spot, so check your practice test. On the half used to fix the rules, scores are close to 100%; that gap is why only the held-out half is reported. The sentences are written to sound real but aren't real recordings yet. Details, known gaps and how to run it: [engine/bench](engine/bench). CI fails if a change lowers any of these numbers.
+| | Held out: found | Held out: right | Fresh: found | Fresh: right |
+|---|---|---|---|---|
+| Deadlines and tests | 88% | 92% | 78% | 90% |
+| Definitions | 57% | 71% | 35% | 70% |
+| Meeting action items | 82% | 85% right person | 33% | 57% right person |
+
+So: when Seekto puts a date on your calendar it's right about 9 times in 10, but it misses some, and it finds only some of the terms a teacher explains, so check your practice test (or connect an AI model for more questions). Meeting notes are the weakest part. The sentences sound real but aren't real recordings yet. Details, known gaps and how to run it: [engine/bench](engine/bench). CI fails if a change lowers the held-out numbers.
 
 ## Why it's different
 
