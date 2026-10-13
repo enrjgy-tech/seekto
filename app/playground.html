@@ -33,12 +33,17 @@
     <div class="samples">
       <button class="btn ghost small" data-sample="class">A class (English)</button>
       <button class="btn ghost small" data-sample="clase">Una clase (español)</button>
+      <button class="btn ghost small" data-sample="aula">Uma aula (português)</button>
+      <button class="btn ghost small" data-sample="messy">Messy speech</button>
       <button class="btn ghost small" data-sample="meeting">A meeting</button>
     </div>
   </header>
   <div class="cols">
     <div style="display:grid;gap:8px;align-content:start">
-      <label class="field"><span class="label">Said on</span><input type="date" id="ref"></label>
+      <div class="row">
+        <label class="field" style="flex:1"><span class="label">Said on</span><input type="date" id="ref"></label>
+        <label class="field" style="flex:1"><span class="label">Dates like 10/11 are</span><select id="locale"><option value="en-US">month first (US)</option><option value="en-GB">day first</option></select></label>
+      </div>
       <textarea id="text" aria-label="Text to analyze"></textarea>
       <p class="meta" id="timing"></p>
     </div>
@@ -48,11 +53,11 @@
     <h2 style="margin:0">Use it in your own project</h2>
     <p class="sub" style="margin:0">The engine is plain JavaScript modules with no dependencies. Import it straight from the live site or a CDN, or copy <code>engine/src</code>.</p>
     <pre>import { findEvents, findDefinitions, makeQuiz, findActionItems } from
-  "https://cdn.jsdelivr.net/gh/enrjgy-tech/seekto@main/engine/src/index.js";
+  "https://cdn.jsdelivr.net/gh/enrjgy-tech/seekto@v0.1.0/engine/src/index.js";
 
 findEvents("The chapter 5 quiz is on Friday.", { ref: new Date() });
 // [{ date: "2026-10-16", type: "test", title: "Chapter 5 quiz", sentence: "…" }]</pre>
-    <p class="note-small" style="margin:0">Missing a phrase or a language? Each one is a test and a rule. See <a href="https://github.com/enrjgy-tech/seekto/blob/main/CONTRIBUTING.md">CONTRIBUTING.md</a>.</p>
+    <p class="note-small" style="margin:0">On 360 sentences it was never tuned on, it finds 88% of deadlines and 57% of definitions (<a href="https://github.com/enrjgy-tech/seekto/tree/main/engine/bench">how this is measured</a>). Missing a phrase or a language? Each one is a test and a rule. See <a href="https://github.com/enrjgy-tech/seekto/blob/main/CONTRIBUTING.md">CONTRIBUTING.md</a>.</p>
   </section>
 </main>
 <script type="module">
@@ -61,6 +66,8 @@ import { findEvents, findDates, findDefinitions, makeQuiz, findDecisions, findAc
 const SAMPLES = {
   class: "Okay everyone, today we're starting chapter five. Mitosis means one cell dividing into two identical daughter cells. A chromosome is a long strand of DNA wrapped around proteins. The chapter five quiz is on Friday, so review the phases. Your lab report is due next Wednesday, and the essay is due October 30th.",
   clase: "Bueno, hoy empezamos el tema cinco. La mitosis es la división de una célula en dos células idénticas. La fotosíntesis significa convertir la luz en azúcar. El examen de biología es el viernes. La tarea de química se entrega el 20 de octubre, y el proyecto vence en dos semanas.",
+  aula: "Bom, pessoal, hoje a gente começa o capítulo cinco. Mitose é a divisão de uma célula em duas células-filhas idênticas. A prova do capítulo cinco é na sexta, então revisem. O relatório é pra quarta-feira que vem, e a lista de exercícios é pra daqui a duas semanas.",
+  messy: "Okay so, um, the vocab quiz is Wednesday, no, Thursday, sorry. There's no lab this Friday. The essay, the first essay, is due the 21st, and then the test on the reading is the 24th. Last Friday's quiz, I'll hand those back Monday. So mitosis, basically, it's when the cell splits into two identical cells.",
   meeting: "Okay, let's get started. We decided to launch the beta on November 2nd. Maria will send the updated deck to the client by Friday. Sam to book the room for the workshop. I'll write up the survey results tomorrow. Can you send the budget spreadsheet to finance? We agreed that support hours stay the same.",
 };
 
@@ -73,12 +80,13 @@ function run() {
   const text = $("#text").value;
   const ref = $("#ref").value ? new Date(`${$("#ref").value}T12:00:00`) : new Date();
   const t0 = performance.now();
-  const events = findEvents(text, { ref });
-  const dates = findDates(text, ref);
+  const locale = $("#locale").value;
+  const events = findEvents(text, { ref, locale });
+  const dates = findDates(text, ref, { locale });
   const defs = findDefinitions(text);
   const quiz = makeQuiz([{ title: "Notes", text }], { count: 6 });
   const decisions = findDecisions(text);
-  const actions = findActionItems(text, { ref });
+  const actions = findActionItems(text, { ref, locale });
   const ms = performance.now() - t0;
   $("#timing").textContent = `Analyzed ${text.length.toLocaleString()} characters in ${ms.toFixed(1)} ms, on this device.`;
   $("#out").innerHTML = `
@@ -94,6 +102,7 @@ $("#ref").value = toISO(new Date());
 $("#text").value = SAMPLES.class;
 $("#text").addEventListener("input", run);
 $("#ref").addEventListener("change", run);
+$("#locale").addEventListener("change", run);
 document.querySelectorAll("[data-sample]").forEach((b) => b.addEventListener("click", () => { $("#text").value = SAMPLES[b.dataset.sample]; run(); }));
 run();
 </script>

@@ -2,28 +2,40 @@
 
 **Your teacher says "the quiz is on Friday." Seekto puts it on your calendar and turns the lesson into a practice test you can share with your class.**
 
-Free and open source. Private: no account, works without AI, and transcripts can be made on your own device.
+Free and open source. No account, works without AI, and on computers the transcript is made privately on your own device. In English, Spanish and Portuguese.
 
 ![A class recording turning into calendar dates and a practice test, which a classmate opens from a link on their phone](docs/media/hero.gif)
 
 **[Open Seekto →](https://enrjgy-tech.github.io/seekto/)** and press **Try a sample class**. No microphone, account or AI key needed.
 
-*For developers:* Whisper running in the browser, a no-AI rules engine you can import in one line ([playground](https://enrjgy-tech.github.io/seekto/playground.html)), and end-to-end encrypted sync to a database you own. Plain JavaScript, no build step, no dependencies. [How it's built ↓](#how-its-built)
+*For developers:* Whisper running in the browser, a no-AI rules engine you can import in one line ([playground](https://enrjgy-tech.github.io/seekto/playground.html)) with [accuracy measured on sentences it was never tuned on](engine/bench), and end-to-end encrypted sync to a database you own. Plain JavaScript with no runtime dependencies. [How it's built ↓](#how-its-built)
 
 ## What it does
 
-- **Record a class.** Seekto writes the transcript, live or privately on your device, with "lost here" marks and quick notes stamped to the second. Audio stays on your device.
-- **Deadlines find themselves.** "The essay is due October 20th" or "el examen es el viernes" goes straight on your calendar. Import Canvas, Google Classroom, Moodle or Blackboard calendars too.
-- **Practice tests from your own notes,** both ways (term to meaning, meaning to term), graded whether you type or say the answer. Export to Quizlet, Anki, Google Forms, Kahoot or Moodle.
-- **Share a test with your class.** One link opens it on any phone, with nothing to install. The questions travel inside the link, so they're never stored on a server.
-- **Ask about it.** "When is my math test?", "What's due this week?", "What is mitosis?" Type, or use talk mode.
-- **Assignments.** Paste the rubric to get a checklist and a schedule back from the due date, with your related notes and YouTube sources beside it.
+- **Record a class.** On a computer, Seekto writes the transcript privately on the device when you stop, so the audio never leaves it. On a phone it can use the browser's live speech service instead (online, in Chrome and Edge). Mark "lost here" moments and type notes stamped to the second.
+- **Deadlines find themselves.** "The essay is due the 21st", "the quiz moved from Friday to Tuesday", "el examen es el viernes", "a prova é na sexta que vem" go straight on your calendar, and the date is highlighted in the transcript. Import Canvas, Google Classroom, Moodle or Blackboard calendars too.
+- **Practice tests from your own notes.** Seekto picks up terms the teacher explains ("so mitosis, basically, it's when…") and makes questions both ways, plus fill-in-the-blanks. Type or say your answer. Export to Quizlet, Anki, Google Forms, Kahoot or Moodle.
+- **Reviews before the test.** When a quiz is on your calendar, Seekto can add a few short spaced reviews before it.
+- **Share a test with your class.** One link opens it on any phone, with nothing to install. Send your score and your classmates try to beat it. The questions travel inside the link, so they're never stored on a server.
+- **Ask about it.** "When is my math test?", "¿Qué tengo esta semana?", "O que é mitose?" Type, or use talk mode.
+
+## How accurate is it?
+
+The rules were measured on 360 sentences written by people who never saw them, the way teachers, syllabi and meetings really sound (fillers, corrections, reschedules, cancellations, day-first dates). Half the set is held out: it is only ever counted, never used to tune the rules.
+
+| On the held-out half | Found | Correct when found |
+|---|---|---|
+| Deadlines and tests | 88% | 92% |
+| Definitions | 57% | 71% |
+| Meeting action items | 82% | 100% |
+
+Definitions are the weak spot, so check your practice test. The sentences are written to sound real but aren't real recordings yet. Details, known gaps and how to run it: [engine/bench](engine/bench). CI fails if a change lowers any of these numbers.
 
 ## Why it's different
 
-- **No AI needed.** Dates, deadlines, definitions and quizzes come from tested rules in [`engine/`](engine/src), in English and Spanish. Add an AI model only if you want one: Ollama on your computer, free models on OpenRouter, or OpenAI or Anthropic with your own key.
-- **Private transcripts in any language.** Whisper can run in your browser: no audio leaves your device, it works offline after a one-time download, in about 100 languages and any modern browser.
-- **Your notes stay yours.** Everything lives in your browser. Connect your phone and laptop with a 6-letter code and they sync directly, encrypted. Optional storage goes to a Supabase project *you* own, end-to-end encrypted with a key only you hold. Seekto has no server and no accounts to hack.
+- **No AI needed.** Dates, deadlines, definitions and quizzes come from tested rules in [`engine/`](engine/src), in English, Spanish and Portuguese. Add an AI model only if you want one: Ollama on your computer, free models on OpenRouter, or OpenAI or Anthropic with your own key.
+- **Private transcripts in about 100 languages.** Whisper runs in your browser: no audio leaves your device, and it works offline after a one-time download. Tested so far in Chrome and Edge on Windows; reports from other browsers and phones are welcome.
+- **Your notes stay yours.** Everything lives in your browser. Connect your phone and laptop with a 6-letter code (both screens show the same number to confirm) and they sync directly, encrypted. Optional storage goes to a Supabase project *you* own, end-to-end encrypted with a key only you hold. Or [run all of it yourself](docs/SELF-HOSTING.md).
 
 ## Also for meetings
 
@@ -37,9 +49,9 @@ Switch to **Work** and the same app records meetings, after a consent check ever
 
 ## Privacy, in short
 
-Everything you create stays in your browser unless you turn on sync. Device sync goes directly between your devices; a public message service (ntfy.sh, or your own) only helps them find each other. Storage sync is end-to-end encrypted in a database you own. AI is off until you choose a provider, and then only what you ask about is sent to it. There are no trackers or analytics. The details, including what each service can see, are in [docs/PRIVACY.md](docs/PRIVACY.md).
+Everything you create stays in your browser unless you turn on sync. Device sync goes directly between your devices; a public message service (ntfy.sh, or your own) and two STUN servers only help them find each other. Storage sync is end-to-end encrypted in a database you own. AI is off until you choose a provider, and then only what you ask about is sent to it. There are no trackers or analytics. Every outside service and what it can see is listed in [docs/PRIVACY.md](docs/PRIVACY.md).
 
-Transcripts are made either live by your browser's speech service (online in Chrome and Edge) or privately on your device with Whisper; you choose in Settings. Follow your school's and workplace's rules about recording.
+Transcripts are made privately on your device with Whisper (the default on computers) or live by your browser's speech service, which sends audio to the browser maker; you choose in Settings. Before every recording Seekto asks you to confirm you're allowed to record. Follow your school's and workplace's rules.
 
 ## Run it locally
 
@@ -47,17 +59,18 @@ Transcripts are made either live by your browser's speech service (online in Chr
 git clone https://github.com/enrjgy-tech/seekto.git
 cd seekto
 npm test          # engine tests: dates, meetings, calendars, quizzes, share links, sync, encryption
-npm run build     # builds the static site into ./site
+npm run bench     # accuracy on the blind-written test set
+npm run build     # copies the app into ./site and writes its offline file list
 npm run serve     # serves ./site locally
 ```
 
-No dependencies and no build step for the app. Node 20 or newer for the tests.
+No runtime dependencies: the app is plain HTML, CSS and JavaScript modules, and the build only copies files. Node 20 or newer for the tests. To host your own copy (Docker, your own servers, no outside requests), see [docs/SELF-HOSTING.md](docs/SELF-HOSTING.md).
 
 ## How it's built
 
-- **`app/`**: the web app in plain HTML, CSS and JavaScript modules. It installs as an app and opens offline after the first visit.
+- **`app/`**: the web app in plain HTML, CSS and JavaScript modules, in English, Spanish and Portuguese (`app/i18n/`). It installs as an app and opens offline after the first visit.
 - **`engine/`**: the tested logic, usable on its own ([docs](engine/README.md), [playground](https://enrjgy-tech.github.io/seekto/playground.html)):
-  - dates and deadlines in speech and text;
+  - dates and deadlines in speech and text, in English, Spanish and Portuguese ([measured](engine/bench));
   - decisions and action items in meetings;
   - definitions, quizzes and answer checking;
   - share links;
@@ -70,7 +83,9 @@ No dependencies and no build step for the app. Node 20 or newer for the tests.
 
 ## Contributing
 
-There are good first issues for every skill level: teach Seekto a date phrase or a meeting phrase it misses (each is one test and one rule), add a storage adapter, test it on your phone or Chromebook, or improve accessibility. See [CONTRIBUTING.md](CONTRIBUTING.md), the [roadmap](ROADMAP.md) and the [launch plan](docs/LAUNCH.md).
+There are good first issues for every skill level: teach Seekto a phrase it misses (each is one test and one rule; `node engine/bench/run.mjs --show` lists real misses), add a language (French is open), add a storage adapter, test it on your phone or Chromebook, or improve accessibility. See [CONTRIBUTING.md](CONTRIBUTING.md), the [roadmap](ROADMAP.md) and the [launch plan](docs/LAUNCH.md).
+
+Thanks to [@KeuqS](https://github.com/KeuqS) for the first outside contribution: Portuguese dates ([#11](https://github.com/enrjgy-tech/seekto/pull/11)).
 
 ## License
 
