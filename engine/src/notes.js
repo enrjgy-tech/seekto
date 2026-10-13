@@ -3,8 +3,15 @@
 // Measured on real lectures in engine/bench/README.md; nothing here claims to understand the lecture.
 import { sentences } from "./dates.js";
 import { COMMON_WORDS } from "./common-words.js";
+import { STOP } from "./search.js";
 
 const WORD = /[\p{L}][\p{L}'-]*/gu;
+// words that never belong in a course phrase
+const FUNCTION = new Set(
+  "the a an and or but so if then than that this these those there here is are was were be been being have has had do does did can could will would shall should may might must not no yes very really just also only even still too more most much many some any all each every both few little lot lots kind sort way thing things something anything everything nothing one two three first second next last other another same different new old good bad big small long short high low right left okay ok well now today yesterday tomorrow going gonna get got go went come came like about over under into out up down off again back away here where when what which who whom whose why how because since while until unless though although yeah um uh hmm oh ah mean means say said says see saw look looks know knew think thought want wanted need needed let lets make made take took give gave put keep kept".split(
+    " ",
+  ),
+);
 // "[MUSIC]", "[LAUGHTER]", "(inaudible)": transcript tags, not speech
 const TAGS = /\s*[[(](?:music|laughter|applause|pause|inaudible|crosstalk|noise|silence)[\])]/gi;
 export const stripTags = (text) => String(text).replace(TAGS, " ").replace(/\s+/g, " ").trim();
@@ -36,7 +43,9 @@ export function keyTerms(text, { max = 30 } = {}) {
     const w = words[i];
     if (ok(w)) uni.set(w, (uni.get(w) || 0) + 1);
     const n = words[i + 1];
-    if (n && ok(w) && ok(n)) {
+    // a two-word phrase may use an everyday word ("demand curve", "cell wall") but not a function word
+    const okIn = (x) => x.length >= 3 && !STOP.has(x) && !/^\d/.test(x) && !/'/.test(x) && !FUNCTION.has(x);
+    if (n && okIn(w) && okIn(n) && !/(?:ed|ing)$/.test(n) && !(COMMON_WORDS.has(n) && /s$/.test(n) && !/ss$/.test(n))) {
       const k = `${w} ${n}`;
       bi.set(k, (bi.get(k) || 0) + 1);
     }
@@ -46,7 +55,8 @@ export function keyTerms(text, { max = 30 } = {}) {
   const out = [];
   const inBigram = new Set();
   for (const [k, c] of bi)
-    if (c >= min) {
+    // two everyday words make a course phrase only when the lecture keeps saying them together ("demand curve")
+    if (c >= min && (k.split(" ").some(ok) || c >= Math.max(3, min))) {
       out.push({ term: k, count: c });
       for (const w of k.split(" ")) inBigram.add(w);
     }
@@ -118,6 +128,10 @@ export function scoreSentences(text, { terms } = {}) {
       score -= 0.7;
       why.push("half a sentence");
     }
+    if (/\b(?:I|I'm|I've|I'd|my|me|we used to|imagine that|imagine you|say you|suppose you|let's say)\b/.test(s)) {
+      score -= 0.7;
+      why.push("a story or an aside");
+    }
     if (NUMBERS.test(s)) {
       score += 0.4;
       why.push("has a year or figure");
@@ -158,7 +172,7 @@ function tidy(s) {
 }
 
 const SHIFT =
-  /^(?:so|okay|ok|now|alright|all right|and|then)?[,\s]*(?:let's|let us|we're going to|we are going to|we'll|we will|i want to|i'd like to|i'm going to|i am going to|next|the next thing is|now)\s+(?:now\s+)?(?:talk about|move on to|turn to|look at|start with|discuss|get to|go to|think about|introduce|cover|consider|focus on|spend some time on)\s+(?:the\s+|a\s+|an\s+|some\s+|this\s+|these\s+|our\s+)?(.{3,60}?)[.!?,]?$/i;
+  /^(?:so|okay|ok|now|alright|all right|and|then)?[,\s]*(?:today|now|next|first|then)?[,\s]*(?:let's|let us|we're going to|we are going to|we'll|we will|i want to|i'd like to|i'm going to|i am going to|next|the next thing is|now)\s+(?:now\s+)?(?:talk about|move on to|turn to|look at|start with|discuss|get to|go to|think about|introduce|cover|consider|focus on|spend some time on)\s+(?:the\s+|a\s+|an\s+|some\s+|this\s+|these\s+|our\s+)?(.{3,60}?)[.!?,]?$/i;
 const TOPIC_LINE = /^(?:(?:so|okay|now|next),?\s+)?([A-Z][\p{L}-]*(?: [\p{L}-]+){0,3})[.:]$/u;
 
 /** Where the teacher changes topic ("Let's talk about supply", "Now, the Rutherford model."):

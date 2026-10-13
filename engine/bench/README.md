@@ -65,6 +65,10 @@ What went wrong at first contact was ordinary speech that looks like "X is Y": "
 
 Other things this exposed: a definition whose term and meaning are far apart ("they later called *this* the nucleus", where *this* is two sentences back) is out of reach for sentence rules; and the labels I judged "real" were about 8 per lecture, so a few percentage points either way are one sentence.
 
+## Study notes: the lines a student would keep
+
+`engine/src/notes.js` picks about 1 sentence in 10 from a transcript (course vocabulary, teaching cues such as "called" and "because", not chat, not a question, not a story), finds the course words, and puts a heading where the teacher says "let's talk about X". Judged by hand on three whole lectures (14.01 lecture 12, 8.286 lecture 8, 7.013 lecture 21; the first two were used to adjust the rules, the third was read only after): **95 of 157 kept lines (about 60%) are lines a student would write down**; the rest are half-sentences, asides or stories. Of the 73 real definition sentences in the judged set, 36 land in the kept tenth (false-definition sentences: 66 of 281). The user sees these lines with course words highlighted and the full transcript one tap away.
+
 ## Results on the held-out half
 
 | | Found | Right, of what it adds |

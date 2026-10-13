@@ -2,7 +2,15 @@
 // day-first dates and Portuguese. Many of these came from reviewers who tried to break the engine.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { findEvents, findDefinitions, findActionItems } from "../src/index.js";
+import {
+  findEvents,
+  findDefinitions,
+  findActionItems,
+  keyTerms,
+  keySentences,
+  sections,
+  studyNotes,
+} from "../src/index.js";
 
 const ref = new Date(2026, 9, 12, 12); // Monday, October 12, 2026
 const dates = (text, opts = {}) => findEvents(text, { ref, ...opts }).map((e) => e.date);
@@ -408,4 +416,39 @@ test("in a whole lecture a bare 'X is Y' needs course vocabulary and a noun-phra
     "Okay so mitosis, basically, it's when the cell splits into two identical daughter cells.",
   )[0];
   assert.ok(d.confidence > 0 && d.confidence < 1 && Array.isArray(d.why));
+});
+
+test("study notes: course words, key lines and headings from a lecture, without AI", () => {
+  const lecture = [
+    "Okay, good morning everyone, can you hear me in the back?",
+    "So today let's talk about the demand curve.",
+    "The demand curve shows how much people buy at each price.",
+    "As the price goes up, the quantity demanded goes down, because people switch to substitutes.",
+    "I had a funny thing happen on the way here, my car wouldn't start.",
+    "Now we're going to move on to the supply curve.",
+    "The supply curve shows how much firms sell at each price.",
+    "Where the demand curve and the supply curve cross is the market equilibrium.",
+    "The market equilibrium is the price where quantity demanded equals quantity supplied.",
+    "Any questions? No? Okay.",
+    "Remember, the problem set is due on Friday.",
+  ].join(" ");
+  const terms = keyTerms(lecture).map((t) => t.term);
+  assert.ok(terms.includes("demand curve") && terms.includes("supply curve"), terms.join(", "));
+  assert.ok(!terms.includes("morning") && !terms.includes("funny"));
+  const lines = keySentences(lecture, { share: 0.4 }).map((l) => l.text);
+  assert.ok(
+    lines.some((l) => l.startsWith("The demand curve shows")),
+    lines.join(" | "),
+  );
+  assert.ok(lines.some((l) => l.includes("market equilibrium")));
+  assert.ok(!lines.some((l) => /funny|hear me|Any questions/.test(l)), lines.join(" | "));
+  assert.deepEqual(
+    sections(lecture, { gap: 1 }).map((h) => h.title),
+    ["Demand curve", "Supply curve"],
+  );
+  const notes = studyNotes(lecture, { share: 0.4 });
+  assert.equal(notes.sections[0].title, "Demand curve");
+  assert.ok(notes.sections[0].lines[0].terms.includes("demand curve"));
+  // transcript tags are not speech
+  assert.ok(!keyTerms("[MUSIC] [MUSIC] [MUSIC] the wave the wave").some((t) => t.term === "music"));
 });
