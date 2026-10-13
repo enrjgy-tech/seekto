@@ -19,12 +19,13 @@ export function html(strings, ...values) {
 export const raw = (value) => ({ __raw: String(value) });
 
 let toastTimer;
+/** A short message at the top of the screen, also read out by screen readers. */
 export function toast(message) {
   const el = $("#toast");
   el.textContent = message;
   el.hidden = false;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => (el.hidden = true), 2400);
+  toastTimer = setTimeout(() => (el.hidden = true), Math.max(2400, message.length * 60));
 }
 
 /** Save text as a file (works on the hosted site). */
@@ -49,26 +50,58 @@ export async function copy(text, ok = "Copied") {
 }
 
 let onOverlayClose = null;
+let opener = null;
+const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select, textarea, summary, [tabindex]:not([tabindex="-1"])';
+
+/**
+ * Open a dialog. Focus moves into it, Tab stays inside it, Esc closes it, and focus goes back
+ * to whatever opened it. The dialog is named by its first heading.
+ */
 export function openOverlay(content, onClose = null) {
   onOverlayClose?.();
   onOverlayClose = onClose;
+  if (!document.querySelector(".overlay")) opener = document.activeElement;
   const root = $("#overlay");
-  root.innerHTML = `<div class="overlay" role="dialog" aria-modal="true"><div class="sheet">${content}</div></div>`;
+  root.innerHTML = `<div class="overlay" role="dialog" aria-modal="true"><div class="sheet" tabindex="-1">${content}</div></div>`;
+  const dialog = $(".overlay", root);
   const sheet = $(".sheet", root);
-  root.querySelector(".overlay").addEventListener("click", (e) => { if (e.target.classList.contains("overlay")) closeOverlay(); });
-  document.addEventListener("keydown", escClose);
+  dialog.addEventListener("click", (e) => { if (e.target === dialog) closeOverlay(); });
+  document.addEventListener("keydown", onKey);
+  for (const el of document.querySelectorAll(".app")) el.inert = true;
+  // Name the dialog after its heading, whenever its content changes.
+  const name = () => {
+    const h = sheet.querySelector("h1, h2, h3");
+    if (h) { h.id ||= "dialogTitle"; dialog.setAttribute("aria-labelledby", h.id); }
+  };
+  new MutationObserver(name).observe(sheet, { childList: true });
+  name();
+  requestAnimationFrame(() => { if (!sheet.contains(document.activeElement)) (sheet.querySelector("input, textarea, select") || sheet).focus(); });
   return sheet;
 }
 
-function escClose(e) { if (e.key === "Escape") closeOverlay(); }
+function onKey(e) {
+  if (e.key === "Escape") return closeOverlay();
+  if (e.key !== "Tab") return;
+  const sheet = $(".overlay .sheet");
+  if (!sheet) return;
+  const items = [...sheet.querySelectorAll(FOCUSABLE)].filter((el) => el.offsetParent !== null);
+  if (!items.length) { e.preventDefault(); return sheet.focus(); }
+  const first = items[0];
+  const last = items[items.length - 1];
+  if (e.shiftKey && (document.activeElement === first || document.activeElement === sheet)) { e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+}
 
 export function closeOverlay() {
   const fn = onOverlayClose;
   onOverlayClose = null;
   fn?.();
   $("#overlay").innerHTML = "";
-  document.removeEventListener("keydown", escClose);
+  document.removeEventListener("keydown", onKey);
+  for (const el of document.querySelectorAll(".app")) el.inert = false;
   window.speechSynthesis?.cancel();
+  if (opener && document.contains(opener)) opener.focus();
+  opener = null;
 }
 
 export function friendlyDate(iso) {

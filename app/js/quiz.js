@@ -117,7 +117,7 @@ export function openQuiz({ notes = [], questions: given = null, title = "Practic
         <div class="prompt" id="qPrompt">${p.text}</div>
         <form class="row" data-answer>
           <input type="text" id="quizAnswer" autocomplete="off" placeholder="Your answer" aria-labelledby="qLabel qPrompt" style="flex:1">
-          ${raw(mic ? `<button type="button" class="iconbtn" data-say title="Answer out loud (uses your browser's speech service)" aria-label="Answer out loud"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>` : "")}
+          ${raw(mic ? `<button type="button" class="iconbtn" data-say title="Answer out loud (uses your browser's speech service)" aria-label="Answer out loud"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>` : "")}
           <button class="btn">Check</button>
         </form>
         <div class="result" id="quizResult" role="status" aria-live="polite"></div>

@@ -15,8 +15,8 @@ export const MODES = {
     ],
     suggestions: ["What's due this week?", "When is my next test?", "Quiz me", "Start recording"],
     placeholder: "Ask about your classes, deadlines or notes",
-    consent: "Follow your school's rules and ask before recording.",
-    needConsent: false,
+    consent: "Follow your school's rules and ask your teacher before recording.",
+    consentCheck: "My teacher allowed this recording",
   },
   work: {
     name: "Work",
@@ -32,7 +32,7 @@ export const MODES = {
     suggestions: ["What are my action items?", "What's due this week?", "Draft a follow-up email", "Start recording"],
     placeholder: "Ask about your meetings, action items or deadlines",
     consent: "Everyone in the meeting must know it's being recorded. Some places require everyone's consent.",
-    needConsent: true,
+    consentCheck: "Everyone in this meeting knows it's being recorded",
   },
 };
 

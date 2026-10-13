@@ -60,7 +60,7 @@ export function render(main) {
       <form id="chatForm">
         <label for="chatInput" class="label" style="position:absolute;left:-9999px">Message</label>
         <input id="chatInput" type="text" autocomplete="off" placeholder="${words().placeholder}">
-        <button type="button" class="iconbtn" id="talkBtn" aria-pressed="false" title="Talk mode" aria-label="Talk mode"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
+        <button type="button" class="iconbtn" id="talkBtn" aria-pressed="false" title="Talk mode" aria-label="Talk mode"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
         <button class="btn">Send</button>
       </form>
     </div>`;
@@ -75,7 +75,7 @@ export function render(main) {
     if (!b) return;
     if (b.dataset.step === "ask") $("#chatInput").focus();
     else if (b.dataset.step === "sample") runSample(mode());
-    else go(b.dataset.step);
+    else go(b.dataset.step === "settings" ? "settings/ai" : b.dataset.step);
   });
   $("#talkBtn").addEventListener("click", toggleTalk);
   $("#chatBar").addEventListener("click", (e) => { const m = e.target.closest("[data-pickmode]"); if (m) setMode(m.dataset.pickmode); });
@@ -261,20 +261,20 @@ async function send(text) {
       return reply({ text: answer.trim() || "I don't have an answer for that.", actions });
     } catch (err) {
       history.pop();
-      return reply({ text: `${local.text ? `${local.text}\n\n` : ""}(${err.message})`, actions: [{ label: "AI settings", go: "settings" }] });
+      return reply({ text: `${local.text ? `${local.text}\n\n` : ""}(${err.message})`, actions: [{ label: "AI settings", go: "settings/ai" }] });
     }
   }
   const hits = searchNotes(state.notes.map((n) => ({ ...n, text: noteText(n) })), text, 3);
-  if (local.text) return reply({ text: `${local.text}\n\nFor open questions, choose an AI model in Settings.`, actions: [...actions, { label: "AI settings", go: "settings" }] });
+  if (local.text) return reply({ text: `${local.text}\n\nFor open questions, choose an AI model in Settings.`, actions: [...actions, { label: "AI settings", go: "settings/ai" }] });
   if (hits.length) {
     return reply({
       text: `Here's what your notes say:\n${hits.map((h) => `• ${h.note.title}: "${h.line}"`).join("\n")}\n\nFor open questions, choose an AI model in Settings.`,
-      actions: [{ label: `Open "${hits[0].note.title}"`, go: `note/${hits[0].note.id}` }, { label: "AI settings", go: "settings" }],
+      actions: [{ label: `Open "${hits[0].note.title}"`, go: `note/${hits[0].note.id}` }, { label: "AI settings", go: "settings/ai" }],
     });
   }
   return reply({
     text: "I can answer questions about your calendar and notes, start quizzes and record classes without an AI model. For open questions, choose one in Settings: on your computer, free cloud, or paid cloud.",
-    actions: [{ label: "AI settings", go: "settings" }],
+    actions: [{ label: "AI settings", go: "settings/ai" }],
   });
 }
 

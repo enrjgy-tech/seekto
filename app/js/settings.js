@@ -7,7 +7,8 @@ import { devicesListHtml, wireForget } from "./connect.js";
 import { onStatus } from "./devices.js";
 import { renderAccount } from "./account.js";
 import { setMode } from "./profile.js";
-import { MODELS as ASR_MODELS, prepare as prepareAsr, progressText } from "./ondevice.js";
+import { MODELS as ASR_MODELS, prepare as prepareAsr, progressText, defaultTranscriber } from "./ondevice.js";
+import { go } from "./nav.js";
 import { canListen } from "./voice.js";
 
 const LANGS = [["", "Detect automatically"], ["english", "English"], ["spanish", "Spanish"], ["french", "French"], ["german", "German"], ["portuguese", "Portuguese"], ["italian", "Italian"], ["chinese", "Chinese"], ["japanese", "Japanese"], ["korean", "Korean"], ["hindi", "Hindi"], ["arabic", "Arabic"], ["russian", "Russian"], ["vietnamese", "Vietnamese"], ["turkish", "Turkish"], ["polish", "Polish"], ["dutch", "Dutch"], ["indonesian", "Indonesian"], ["ukrainian", "Ukrainian"]];
@@ -22,8 +23,9 @@ const GROUPS = [
   ["Advanced", ["custom"]],
 ];
 
-export function render(main) {
+export function render(main, section) {
   const s = state.settings;
+  const transcriber = s.transcriber || defaultTranscriber(canListen);
   const p = PROVIDERS[s.provider];
   main.innerHTML = html`
     <div class="view">
@@ -34,6 +36,36 @@ export function render(main) {
         <p class="note-small">Learning is for classes, assignments and tests. Work is for meetings, decisions and action items. Everything else is the same, and you can switch any time.</p>
       </section>
       <section class="panel">
+        <h2>Transcription</h2>
+        <label class="row"><input type="radio" name="asr" value="device" ${raw(transcriber === "device" || !canListen ? "checked" : "")} style="width:auto"> <span><b>Private, on this device.</b> <span class="note-small">Recommended. Whisper runs in your browser when you stop recording, so audio never leaves this device. Works offline after a one-time download, in about 100 languages. Slower on phones.</span></span></label>
+        <label class="row"><input type="radio" name="asr" value="browser" ${raw(transcriber !== "device" && canListen ? "checked" : "")} ${raw(canListen ? "" : "disabled")} style="width:auto"> <span><b>Live, with your browser's speech service.</b> <span class="note-small">You see words as they're spoken. In Chrome and Edge, audio is processed online by the browser maker.${canListen ? "" : " Not available in this browser."}</span></span></label>
+        <div class="row">
+          <label class="field" style="min-width:200px"><span class="label">Model</span><select id="asrQuality">${raw(Object.entries(ASR_MODELS).map(([k, m]) => html`<option value="${k}" ${k === (s.asrQuality || "fast") ? "selected" : ""}>${m.label}</option>`).join(""))}</select></label>
+          <label class="field" style="min-width:200px"><span class="label">Language</span><select id="asrLanguage">${raw(LANGS.map(([code, name]) => html`<option value="${code}" ${code === (s.asrLanguage || "") ? "selected" : ""}>${name}</option>`).join(""))}</select></label>
+        </div>
+        <div class="row"><button class="btn ghost small" id="asrPrepare">Download the model now</button><span class="note-small" id="asrPrepStatus"></span></div>
+      </section>
+      <section class="panel">
+        <h2>Devices</h2>
+        <p class="sub">Connect your phone, laptop and other devices with a short code. They sync directly with each other.</p>
+        <div class="agenda" id="setDevices"></div>
+        <div class="row"><button class="btn" id="setConnect">Connect a device</button></div>
+      </section>
+      <section class="panel">
+        <h2>Your data</h2>
+        <p class="sub">Everything is stored in this browser on this device. Back it up to move it to another device.</p>
+        <div class="row">
+          ${raw(hasSamples() ? `<button class="btn ghost" id="noSamples">Remove the samples</button>` : "")}
+          <button class="btn ghost" id="backup">Download backup</button>
+          <label class="btn ghost" style="cursor:pointer">Restore backup<input type="file" id="restore" accept=".json" hidden></label>
+          <button class="btn danger" id="wipe">Delete everything</button>
+        </div>
+        <p class="note-small">Recordings aren't included in backups yet.</p>
+      </section>
+      <details class="more" id="more" ${raw(section ? "open" : "")}>
+        <summary><h2>More</h2><span class="note-small">AI model, your own storage, research and assignments, voice</span></summary>
+        <div class="more-body">
+      <section class="panel" id="aiPanel">
         <h2>AI model</h2>
         <p class="sub">Seekto works without AI: recording, notes, the calendar, quizzes from definitions and answers from your notes. An AI model adds open questions, summaries, better quizzes, research plans and briefs. Your key stays on this device and is sent only to the service you choose.</p>
         <label class="field"><span class="label">Provider</span>
@@ -48,40 +80,21 @@ export function render(main) {
       </section>
       <section class="panel" id="accountPanel"></section>
       <section class="panel">
-        <h2>Devices</h2>
-        <p class="sub">Connect your phone, laptop and other devices with a short code. They sync directly with each other.</p>
-        <div class="agenda" id="setDevices"></div>
-        <div class="row"><button class="btn" id="setConnect">Connect a device</button></div>
-        <details><summary class="note-small" style="cursor:pointer">Connection server</summary>
-          <p class="note-small" style="margin:8px 0">Devices find each other through a public message service. Only connection setup passes through it; your data goes directly between devices, encrypted. You can use your own ntfy server instead.</p>
-          <div class="row"><input type="url" id="signal" value="${s.signalServer}" style="flex:1"><button class="btn ghost small" id="saveSignal">Save</button></div>
-        </details>
-      </section>
-      <section class="panel">
-        <h2>Transcription</h2>
-        <label class="row"><input type="radio" name="asr" value="browser" ${raw(s.transcriber !== "device" && canListen ? "checked" : "")} ${raw(canListen ? "" : "disabled")} style="width:auto"> <span><b>Live, with your browser's speech service.</b> <span class="note-small">You see words as they're spoken. In Chrome and Edge, audio is processed online by the browser maker.${canListen ? "" : " Not available in this browser."}</span></span></label>
-        <label class="row"><input type="radio" name="asr" value="device" ${raw(s.transcriber === "device" || !canListen ? "checked" : "")} style="width:auto"> <span><b>Private, on this device.</b> <span class="note-small">Whisper runs in your browser when you stop recording. Works in any modern browser and offline after a one-time download, in about 100 languages.</span></span></label>
-        <div class="row">
-          <label class="field" style="min-width:200px"><span class="label">Model</span><select id="asrQuality">${raw(Object.entries(ASR_MODELS).map(([k, m]) => html`<option value="${k}" ${k === (s.asrQuality || "fast") ? "selected" : ""}>${m.label}</option>`).join(""))}</select></label>
-          <label class="field" style="min-width:200px"><span class="label">Language</span><select id="asrLanguage">${raw(LANGS.map(([code, name]) => html`<option value="${code}" ${code === (s.asrLanguage || "") ? "selected" : ""}>${name}</option>`).join(""))}</select></label>
-        </div>
-        <div class="row"><button class="btn ghost small" id="asrPrepare">Download the model now</button><span class="note-small" id="asrPrepStatus"></span></div>
+        <h2>Research &amp; assignments</h2>
+        <p class="sub">Paste an assignment or rubric to get a checklist and a schedule back from the due date, with your related notes and YouTube sources beside it.</p>
+        <div class="row"><button class="btn ghost" id="openResearch">Open research &amp; assignments</button></div>
       </section>
       <section class="panel">
         <h2>Voice</h2>
         <label class="row"><input type="checkbox" id="speak" ${raw(s.speak !== false ? "checked" : "")}> Read answers aloud in talk mode</label>
       </section>
       <section class="panel">
-        <h2>Your data</h2>
-        <p class="sub">Everything is stored in this browser on this device. Back it up to move it to another device.</p>
-        <div class="row">
-          ${raw(hasSamples() ? `<button class="btn ghost" id="noSamples">Remove the samples</button>` : "")}
-          <button class="btn ghost" id="backup">Download backup</button>
-          <label class="btn ghost" style="cursor:pointer">Restore backup<input type="file" id="restore" accept=".json" hidden></label>
-          <button class="btn danger" id="wipe">Delete everything</button>
-        </div>
-        <p class="note-small">Recordings aren't included in backups yet.</p>
+        <h2>Connection server</h2>
+          <p class="note-small" style="margin:8px 0">Devices find each other through a public message service. Only connection setup passes through it; your data goes directly between devices, encrypted. You can use your own ntfy server instead.</p>
+          <div class="row"><input type="url" id="signal" value="${s.signalServer}" style="flex:1"><button class="btn ghost small" id="saveSignal">Save</button></div>
       </section>
+        </div>
+      </details>
       <p class="note-small">Seekto is free and open source. <a href="https://github.com/enrjgy-tech/seekto" target="_blank" rel="noopener">Source code</a></p>
     </div>`;
 
@@ -171,5 +184,8 @@ export function render(main) {
     toast("Everything was deleted from this device. Your storage copy, if you have one, is untouched.");
     e.target.dataset.sure = ""; e.target.textContent = "Delete everything";
   });
+  $("#openResearch").addEventListener("click", () => go("research"));
+  if (section === "ai") requestAnimationFrame(() => $("#aiPanel")?.scrollIntoView({ block: "start" }));
+  if (section === "storage") requestAnimationFrame(() => $("#accountPanel")?.scrollIntoView({ block: "start" }));
   return off;
 }

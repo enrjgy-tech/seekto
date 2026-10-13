@@ -1,6 +1,6 @@
 // What happens after something is captured (a recording, an import, a sample): dates go on the
 // calendar, and for meetings, action items with a due date go on it too.
-import { state, saveEvent, hasEvent, noteText } from "./state.js";
+import { state, saveEvent, hasEvent, noteText, locale } from "./state.js";
 import { uid } from "./store.js";
 import { findEvents, findActionItems, findDecisions } from "../engine/index.js";
 
@@ -20,9 +20,9 @@ export async function addDates(note, { sample = false } = {}) {
   const text = noteText(note);
   const ref = new Date(note.createdAt || Date.now());
   const subject = note.subject && !["General", "Meeting"].includes(note.subject) ? note.subject : null;
-  const found = findEvents(text, { ref, subject }).map((e) => ({ ...e, source: "recording" }));
+  const found = findEvents(text, { ref, subject, locale: locale() }).map((e) => ({ ...e, source: "recording" }));
   if (isMeeting(note)) {
-    for (const a of findActionItems(text, { ref })) {
+    for (const a of findActionItems(text, { ref, locale: locale() })) {
       if (a.due) found.push({ date: a.due, type: "task", title: `${a.owner && !["Team", "Me"].includes(a.owner) ? `${a.owner}: ` : ""}${a.task}`, sentence: a.sentence, source: "meeting" });
     }
   }

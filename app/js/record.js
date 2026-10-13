@@ -8,6 +8,7 @@ import { put, uid } from "./store.js";
 import { go } from "./nav.js";
 import { formatTime, detectSubject, detectTopic, toISO } from "../engine/index.js";
 import { transcribe, canListen } from "./voice.js";
+import { defaultTranscriber } from "./ondevice.js";
 
 const SUBJECTS = ["Auto-detect", "Math", "English", "Biology", "Chemistry", "Physics", "History", "Computer Science", "Economics", "Psychology", "Other"];
 
@@ -16,7 +17,7 @@ const rec = { active: false, startedAt: 0, cues: [], marks: [], mine: [], interi
 let tick = null;
 
 // Transcribe on this device (after recording) when chosen in Settings, or when the browser can't listen.
-const onDevice = () => state.settings.transcriber === "device" || !canListen;
+const onDevice = () => (state.settings.transcriber || defaultTranscriber(canListen)) === "device" || !canListen;
 const elapsed = () => (rec.active ? (Date.now() - rec.startedAt) / 1000 : 0);
 
 export function render(main) {
@@ -31,13 +32,13 @@ export function render(main) {
             <input type="text" id="recTitle" placeholder="Seekto names it for you" value="${rec.title}"></label>
         </div>
         <div class="timer mono" id="recTimer">${formatTime(elapsed())}</div>
-        ${raw(words().needConsent && !rec.active ? `<label class="row note-small" style="justify-content:center;gap:8px"><input type="checkbox" id="consent" style="width:auto"> Everyone in this meeting knows it's being recorded</label>` : "")}
-        <button class="recbtn ${rec.active ? "on" : ""}" id="recBtn" aria-pressed="${rec.active}" ${raw(words().needConsent && !rec.active ? "disabled" : "")}>${rec.active ? "Stop" : "Record"}</button>
+        ${raw(!rec.active ? html`<label class="row note-small" style="justify-content:center;gap:8px"><input type="checkbox" id="consent" style="width:auto"> ${words().consentCheck}</label>` : "")}
+        <button class="recbtn ${rec.active ? "on" : ""}" id="recBtn" aria-pressed="${rec.active}" ${raw(!rec.active ? "disabled" : "")}>${rec.active ? "Stop" : "Record"}</button>
         <div class="row" id="recTools" ${raw(rec.active ? "" : "hidden")} style="justify-content:center">
           <button class="btn ghost" id="markBtn">Lost here</button>
           <form id="mineForm" class="row"><input type="text" id="mineInput" placeholder="Type a note, press Enter" style="min-width:240px"></form>
         </div>
-        <p class="note-small" id="recHelp">${onDevice() ? "Audio stays on this device. When you stop, Seekto transcribes it on this device too (the model downloads once)." : "Audio stays on this device. The live transcript uses your browser's speech service (in Chrome and Edge it is processed online). For fully private transcripts, choose On this device in Settings."} ${words().consent}</p>
+        <p class="note-small" id="recHelp">${onDevice() ? "Private: the recording and its transcript stay on this device. Seekto transcribes it here when you stop (the speech model downloads once)." : "The recording is saved on this device, but the live transcript sends audio to your browser's speech service (Google in Chrome, Microsoft in Edge). For a private transcript, choose On this device in Settings."} ${words().consent}</p>
       </section>
       <section class="panel" id="livePanel" ${raw(rec.active || rec.cues.length ? "" : "hidden")}>
         <span class="label">Live transcript</span>

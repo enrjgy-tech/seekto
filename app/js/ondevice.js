@@ -5,9 +5,19 @@ import { whisperCues, toMono16k } from "../engine/index.js";
 export const MODELS = {
   fast: { id: "Xenova/whisper-tiny", label: "Fast (about 40 MB)" },
   better: { id: "Xenova/whisper-base", label: "Better (about 80 MB)" },
+  best: { id: "Xenova/whisper-small", label: "Best, for fast computers (about 250 MB)" },
 };
 
 export const supported = typeof Worker !== "undefined" && typeof WebAssembly !== "undefined" && typeof (globalThis.AudioContext || globalThis.webkitAudioContext) !== "undefined";
+
+/**
+ * Private by default: transcribe on this device when it can do it comfortably (a graphics chip
+ * for WebGPU, or a computer rather than a phone). Otherwise use the browser's live speech service.
+ */
+export function defaultTranscriber(canListen) {
+  const strong = typeof navigator !== "undefined" && ("gpu" in navigator || globalThis.matchMedia?.("(pointer: fine)").matches);
+  return supported && (strong || !canListen) ? "device" : "browser";
+}
 
 let worker = null;
 function getWorker() {

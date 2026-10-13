@@ -78,6 +78,8 @@ export function updateSettings(patch) {
 }
 
 export const today = () => toISO(new Date());
+/** How to read dates like 10/11: the browser's language unless chosen in Settings. */
+export const locale = () => state.settings.locale || navigator.language || "en-US";
 
 /** Notes as plain text for the engine: { id, title, subject, topic, text, cues, date }. */
 export function noteText(note) {

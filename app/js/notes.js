@@ -1,16 +1,36 @@
 // Notes, organized by date and subject, and a note page with the recording, transcript,
 // marks, your typed notes, questions, a quiz and the dates found in it.
 import { $, $$, html, raw, toast, esc, download, readFile, friendlyDate } from "./ui.js";
-import { state, saveNote, deleteNote, saveEvent, hasEvent, noteText, today } from "./state.js";
+import { state, saveNote, deleteNote, saveEvent, hasEvent, noteText, today, locale as currentLocale } from "./state.js";
 import { get, uid, put } from "./store.js";
 import { go } from "./nav.js";
 import {
   formatTime, buildIndex, search, parseCaptions, parseTranscriptText, detectSubject, detectTopic,
-  findEvents, searchNotes, toISO, fromISO, isReady, chat, stem, tokens,
+  findEvents, findDates, findDefinitions, searchNotes, toISO, fromISO, isReady, chat, stem, tokens,
 } from "../engine/index.js";
+
+/** Escape a transcript line and highlight what Seekto found in it: deadline dates and defined terms. */
+function marked(text, ref, locale) {
+  const spans = [];
+  if (findEvents(text, { ref, locale }).length) for (const d of findDates(text, ref, { locale })) spans.push([d.index, d.end]);
+  for (const d of findDefinitions(text)) {
+    const i = text.toLowerCase().indexOf(d.term.toLowerCase());
+    if (i >= 0) spans.push([i, i + d.term.length]);
+  }
+  spans.sort((a, b) => a[0] - b[0]);
+  let out = "";
+  let at = 0;
+  for (const [a, b] of spans) {
+    if (a < at) continue;
+    out += esc(text.slice(at, a)) + `<mark class="found">${esc(text.slice(a, b))}</mark>`;
+    at = b;
+  }
+  return out + esc(text.slice(at));
+}
 import { openQuiz } from "./quiz.js";
 import { isMeeting, addDates, transcribeNote, transcribing } from "./capture.js";
-import { supported as canTranscribeHere } from "./ondevice.js";
+import { supported as canTranscribeHere, defaultTranscriber } from "./ondevice.js";
+import { canListen } from "./voice.js";
 import { meetingPanelHtml, openFollowUp } from "./meeting.js";
 
 let filter = "All";
@@ -105,7 +125,7 @@ async function importFile(file) {
   await saveNote(note);
   toast("Imported");
   go(`note/${note.id}`);
-  if (note.audioId && !note.cues.length && state.settings.transcriber === "device") transcribeNote(note.id);
+  if (note.audioId && !note.cues.length && (state.settings.transcriber || defaultTranscriber(canListen)) === "device") transcribeNote(note.id);
 }
 
 function finishNote(note) {
@@ -236,13 +256,15 @@ function seek(t) {
 function drawLines(note) {
   const box = $("#lines");
   if (!box) return;
+  const ref = new Date(note.createdAt || Date.now());
+  const locale = currentLocale();
   const rows = [
     ...(note.cues || []).map((c) => ({ ...c, cls: "" })),
     ...(note.marks || []).map((m) => ({ start: m.start, text: `⚑ ${m.label}`, cls: "mark" })),
     ...(note.mine || []).map((m) => ({ start: m.start, text: `✎ ${m.text}`, cls: "mine" })),
   ].sort((a, b) => a.start - b.start);
   box.innerHTML = rows.length
-    ? rows.map((r) => `<button class="line ${r.cls}" data-t="${r.start}"><span class="t">${formatTime(r.start)}</span><span>${esc(r.text)}</span></button>`).join("")
+    ? rows.map((r) => `<button class="line ${r.cls}" data-t="${r.start}"><span class="t">${formatTime(r.start)}</span><span>${r.cls ? esc(r.text) : marked(r.text, ref, locale)}</span></button>`).join("")
     : `<p class="empty">No transcript lines.</p>`;
   $$(".line", box).forEach((l) => l.addEventListener("click", () => seek(Number(l.dataset.t))));
   const audio = $("#audio");

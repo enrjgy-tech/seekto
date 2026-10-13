@@ -39,7 +39,7 @@ function route() {
 function render() {
   const [name, param] = route();
   const view = views[name] ? name : "chat";
-  const top = { note: "notes", project: "research" }[view] || view;
+  const top = { note: "notes", project: "settings", research: "settings" }[view] || view;
   for (const b of $$("[data-go]")) {
     if (b.dataset.go === top) b.setAttribute("aria-current", "page");
     else b.removeAttribute("aria-current");
