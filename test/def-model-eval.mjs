@@ -3,7 +3,7 @@
 // sentence defines the term, and prints how well the yes/no score separates real definitions from false ones.
 // Runs on a GitHub runner (the sandbox can't reach the model hub): see .github/workflows/def-model.yml.
 import { readFileSync, writeFileSync } from "node:fs";
-import { AutoTokenizer, AutoModelForSeq2SeqLM, Tensor } from "@huggingface/transformers";
+import { AutoTokenizer, AutoModelForSeq2SeqLM, AutoModelForCausalLM, Tensor } from "@huggingface/transformers";
 
 const rows = readFileSync("engine/bench/judgments/definitions.jsonl", "utf8").trim().split("\n").map(JSON.parse);
 const [modelId = "Xenova/flan-t5-small"] = process.argv.slice(2);
@@ -18,12 +18,33 @@ const prompts = {
 };
 
 const tok = await AutoTokenizer.from_pretrained(modelId);
-const model = await AutoModelForSeq2SeqLM.from_pretrained(modelId, { dtype: "q8" });
-const yes = tok.encode("yes", { add_special_tokens: false })[0];
-const no = tok.encode("no", { add_special_tokens: false })[0];
+const causal = /qwen|smollm|llama|phi|gemma/i.test(modelId);
+const model = causal
+  ? await AutoModelForCausalLM.from_pretrained(modelId, { dtype: "q4" })
+  : await AutoModelForSeq2SeqLM.from_pretrained(modelId, { dtype: "q8" });
+const firstId = (w) => tok.encode(w, { add_special_tokens: false })[0];
+const yes = firstId(causal ? "yes" : "yes");
+const no = firstId("no");
+const yes2 = causal ? firstId("Yes") : yes;
+const no2 = causal ? firstId("No") : no;
 const startId = model.config.decoder_start_token_id ?? 0;
 
 async function score(text) {
+  if (causal) {
+    const chat = tok.apply_chat_template([{ role: "user", content: text }], {
+      add_generation_prompt: true,
+      tokenize: false,
+    });
+    const enc = await tok(chat);
+    const out = await model(enc);
+    const dims = out.logits.dims;
+    const v = dims.at(-1);
+    const row = (dims.at(-2) - 1) * v;
+    const l = out.logits.data;
+    const y = Math.max(Number(l[row + yes]), Number(l[row + yes2]));
+    const n = Math.max(Number(l[row + no]), Number(l[row + no2]));
+    return y - n;
+  }
   const enc = await tok(text, { truncation: true, max_length: 384 });
   const out = await model({
     ...enc,
