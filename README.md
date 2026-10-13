@@ -4,15 +4,16 @@
 
 Free and open source. No account, works without AI, and on computers the transcript is made privately on your own device. In English, Spanish and Portuguese.
 
-![A class recording turning into calendar dates and a practice test, which a classmate opens from a link on their phone](docs/media/hero.gif)
+![Seekto's first screen: a sample class plays, the quiz date and lab deadline light up and land on a calendar, the practice test fills up, then a classmate opens the shared test on a phone with "Your classmate got 5 of 6"](docs/media/hero.gif)
 
-**[Open Seekto →](https://enrjgy-tech.github.io/seekto/)** and press **Try a sample class**. No microphone, account or AI key needed.
+**[Open Seekto →](https://enrjgy-tech.github.io/seekto/)**: the sample class starts playing right away. No microphone, account or AI key needed. Can't record in class? **Paste your notes or a syllabus** instead.
 
 *For developers:* Whisper running in the browser, a no-AI rules engine you can import in one line ([playground](https://enrjgy-tech.github.io/seekto/playground.html)) with [accuracy measured on sentences it was never tuned on](engine/bench), and end-to-end encrypted sync to a database you own. Plain JavaScript with no runtime dependencies. [How it's built ↓](#how-its-built)
 
 ## What it does
 
 - **Record a class.** On a computer, Seekto writes the transcript privately on the device when you stop, so the audio never leaves it. On a phone it can use the browser's live speech service instead (online, in Chrome and Edge). Mark "lost here" moments and type notes stamped to the second.
+- **No recording? Paste.** Class notes, a syllabus or a teacher's announcement work the same way: dates to the calendar, terms to a practice test.
 - **Deadlines find themselves.** "The essay is due the 21st", "the quiz moved from Friday to Tuesday", "el examen es el viernes", "a prova é na sexta que vem" go straight on your calendar, and the date is highlighted in the transcript. Import Canvas, Google Classroom, Moodle or Blackboard calendars too.
 - **Practice tests from your own notes.** Seekto picks up terms the teacher explains ("so mitosis, basically, it's when…") and makes questions both ways, plus fill-in-the-blanks. Type or say your answer. Export to Quizlet, Anki, Google Forms, Kahoot or Moodle.
 - **Reviews before the test.** When a quiz is on your calendar, Seekto can add a few short spaced reviews before it.
