@@ -318,3 +318,42 @@ test("traps from a whole real lecture, as Whisper wrote it (MIT 14.01, lecture 1
   assert.deepEqual(dates("That will cover everything you've learned up through next Wednesday."), []);
   assert.deepEqual(dates("So for example, problem set one is going to be assigned next Friday."), ["2026-10-23"]);
 });
+
+test("definitions from whole lectures, as Whisper wrote them (MIT OCW, several courses)", () => {
+  const defs = (t) => findDefinitions(t).map((d) => d.term);
+  // said in the middle of a sentence
+  assert.deepEqual(
+    defs(
+      "There was a period of time known as the prebiotic world, where there were no living organisms that replicated.",
+    ),
+    ["Prebiotic world"],
+  );
+  assert.deepEqual(
+    defs("They cracked what's known as the genetic code. It maps three letters of DNA to one amino acid."),
+    ["Genetic code"],
+  );
+  assert.deepEqual(
+    defs(
+      'The message is we have very limited, what psychologists call, "attentional resources." We can pay attention to a few things.',
+    ),
+    ["Attentional resources"],
+  );
+  assert.deepEqual(defs("The negatively charged particle got the name of the electron."), ["Electron"]);
+  assert.deepEqual(
+    defs(
+      "They came up with this new model, the Rutherford model, where you had mostly empty space and concentrated mass.",
+    ),
+    ["Rutherford model"],
+  );
+  // talk that only looks like a definition
+  assert.deepEqual(defs("How is everyone doing? Come on, let's do better than that."), []);
+  assert.deepEqual(defs("Even though this is a lecture class, I still want you to do."), []);
+  assert.deepEqual(defs("Since then, it's been replicated so that she doesn't have to shut down her lab."), []);
+  assert.deepEqual(defs("So JJ Thompson was interested in this thing called cathode rays."), []);
+  assert.deepEqual(defs("Mass is being lost, left and right."), []);
+  assert.deepEqual(defs("The different voltage between the plates was greater than 0."), []);
+  assert.deepEqual(defs("The first part of this class is really the basic foundations of chemistry."), []);
+  assert.deepEqual(defs("Step one is the hardest because everybody skips the reading."), []);
+  assert.deepEqual(defs("So the goodie bag is another part of your homework."), []);
+  assert.deepEqual(defs("Dealers are mixing the fentanyl in with everything else."), []);
+});

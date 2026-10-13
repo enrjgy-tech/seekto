@@ -10,6 +10,8 @@
   "realtestDefinitionsRecall": 0.667,
   "realtestDefinitionsPrecision": 0.8,
   "audiotestDeadlinesPrecision": 1.0,
-  "audiotestDefinitionsRecall": 0.429,
-  "audiotestDefinitionsPrecision": 0.333
+  "audiotestDefinitionsRecall": 0.7,
+  "audiotestDefinitionsPrecision": 0.44,
+  "audiotrainDefinitionsRecall": 0.62,
+  "audiotrainDefinitionsPrecision": 0.79
 }
