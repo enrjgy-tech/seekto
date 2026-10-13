@@ -4,7 +4,7 @@
 
 Free and open source. No account, works without AI, and on computers the transcript is made privately on your own device. In English, Spanish and Portuguese.
 
-![Seekto's first screen: a sample class plays, the quiz date and lab deadline light up and land on a calendar, the practice test fills up, then a classmate opens the shared test on a phone with "Your classmate got 5 of 6"](docs/media/hero.gif)
+![Seekto's first screen: a sample class plays, the quiz date and lab deadline light up and land on a calendar, the practice test fills up, then a multiple-choice practice test, and a classmate opens the shared test on a phone with "Your classmate got 6 of 7"](docs/media/hero.gif)
 
 **[Open Seekto →](https://enrjgy-tech.github.io/seekto/)**: the sample class starts playing right away. No microphone, account or AI key needed. Can't record in class? **Paste your notes or a syllabus** instead.
 
