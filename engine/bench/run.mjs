@@ -93,7 +93,7 @@ for (const item of items) {
 
   // Definitions: only scored in files that label them.
   const df = { tp: 0, fp: 0, fn: 0 };
-  const scoresDefs = /^(defs|es-pt|(?:fresh|r2)-(?:lectures|school|espt))/.test(item.file);
+  const scoresDefs = /^(defs|es-pt|real-|(?:fresh|r2)-(?:lectures|school|espt))/.test(item.file);
   if (scoresDefs) {
     const got = findDefinitions(item.text, { lang: item.lang }).map((d) => d.term);
     const want = item.definitions.map((d) => d.term);
@@ -198,7 +198,7 @@ if (args.has("--check")) {
   console.log(JSON.stringify(result, null, 2));
 } else {
   const pct = (x) => `${Math.round(x * 100)}%`;
-  for (const key of ["dev", "dev2", "test", "fresh", "all"]) {
+  for (const key of ["dev", "dev2", "test", "realdev", "realtest", "fresh", "all"]) {
     const r = result[key];
     if (!r) continue;
     console.log(`\n${key.toUpperCase()} (${r.items} items, ${r.perfect} fully right)`);
