@@ -81,7 +81,7 @@ jobs:
           AUDIO_URL: ${{ matrix.url }}
         run: |
           echo "::notice::recording: $AUDIO_URL"
-          curl -fsSL -A "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/124 Safari/537.36" "$AUDIO_URL" -o lecture.src
+          curl -fsSL --retry 6 --retry-all-errors --retry-delay 30 -A "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/124 Safari/537.36" "$AUDIO_URL" -o lecture.src
           ls -l lecture.src
       - name: Convert to 16 kHz mono
         run: |
@@ -92,15 +92,38 @@ jobs:
         run: |
           npm install --no-save --no-package-lock @huggingface/transformers@3.0.2
           node test/real-audio.mjs lecture.wav out "${{ inputs.model }}" | tee out.log
-      - name: Show the transcript (compressed) in the run annotations
+      - name: Show the transcript (compressed) in the run annotations, part 1
         env:
           AUDIO_URL: ${{ matrix.url }}
         run: |
-          gzip -9 -c out/transcript.txt | base64 -w0 > transcript.b64
-          node -e '
+          [ -f transcript.b64 ] || gzip -9 -c out/transcript.txt | base64 -w0 > transcript.b64
+          PART=0 node -e '
             const t = require("fs").readFileSync("transcript.b64", "utf8");
             const tag = process.env.AUDIO_URL.split("/").pop();
-            for (let i = 0, n = 1; i < t.length; i += 3500, n++) console.log("::notice title=" + tag + " " + n + "::" + t.slice(i, i + 3500));
+            const first = Number(process.env.PART) * 9;
+            for (let n = first; n < first + 9 && n * 3500 < t.length; n++) console.log("::notice title=" + tag + " " + (n + 1) + "::" + t.slice(n * 3500, (n + 1) * 3500));
+          '
+      - name: Show the transcript (compressed) in the run annotations, part 2
+        env:
+          AUDIO_URL: ${{ matrix.url }}
+        run: |
+          [ -f transcript.b64 ] || gzip -9 -c out/transcript.txt | base64 -w0 > transcript.b64
+          PART=1 node -e '
+            const t = require("fs").readFileSync("transcript.b64", "utf8");
+            const tag = process.env.AUDIO_URL.split("/").pop();
+            const first = Number(process.env.PART) * 9;
+            for (let n = first; n < first + 9 && n * 3500 < t.length; n++) console.log("::notice title=" + tag + " " + (n + 1) + "::" + t.slice(n * 3500, (n + 1) * 3500));
+          '
+      - name: Show the transcript (compressed) in the run annotations, part 3
+        env:
+          AUDIO_URL: ${{ matrix.url }}
+        run: |
+          [ -f transcript.b64 ] || gzip -9 -c out/transcript.txt | base64 -w0 > transcript.b64
+          PART=2 node -e '
+            const t = require("fs").readFileSync("transcript.b64", "utf8");
+            const tag = process.env.AUDIO_URL.split("/").pop();
+            const first = Number(process.env.PART) * 9;
+            for (let n = first; n < first + 9 && n * 3500 < t.length; n++) console.log("::notice title=" + tag + " " + (n + 1) + "::" + t.slice(n * 3500, (n + 1) * 3500));
           '
       - uses: actions/upload-artifact@v4
         with:
