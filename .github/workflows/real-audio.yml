@@ -46,10 +46,10 @@ jobs:
           fi
           if [ -z "$url" ]; then
             # OCW lecture videos are mirrored on the Internet Archive
-            curl -sSL -A "$UA" 'https://archive.org/advancedsearch.php?q=MIT14.01+OR+MIT14_01F18&fl[]=identifier&rows=30&output=json' -o ia.json || true
-            echo "::notice::archive.org search: $(head -c 600 ia.json | tr '\n' ' ')"
-            id=$(grep -oE '"identifier":"[^"]*(01F18|14\.01)[^"]*"' ia.json | head -3 | tr '\n' ' ')
-            echo "::notice::candidates: $id"
+            for q in 'title:("Principles of Microeconomics") AND (MIT OR "OpenCourseWare")' 'MIT 14.01 Gruber Supply Demand lecture 1' 'title:("Introduction and Supply") AND Demand'; do
+              curl -sSL -A "$UA" -G 'https://archive.org/advancedsearch.php' --data-urlencode "q=$q" --data-urlencode 'fl[]=identifier' --data-urlencode 'fl[]=title' --data-urlencode 'rows=15' --data-urlencode 'output=json' -o ia.json || true
+              echo "::notice::archive.org [$q]: $(grep -oE '"(identifier|title)":"[^"]*"' ia.json | head -30 | tr '\n' ' ')"
+            done
             echo "::error::no recording link found; pass audio_url"
             exit 1
           fi
