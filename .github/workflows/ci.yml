@@ -44,3 +44,15 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f app/supabase.sql && psql -v ON_ERROR_STOP=1 -f app/supabase.sql
       - name: Storage checks
         run: psql -v ON_ERROR_STOP=1 -f engine/test/sql/storage.test.sql
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and serve the self-hosting image
+        run: |
+          docker build -t seekto .
+          docker run -d -p 8080:80 --name seekto seekto
+          sleep 2
+          curl -fsS http://localhost:8080/ | grep -q "<title>Seekto</title>"
+          curl -fsS http://localhost:8080/sw.js > /dev/null

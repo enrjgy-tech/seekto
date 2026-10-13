@@ -38,7 +38,7 @@ node pipeline/vendor-whisper.mjs tiny base small
 
 It copies everything into `site/vendor/` and `site/models/` and points `site/js/config.js` at them. With Docker: `docker build --build-arg VENDOR_WHISPER=1 -t seekto .`
 
-This script is new and hasn't been run end to end in CI yet (CI has no access to those sites). If it fails for you, please [open an issue](https://github.com/enrjgy-tech/seekto/issues) with the output.
+This script is new and hasn't been tested end to end yet. If it fails for you, please [open an issue](https://github.com/enrjgy-tech/seekto/issues) with the output.
 
 ## 3. Connecting devices on your own network (optional)
 
