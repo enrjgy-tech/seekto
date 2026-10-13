@@ -127,6 +127,19 @@ test("Spanish: dates, deadlines and definitions", () => {
   assert.deepEqual(defs.map((d) => d.term), ["Mitosis", "Fotosíntesis"]);
 });
 
+test("Portuguese: dates and deadlines", () => {
+  const ref = new Date(2026, 9, 12); // Monday, October 12, 2026
+  const dates = (t) => findDates(t, ref).map((d) => d.date);
+  assert.deepEqual(dates("A prova é na sexta."), ["2026-10-16"]);
+  assert.deepEqual(dates("O trabalho é para o dia 20 de outubro."), ["2026-10-20"]);
+  assert.deepEqual(dates("Amanhã entrego o trabalho."), ["2026-10-13"]);
+  assert.deepEqual(dates("A prova será daqui a duas semanas."), ["2026-10-26"]);
+
+  const events = (t) => findEvents(t, { ref }).map((e) => [e.date, e.type, e.title]);
+  assert.deepEqual(events("A prova é na sexta."), [["2026-10-16", "test", "Prova"]]);
+  assert.deepEqual(events("O trabalho é para o dia 20 de outubro."), [["2026-10-20", "assignment", "Trabalho"]]);
+});
+
 test("one sentence with two deadlines gives two events", () => {
   const ref = new Date(2026, 9, 12);
   const ev = (t) => findEvents(t, { ref }).map((e) => [e.date, e.title]);
@@ -134,3 +147,4 @@ test("one sentence with two deadlines gives two events", () => {
   assert.deepEqual(ev("La tarea de química se entrega el 20 de octubre, y el proyecto vence en dos semanas."), [["2026-10-20", "Tarea de química"], ["2026-10-26", "Proyecto"]]);
   assert.deepEqual(ev("The quiz is Friday and the essay is due Monday."), [["2026-10-16", "Quiz"], ["2026-10-19", "Essay due"]]);
 });
+
