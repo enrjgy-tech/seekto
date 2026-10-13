@@ -1,5 +1,6 @@
 // Organize notes and turn them into study material, without any AI model:
 // subject and topic detection, definitions, quizzes, answer checking and exports.
+import { COMMON_WORDS } from "./common-words.js";
 import { sentences, findDates } from "./dates.js";
 import { tokens, STOP } from "./search.js";
 
@@ -554,60 +555,79 @@ function inlineDefinitions(c, next) {
   return out;
 }
 
-// How sure we are that a term and its definition really belong together (0 to 1), from evidence that can
-// be checked, not guessed: how the speaker introduced it (a marker such as "called", "known as", "means"),
-// whether the term is a noun phrase that gets used again, and whether the meaning reads like a meaning.
-// Each reason is returned so a wrong answer can be explained.
+// How sure we are that a term and its definition really belong together (0 to 1). The evidence is
+// things that can be checked: how the speaker introduced it (a marker such as "called", "known as",
+// "means"), whether the term is course vocabulary or everyday talk, whether it comes up again, and
+// whether the meaning reads like a meaning or like a sum. The weights below were fitted on definitions
+// that were judged by hand in 23 real lectures (see engine/bench/README.md), not chosen by feel.
 const MARKER =
   /\b(?:called|call|known as|termed|named|means|mean by|refers? to|defined as|definition|stands? for|we say|so[- ]called|se llama|llamamos|significa|chamamos|quer dizer)\b/i;
-function definitionConfidence(term, def, sentence, ctx) {
-  const why = [];
-  let c = 0.5;
-  const add = (n, reason) => {
-    c += n;
-    why.push(`${n > 0 ? "+" : ""}${n} ${reason}`);
-  };
-  const marked = MARKER.test(sentence);
-  if (marked) add(0.25, "introduced with a marker (called / known as / means ...)");
-  const words = term.trim().split(/\s+/);
-  if (words.length > 3) add(-0.08, "long term");
-  if (words.length === 1 && term.length <= 3 && !/^[A-Z]{2,}$/.test(term)) add(-0.1, "very short word");
-  // a person's name is rarely a term: "JJ Thompson", "Rudd referred"
-  if (
-    words.length >= 2 &&
-    words.every((w) => /^[A-Z]/.test(w)) &&
-    !/\b(?:law|theory|model|effect|principle|rule|equation|constant)\b/i.test(term)
-  )
-    add(-0.15, "reads like a name");
-  if (ctx.long) {
-    const n = ctx.count(term);
-    if (n >= 3) add(0.15, `term comes up ${n} times`);
-    else if (n === 2) add(0.08, "term comes up twice");
-    else add(-0.08, "term is said only once");
-  }
+const MATHY =
+  /\b(?:equals?|equal to|over|squared|cubed|times|plus|minus|divided|derivative|integral|\d+|sqrt)\b|[=+*/^]/gi;
+const escapeRe = (x) => x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+export function definitionFeatures(term, def, sentence, ctx) {
+  const tw = term.trim().split(/\s+/);
   const dw = def.trim().split(/\s+/);
-  if (dw.length < 4) add(-0.15, "very short meaning");
-  if (dw.length > 30) add(-0.1, "very long meaning");
-  if (
-    /^(?:an?|the|when|where|how|what|whatever|whoever|something|someone|anything|one|those|that|these|it is|it's|used|a type|a kind)\b/i.test(
-      def,
-    )
-  )
-    add(0.1, "meaning opens like a meaning (a / the / when / where ...)");
-  if (/^(?:i|we|you|they)\s/i.test(def)) add(-0.1, "meaning is a statement about us");
-  if (/\b(?:and|or|but|the|a|an|of|to|so|that|because|with)$/i.test(def.replace(/[.!?]+$/, "")))
-    add(-0.15, "meaning ends mid-thought");
-  if (/\b(\w{3,})\s+\1\b/i.test(def)) add(-0.1, "repeated word (a recording glitch)");
-  const head = words.at(-1).toLowerCase();
-  if (head.length > 3 && new RegExp(`\\b${head.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(def) && !marked)
-    add(-0.08, "meaning repeats the term");
-  return { confidence: Math.max(0, Math.min(1, +c.toFixed(2))), why };
+  const lw = (a) => a.map((w) => w.toLowerCase().replace(/[^\p{L}']/gu, "")).filter((w) => w.length >= 2);
+  const termWords = lw(tw);
+  const defWords = lw(dw);
+  const uncommon = termWords.filter((w) => !COMMON_WORDS.has(w));
+  const count = ctx.long ? ctx.count(term) : 2;
+  const head = tw
+    .at(-1)
+    .toLowerCase()
+    .replace(/[^\p{L}]/gu, "");
+  return {
+    marker: MARKER.test(sentence) ? 1 : 0,
+    termWords: Math.min(tw.length, 4),
+    termUncommon: termWords.length ? uncommon.length / termWords.length : 0,
+    termAllCommon: termWords.length && !uncommon.length ? 1 : 0,
+    termCount: Math.log1p(Math.min(count, 30)),
+    termOnce: count <= 1 ? 1 : 0,
+    termName: tw.length >= 2 && tw.every((w) => /^[A-Z]/.test(w)) ? 1 : 0,
+    termShort: tw.length === 1 && term.length <= 3 && !/^[A-Z]{2,}$/.test(term) ? 1 : 0,
+    termLen: Math.log(term.length),
+    defWords: Math.log(dw.length),
+    defArticle: /^(?:an?|the)\b/i.test(def) ? 1 : 0,
+    defWhen: /^(?:when|where|how|what|whatever|whoever|something|someone|anything|one|those|used)\b/i.test(def) ? 1 : 0,
+    defMathy: Math.min(((def.match(MATHY) || []).length / dw.length) * 4, 2),
+    defPronounStart: /^(?:i|we|you|they|it|this|that|there|these|those|my|our|your)\b/i.test(def) ? 1 : 0,
+    defCommon: defWords.length ? defWords.filter((w) => COMMON_WORDS.has(w)).length / defWords.length : 0,
+    defHasTerm: head.length > 3 && new RegExp(`\\b${escapeRe(head)}`, "i").test(def) ? 1 : 0,
+    defEndsMid: /\b(?:and|or|but|the|a|an|of|to|so|that|because|with)$/i.test(def.replace(/[.!?]+$/, "")) ? 1 : 0,
+    defRepeat: /\b(\w{3,})\s+\1\b/i.test(def) ? 1 : 0,
+    sentenceLen: Math.log(sentence.split(/\s+/).length),
+    termFirst: sentence
+      .toLowerCase()
+      .replace(/^[^\p{L}]+/u, "")
+      .startsWith(term.toLowerCase().split(" ")[0])
+      ? 1
+      : 0,
+  };
+}
+// Fitted by engine/bench/fit-definitions.py on judged definitions from real lectures.
+const DEFINITION_MODEL = { bias: 0, weights: {} };
+function definitionConfidence(term, def, sentence, ctx) {
+  const f = definitionFeatures(term, def, sentence, ctx);
+  let z = DEFINITION_MODEL.bias;
+  const parts = [];
+  for (const [k, w] of Object.entries(DEFINITION_MODEL.weights)) {
+    const v = w * (f[k] ?? 0);
+    z += v;
+    if (Math.abs(v) >= 0.25) parts.push([k, v]);
+  }
+  parts.sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]));
+  return {
+    confidence: +(1 / (1 + Math.exp(-z))).toFixed(3),
+    why: parts.slice(0, 4).map(([k, v]) => `${v > 0 ? "+" : "-"} ${k}`),
+    features: f,
+  };
 }
 
 /** Find definitions in notes or a transcript: [{ term, definition, sentence }]. Works on how people talk,
  * not only on "X is a Y": "so mitosis, basically, it's when ...", "we call this opportunity cost", "what is an API? It's ...".
  */
-export function findDefinitions(text, { minConfidence = 0 } = {}) {
+export function findDefinitions(text, { minConfidence = 0, features = false } = {}) {
   const out = [];
   const seen = new Set();
   // a closing quote ends a sentence too: '... "attentional resources." We can pay ...'
@@ -627,7 +647,7 @@ export function findDefinitions(text, { minConfidence = 0 } = {}) {
     const key = t.toLowerCase();
     if (seen.has(key)) return;
     seen.add(key);
-    const { confidence, why } = definitionConfidence(t, d, sentence, ctx);
+    const { confidence, why, features: feat } = definitionConfidence(t, d, sentence, ctx);
     if (confidence < minConfidence) return;
     out.push({
       term: keepCase || /^[A-Z]{2,}/.test(t) ? t : t.charAt(0).toUpperCase() + t.slice(1),
@@ -635,6 +655,7 @@ export function findDefinitions(text, { minConfidence = 0 } = {}) {
       sentence,
       confidence,
       why,
+      ...(features ? { features: feat } : {}),
     });
   };
   for (let i = 0; i < list.length; i++) {
