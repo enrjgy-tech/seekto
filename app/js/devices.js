@@ -15,7 +15,15 @@ import {
   makeCode, normalizeCode, isValidCode, randomId, manifest, outgoing, incoming, frames, makeAssembler, deviceName, proof, channelBinding, matchCode, sasCommit, sasCode, STORES,
 } from "../engine/index.js";
 
-const ICE = [{ urls: "stun:stun.l.google.com:19302" }, { urls: "stun:stun.cloudflare.com:3478" }];
+const DEFAULT_ICE = [{ urls: "stun:stun.l.google.com:19302" }, { urls: "stun:stun.cloudflare.com:3478" }];
+// Your own STUN or TURN servers, from Settings (a JSON list in the RTCIceServer format).
+function iceServers() {
+  try {
+    const list = JSON.parse(state.settings.iceServers || "null");
+    if (Array.isArray(list) && list.length && list.every((x) => x && x.urls)) return list;
+  } catch { /* fall back */ }
+  return DEFAULT_ICE;
+}
 const BLOB_CHUNK = 16 * 1024;
 const LS = { me: "seekto.device", paired: "seekto.paired" };
 
@@ -90,7 +98,7 @@ class Link {
     this.peer = peer; // { id, name }
     this.open = false;
     this.peerAudio = new Set();
-    this.pc = new RTCPeerConnection({ iceServers: ICE });
+    this.pc = new RTCPeerConnection({ iceServers: iceServers() });
     this.sendSignal = sendSignal;
     this.handlers = new Map();
     this.queue = []; // messages that arrived before anyone listened for them

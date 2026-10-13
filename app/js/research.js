@@ -200,7 +200,7 @@ export function renderDetail(main, id) {
       el.innerHTML = `<p class="note-small" style="padding:12px">The video player couldn't load here. <a href="${watchUrl(p.videos[i].videoId, 0)}" target="_blank" rel="noopener">Open on YouTube</a>.</p>`;
       return;
     }
-    players[i] = new window.YT.Player(el, { videoId: p.videos[i].videoId, playerVars: { rel: 0, playsinline: 1 } });
+    players[i] = new window.YT.Player(el, { host: "https://www.youtube-nocookie.com", videoId: p.videos[i].videoId, playerVars: { rel: 0, playsinline: 1 } });
   }
   function seekVideo(i, t) {
     const pl = players[i];

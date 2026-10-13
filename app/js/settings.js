@@ -91,7 +91,11 @@ export function render(main, section) {
       <section class="panel">
         <h2>Connection server</h2>
           <p class="note-small" style="margin:8px 0">Devices find each other through a public message service. Only connection setup passes through it; your data goes directly between devices, encrypted. You can use your own ntfy server instead.</p>
-          <div class="row"><input type="url" id="signal" value="${s.signalServer}" style="flex:1"><button class="btn ghost small" id="saveSignal">Save</button></div>
+          <div class="row"><input type="url" id="signal" value="${s.signalServer}" aria-label="Message server address" style="flex:1"><button class="btn ghost small" id="saveSignal">Save</button></div>
+          <label class="field"><span class="label">STUN and TURN servers (optional)</span>
+            <textarea id="ice" rows="3" class="mono" placeholder='[{ "urls": "turn:turn.example.org:3478", "username": "me", "credential": "secret" }]'>${s.iceServers || ""}</textarea></label>
+          <p class="note-small">By default devices learn their address from Google's and Cloudflare's STUN servers. A TURN server of your own lets devices connect on networks that block direct connections. See docs/SELF-HOSTING.md.</p>
+          <div class="row"><button class="btn ghost small" id="saveIce">Save servers</button></div>
       </section>
         </div>
       </details>
@@ -160,6 +164,12 @@ export function render(main, section) {
   const offAccount = renderAccount($("#accountPanel"));
   const off = () => { offDevices(); offAccount(); };
   $("#setConnect").addEventListener("click", () => window.dispatchEvent(new Event("seekto:connect")));
+  $("#saveIce").addEventListener("click", () => {
+    const v = $("#ice").value.trim();
+    try { if (v && !JSON.parse(v).every((x) => x.urls)) throw new Error(); } catch { return toast('That isn\'t a valid list. Use [{ "urls": "turn:…" }].'); }
+    updateSettings({ iceServers: v });
+    toast("Saved. New connections will use these servers.");
+  });
   $("#saveSignal").addEventListener("click", () => { updateSettings({ signalServer: $("#signal").value.trim() || "https://ntfy.sh" }); toast("Saved. Reload to use it."); });
   $("#backup").addEventListener("click", async () => {
     const data = { app: "seekto", version: 1, exported: new Date().toISOString(), notes: await all("notes"), events: await all("events"), projects: await all("projects") };

@@ -1,13 +1,18 @@
 // Runs Whisper on this device, in a background thread, with Transformers.js.
 // The library and the model are downloaded once (then cached by the browser); audio never leaves the device.
-const LIB = "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.2";
+import { WHISPER } from "./config.js";
 let asr = null;
 let loaded = "";
 
 async function load(model) {
   if (asr && loaded === model) return asr;
-  const { pipeline, env } = await import(LIB);
-  env.allowLocalModels = false;
+  const { pipeline, env } = await import(new URL(WHISPER.library, self.location.href).href);
+  if (WHISPER.models) {
+    env.allowRemoteModels = false;
+    env.allowLocalModels = true;
+    env.localModelPath = new URL(WHISPER.models, self.location.href).href;
+  } else env.allowLocalModels = false;
+  if (WHISPER.wasm) env.backends.onnx.wasm.wasmPaths = new URL(WHISPER.wasm, self.location.href).href;
   const progress = (p) => self.postMessage({ type: "progress", status: p.status, file: p.file, progress: p.progress, loaded: p.loaded, total: p.total });
   let device = "wasm";
   try { if (self.navigator?.gpu && (await self.navigator.gpu.requestAdapter())) device = "webgpu"; } catch { /* no WebGPU */ }
