@@ -54,3 +54,20 @@ test("understands meeting questions", () => {
   assert.equal(classify("write the recap email").intent, "follow-up");
   assert.equal(classify("What's due this week?").intent, "due");
 });
+
+test("understands questions in Spanish and Portuguese", () => {
+  assert.deepEqual(classify("¿Cuándo es mi próximo examen?"), { intent: "next-test", subject: null });
+  assert.deepEqual(classify("cuándo es el examen de química"), { intent: "next-test", subject: "química" });
+  assert.deepEqual(classify("Quando é a próxima prova?"), { intent: "next-test", subject: null });
+  assert.equal(classify("¿Qué tengo esta semana?").range, "week");
+  assert.equal(classify("O que eu tenho pra amanhã?").range, "tomorrow");
+  assert.equal(classify("hazme un quiz de biología").intent, "quiz");
+  assert.equal(classify("me faz um teste").intent, "quiz");
+  assert.deepEqual(classify("¿Qué es la mitosis?"), { intent: "define", term: "mitosis" });
+  assert.deepEqual(classify("O que é fotossíntese?"), { intent: "define", term: "fotossíntese" });
+});
+
+test("answers can be translated", () => {
+  const tr = (s, v) => ({ "Nothing on your calendar this week.": "Nada esta semana." }[s] || s).replace(/\{(\w+)\}/g, (m, k) => v?.[k] ?? m);
+  assert.equal(answerLocally({ intent: "due", range: "week" }, { events: [], today: "2026-10-12", tr }).text, "Nada esta semana.");
+});
