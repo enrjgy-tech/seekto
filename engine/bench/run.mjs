@@ -27,14 +27,20 @@ const items = readdirSync(dir)
 // "fresh": written after the rules were finished and scored once; never shown.
 // "dev2": the previous fresh set (r2-*), scored once on October 12, 2026 and then opened up, so its
 // mistakes are printed and rules may be fixed on it.
+// "real": sentences quoted from real recorded lectures (Open Yale Courses), labelled by hand before
+// the engine ever ran on them. Odd ids (realdev) are open; even ids (realtest) are only counted.
 const split = (item) =>
-  /^fresh-/.test(item.file)
-    ? "fresh"
-    : /^r2-/.test(item.file)
-      ? "dev2"
-      : Number(item.id.match(/(\d+)$/)[1]) % 2 === 0
-        ? "test"
-        : "dev";
+  /^real-/.test(item.file)
+    ? Number(item.id.match(/(\d+)$/)[1]) % 2 === 0
+      ? "realtest"
+      : "realdev"
+    : /^fresh-/.test(item.file)
+      ? "fresh"
+      : /^r2-/.test(item.file)
+        ? "dev2"
+        : Number(item.id.match(/(\d+)$/)[1]) % 2 === 0
+          ? "test"
+          : "dev";
 const refDate = (iso) => {
   const [y, m, d] = iso.split("-").map(Number);
   return new Date(y, m - 1, d, 12);
