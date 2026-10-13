@@ -28,6 +28,10 @@ jobs:
       - run: npm test
       - run: npm run check:packs -- --write-index
       - run: npm run build
+      - name: Copy the speech library into the site
+        run: npm run vendor
+      - name: Check private transcription works before publishing
+        run: npm i --no-save playwright@1.56.0 && npx playwright install --with-deps chromium && node test/whisper.mjs
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

@@ -5,7 +5,7 @@ FROM node:20-alpine AS build
 WORKDIR /src
 COPY . .
 ARG VENDOR_WHISPER=0
-RUN node pipeline/build-site.mjs && if [ "$VENDOR_WHISPER" = "1" ]; then node pipeline/vendor-whisper.mjs; fi
+RUN node pipeline/build-site.mjs && node pipeline/vendor-transformers.mjs && if [ "$VENDOR_WHISPER" = "1" ]; then node pipeline/vendor-whisper.mjs; fi
 
 FROM nginx:1.27-alpine
 COPY docker/nginx.conf /etc/nginx/conf.d/default.conf

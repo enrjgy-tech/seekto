@@ -66,6 +66,7 @@ cd seekto
 npm test          # engine tests: dates, meetings, calendars, quizzes, share links, sync, encryption
 npm run bench     # accuracy on the blind-written test set
 npm run build     # copies the app into ./site and writes its offline file list
+npm run vendor    # copies the speech library into ./site (for private transcripts)
 npm run serve     # serves ./site locally
 ```
 

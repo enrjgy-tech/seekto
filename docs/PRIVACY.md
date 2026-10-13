@@ -8,7 +8,7 @@ Notes, recordings, your calendar, assignments and settings are stored in your br
 
 | Feature | What leaves your device | Who sees it |
 |---|---|---|
-| Private transcript (on device, the default on computers) | Nothing. The Whisper model and the Transformers.js library are downloaded once (from Hugging Face and jsDelivr) and cached | Those sites see a download request, not your audio |
+| Private transcript (on device, the default on computers) | Nothing. The Whisper model is downloaded once from Hugging Face and cached; the library that runs it comes from Seekto's own site | Hugging Face sees a download request, not your audio |
 | Live transcript (browser speech service, the default on phones) | Audio, while you record | Your browser maker's speech service: Google in Chrome, Microsoft in Edge, Apple in Safari |
 | Answering a quiz out loud, talk mode, the chat microphone | Audio, while the microphone is on | The same browser speech service. Shared tests don't offer it |
 | Reading answers aloud (talk mode) | The text being read | Your browser's voice. Most voices run on the device, but some (for example Chrome's "Google" voices) are online |
@@ -48,5 +48,5 @@ Each item is encrypted on the device and bound to its account, item id and versi
 
 - The account key is kept in the browser's storage on each device you add, so anyone who can use that browser profile can read your data. Use your device's lock screen.
 - The live site runs on `enrjgy-tech.github.io`, an address shared with any other GitHub Pages site of that account, so browser storage there is shared with those pages. For the strongest separation, run your own copy on its own address (see [SELF-HOSTING.md](SELF-HOSTING.md)).
-- A cross-site scripting bug in the app could expose data in the browser. The app's Content Security Policy only lets scripts load from the app itself, jsDelivr and YouTube, but it allows connections to any address, because you can point Seekto at your own AI, storage and message servers. The app escapes notes and shared content before showing them, and loads third-party code only when you ask for it: YouTube's player when you add a video, and Transformers.js (pinned version, from jsDelivr) when you turn on on-device transcription.
+- A cross-site scripting bug in the app could expose data in the browser. The app's Content Security Policy only lets scripts load from the app itself and YouTube, but it allows connections to any address, because you can point Seekto at your own AI, storage and message servers. The app escapes notes and shared content before showing them, and loads third-party code only when you ask for it: YouTube's player when you add a video, and Transformers.js (a pinned copy served from the app itself) when you use on-device transcription.
 - This hasn't had an outside security review yet. It is on the launch checklist. Please report issues as described in [SECURITY.md](../SECURITY.md).

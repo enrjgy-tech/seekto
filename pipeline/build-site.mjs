@@ -17,7 +17,8 @@ const files = [];
 async function walk(dir, prefix = "") {
   for (const e of await readdir(new URL(dir, out), { withFileTypes: true })) {
     const rel = prefix + e.name;
-    if (e.isDirectory()) { if (rel !== "packs") await walk(`${dir}${e.name}/`, `${rel}/`); }
+    // packs and the 22 MB speech runtime are fetched when needed, not when the app first opens
+    if (e.isDirectory()) { if (rel !== "packs" && rel !== "vendor" && rel !== "models") await walk(`${dir}${e.name}/`, `${rel}/`); }
     else if (!/\.(md|txt|sql)$/.test(e.name) && e.name !== "sw.js") files.push(rel);
   }
 }

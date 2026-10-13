@@ -32,10 +32,14 @@ jobs:
         with:
           node-version: 20
       - run: npm run build
+      - name: Copy the speech library into the site
+        run: npm run vendor
       - name: Install a headless browser
         run: npm i --no-save playwright@1.56.0 && npx playwright install --with-deps chromium
       - name: First screen, practice test, shared link on a phone, paste, Spanish
         run: node test/smoke.mjs
+      - name: Private transcription loads from the site alone and runs Whisper
+        run: node test/whisper.mjs
 
   storage-sql:
     runs-on: ubuntu-latest

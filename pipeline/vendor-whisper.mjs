@@ -1,6 +1,6 @@
-// For self-hosting: copy Transformers.js and the Whisper models into ./site, so on-device
-// transcription needs nothing from jsDelivr or Hugging Face. Run after `npm run build`, on a
-// machine with internet access:
+// For self-hosting: copy the Whisper models into ./site, so on-device transcription needs nothing
+// from Hugging Face either (Transformers.js is already served from the site). Run after
+// `npm run build && npm run vendor`, on a machine with internet access:
 //
 //   node pipeline/vendor-whisper.mjs                 # fast and better models (about 120 MB)
 //   node pipeline/vendor-whisper.mjs tiny base small # pick models (small is about 250 MB more)
@@ -30,12 +30,7 @@ async function save(url, path) {
 
 try { await readFile(`${site}index.html`); } catch { console.error("Run `npm run build` first."); process.exit(1); }
 
-console.log(`Transformers.js ${VERSION}`);
-const pkg = `https://cdn.jsdelivr.net/npm/@huggingface/transformers@${VERSION}`;
-const list = await (await fetch(`https://data.jsdelivr.com/v1/packages/npm/@huggingface/transformers@${VERSION}?structure=flat`)).json();
-await save(pkg, `${site}vendor/transformers/transformers.js`); // the same file the app imports from jsDelivr
-for (const f of list.files.map((x) => x.name).filter((n) => /^\/dist\/[^/]+\.(wasm|mjs)$/.test(n))) await save(`${pkg}${f}`, `${site}vendor/transformers/${f.slice(6)}`);
-
+// Transformers.js itself is already copied in by pipeline/vendor-transformers.mjs (part of every build).
 let total = 0;
 for (const name of wanted) {
   const id = MODELS[name];

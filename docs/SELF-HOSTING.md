@@ -29,14 +29,14 @@ seekto.example.org {
 
 ## 2. Keep on-device transcription on your server (optional)
 
-By default, the first private transcript downloads Transformers.js from jsDelivr and the Whisper model from Hugging Face (then the browser keeps them). To serve both yourself, run this once on a machine with internet access, after building:
+Transformers.js is always served from your site (`npm run vendor` copies it in; the Docker image does this for you). The Whisper model downloads from Hugging Face the first time (then the browser keeps it). To serve the models yourself too, run this once on a machine with internet access, after building:
 
 ```sh
 node pipeline/vendor-whisper.mjs              # fast and better models, about 120 MB
 node pipeline/vendor-whisper.mjs tiny base small
 ```
 
-It copies everything into `site/vendor/` and `site/models/` and points `site/js/config.js` at them. With Docker: `docker build --build-arg VENDOR_WHISPER=1 -t seekto .`
+It copies the models into `site/models/` and points `site/js/config.js` at them. With Docker: `docker build --build-arg VENDOR_WHISPER=1 -t seekto .`
 
 This script is new and hasn't been tested end to end yet. If it fails for you, please [open an issue](https://github.com/enrjgy-tech/seekto/issues) with the output.
 
