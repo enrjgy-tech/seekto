@@ -66,6 +66,13 @@ const server = createServer(async (req, res) => {
 }).listen(0);
 const origin = `http://localhost:${server.address().port}`;
 
+// On GitHub Actions, results also become annotations, so they show up next to the run
+const print = console.log;
+console.log = (line) => {
+  print(line);
+  if (process.env.GITHUB_ACTIONS)
+    print(`::${String(line).startsWith("FAIL") ? "error" : "notice"}::${String(line).replace(/\n/g, " ")}`);
+};
 const browser = await chromium.launch();
 let failed = false;
 try {
