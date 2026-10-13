@@ -33,20 +33,28 @@ jobs:
           PAGE: ${{ inputs.page }}
           AUDIO_URL: ${{ inputs.audio_url }}
         run: |
+          UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/124 Safari/537.36"
           url="$AUDIO_URL"
           if [ -z "$url" ]; then
-            code=$(curl -sSL -A "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/124 Safari/537.36" -w '%{http_code}' "$PAGE" -o page.html || true)
-            echo "::notice::page status $code, $(wc -c < page.html) bytes"
-            [ "$code" = 200 ] || { echo "::error::could not load the page (HTTP $code); pass audio_url instead"; exit 1; }
-            url=$(grep -oE 'https://[^"\\ ]+\.(mp3|mp4|m4a)' page.html | grep -v -i trailer | head -1 || true)
-            if [ -z "$url" ]; then
-              echo "::error::no mp3/mp4 link on the page; links seen:"
-              grep -oE 'https://[^"\\ ]*(archive|youtube|\.mp[34])[^"\\ ]*' page.html | sort -u | head -20
-              exit 1
+            code=$(curl -sSL -A "$UA" -w '%{http_code}' "$PAGE" -o page.html || true)
+            echo "::notice::page $PAGE -> HTTP $code, $(wc -c < page.html) bytes"
+            if [ "$code" = 200 ]; then
+              url=$(grep -oE 'https://[^"\\ ]+\.(mp3|mp4|m4a)' page.html | head -1 || true)
+            else
+              echo "::notice::page body: $(head -c 300 page.html | tr '\n' ' ')"
             fi
           fi
+          if [ -z "$url" ]; then
+            # OCW lecture videos are mirrored on the Internet Archive
+            curl -sSL -A "$UA" 'https://archive.org/advancedsearch.php?q=MIT14.01+OR+MIT14_01F18&fl[]=identifier&rows=30&output=json' -o ia.json || true
+            echo "::notice::archive.org search: $(head -c 600 ia.json | tr '\n' ' ')"
+            id=$(grep -oE '"identifier":"[^"]*(01F18|14\.01)[^"]*"' ia.json | head -3 | tr '\n' ' ')
+            echo "::notice::candidates: $id"
+            echo "::error::no recording link found; pass audio_url"
+            exit 1
+          fi
           echo "::notice::recording: $url"
-          curl -fsSL -A "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/124 Safari/537.36" "$url" -o lecture.src
+          curl -fsSL -A "$UA" "$url" -o lecture.src
           ls -l lecture.src
       - name: Convert to 16 kHz mono
         run: |
