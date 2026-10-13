@@ -357,3 +357,27 @@ test("definitions from whole lectures, as Whisper wrote them (MIT OCW, several c
   assert.deepEqual(defs("So the goodie bag is another part of your homework."), []);
   assert.deepEqual(defs("Dealers are mixing the fentanyl in with everything else."), []);
 });
+
+test("lecture talk around dates that is not a deadline (from whole MIT lectures)", () => {
+  const dates = (t) => findEvents(t, { ref: new Date("2026-10-12T10:00:00"), locale: "en-US" }).map((e) => e.date);
+  // what the class will discuss, a question held for later, a plan that slipped, a fraction on the board
+  assert.deepEqual(dates("That part of his paper we're gonna talk about next Tuesday."), []);
+  assert.deepEqual(dates("I want to hold that question for Tuesday, but the paper is really about mining."), []);
+  assert.deepEqual(
+    dates(
+      "I had planned to tell you everything you need for the problem set by today, but that's not going to happen.",
+    ),
+    [],
+  );
+  assert.deepEqual(dates("So now I've got 2/11 on the board, and simulating what we'd ask you to do on a quiz."), []);
+  assert.deepEqual(
+    dates("The kind of problem solving you'll see today is like generating tests which you saw last time."),
+    [],
+  );
+  assert.deepEqual(dates("I won't have office hours today due to my schedule."), []);
+  // still deadlines
+  assert.deepEqual(dates("The problem sets are due on Friday."), ["2026-10-16"]);
+  assert.deepEqual(dates("We didn't get to the quiz Monday because of the fire drill, it's on Friday now."), [
+    "2026-10-16",
+  ]);
+});

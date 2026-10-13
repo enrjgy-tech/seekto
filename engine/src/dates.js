@@ -853,7 +853,8 @@ const EVENT_WORDS = [
   ["práctica", "assignment", 1],
 ];
 const EVENT_RES = EVENT_WORDS.map(([word, type, romance]) => [
-  new RegExp(`(?<![${L}])${word}(?:s|es)?(?![${L}])`, "iu"),
+  // "due to the vacation schedule" is a reason, not a due date
+  new RegExp(`(?<![${L}])${word}(?:s|es)?(?![${L}])${word === "due" ? "(?!\\s+to\\b)" : ""}`, "iu"),
   word,
   type,
   !!romance,
@@ -889,12 +890,12 @@ const CORRECTION =
   /(?:^|[,.;]\s*|\s)(?:no,|no wait|wait|sorry|i mean|actually|rather|correction|scratch that|perd[oó]n|digo|mejor dicho|desculp[ae]|quer dizer|ou melhor)(?![\p{L}])/giu;
 // Things that come with a date but aren't something to prepare for or hand in.
 const NOT_DUE = new RegExp(
-  `(?<![${L}])(?:grades?(?!\\s+(?:\\d|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|k\\b))|report cards?|marks|results?|resultados?|notas|feedback|comments|come back|comes back|coming back|get (?:them|it|those|these) back|give (?:them|it|you|those) back|hand(?:ing)? (?:them|it|those) back|hand back|return(?:ed|ing)?|distribut(?:e|ing)|discuss(?:ing)?|go over|going over|go(?:es)? out|will go out|post(?:ing)? the|grad(?:e|ing) (?:them|it|those)|sai o|saem|discut(?:e|ir|imos)|devuelvo|devolvo|devolver|devolvemos|corrigi|corrijo|corregir|corregimos|corrige|corrigir|corrigimos|office hours)(?![${L}])`,
+  `(?<![${L}])(?:grades?(?!\\s+(?:\\d|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|k\\b))|report cards?|marks|results?|resultados?|notas|feedback|comments|come back|comes back|coming back|get (?:them|it|those|these) back|give (?:them|it|you|those) back|hand(?:ing)? (?:them|it|those) back|hand back|return(?:ed|ing)?|distribut(?:e|ing)|discuss(?:ing)?|go over|going over|go(?:es)? out|will go out|post(?:ing)? the|grad(?:e|ing) (?:them|it|those)|sai o|saem|discut(?:e|ir|imos)|devuelvo|devolvo|devolver|devolvemos|corrigi|corrijo|corregir|corregimos|corrige|corrigir|corrigimos|office hours|talk (?:more )?about|talk(?:ing)? (?:about|through)|come back to|had planned to|i had planned|hold (?:that|this|the|your) questions? for|finish(?:es|ed|ing)? on|last time|last class|last lecture|after the|before the|which you saw|as we saw|we saw|you saw)(?![${L}])`,
   "iu",
 );
 const GRADES =
   /(?<![\p{L}])(?:grades?(?!\s+(?:\d|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|k\b))|marks|results?|resultados?|notas)(?![\p{L}])/iu;
-const DUE_CUE = /(?<![\p{L}])(?:due|submit|hand in|turn in|entrega|entregar|se entrega)(?![\p{L}])/iu;
+const DUE_CUE = /(?<![\p{L}])(?:due(?!\s+to\b)|submit|hand in|turn in|entrega|entregar|se entrega)(?![\p{L}])/iu;
 const ELLIPTICAL_NEXT =
   /(?<![\p{L}])(?:el|la|o|a)\s+(?:pr[oó]xim[oa]|outr[oa])\s*[.,!?]*\s*$|(?<![\p{L}])the (?:next|following) one\b/iu;
 
@@ -1373,6 +1374,12 @@ export function findEvents(text, { ref = new Date(), subject = null, locale } = 
               /\bup (?:through|to|until)\s*$/i.test(part.slice(Math.max(0, d.index - 16), d.index)) &&
               /\b(?:cover|covers|covered|learned|taught|material|everything)\b/i.test(part)
             ),
+        )
+        // "I've got 2/11 on the board": a fraction being worked, not a date
+        .filter(
+          (d) =>
+            !/^\s*(?:on the board|over|divided)/i.test(part.slice(d.end, d.end + 16)) ||
+            !/\d\/\d/.test(d.text || part.slice(d.index, d.end)),
         );
       if (!dates.length) continue;
       // Cancelled, unless it was moved to a date said after the move ("cancelled Friday, moved to Monday")

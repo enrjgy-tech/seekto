@@ -8,7 +8,7 @@ Free and open source. No account, works without AI, and on computers the transcr
 
 **[Open Seekto →](https://enrjgy-tech.github.io/seekto/)**: the sample class starts playing right away. No microphone, account or AI key needed. Can't record in class? **Paste your notes or a syllabus** instead.
 
-*For developers:* Whisper running in the browser, a no-AI rules engine you can import in one line ([playground](https://enrjgy-tech.github.io/seekto/playground.html)) with [accuracy measured on sentences it was never tuned on](engine/bench), and end-to-end encrypted sync to a database you own. Plain JavaScript; the engine has no dependencies. [How it's built ↓](#how-its-built)
+*For developers:* Whisper running in the browser, a no-AI rules engine you can import in one line ([playground](https://enrjgy-tech.github.io/seekto/playground.html)) with [accuracy measured on real lectures and on sentences it was never tuned on](engine/bench), and end-to-end encrypted sync to a database you own. Plain JavaScript; the engine has no dependencies. [How it's built ↓](#how-its-built)
 
 ## What it does
 
@@ -23,20 +23,27 @@ Free and open source. No account, works without AI, and on computers the transcr
 
 ## How accurate is it?
 
-The rules are measured on sentences they were never tuned on, written to sound the way teachers, syllabi and meetings really sound (fillers, corrections, reschedules, cancellations, day-first dates), in English, Spanish and Portuguese. Two numbers matter:
+Two kinds of numbers, and the first one matters more.
 
-The sentences were written by separate AI sessions that never saw the code ([how, and why that matters](engine/bench#the-test-set)). A third, smaller set is quoted from **real recorded lectures** (Open Yale Courses): at first contact the engine found 2 of 5 deadlines there with 6 false alarms; after fixes on its open half, the held-out half stands at 2 of 2 deadlines found (3 false alarms) and 4 of 6 definitions. One whole 35-minute MIT lecture was also run through Whisper and the engine: at first contact only 15% of the definitions it offered were real (34 wrong ones); after general fixes, 8 of 14 real definitions are found with 6 wrong ones. Real speech is harder than written sentences, and [engine/bench](engine/bench#real-lectures-quoted-from-real-recordings) says exactly how it fails.
+**On whole real lectures** (28 complete MIT OpenCourseWare recordings, run through Seekto's own Whisper path, output judged by hand; [details](engine/bench#more-lectures-training-and-a-blind-test-that-failed)):
 
-- **Held out:** half of the first 360 sentences, only ever counted, never used to fix the rules.
-- **Fresh:** 190 new sentences in the voices of lecturers and teachers in six countries, Spanish and Portuguese speakers from seven, and meetings in a dozen workplaces, written after the rules were finished, committed before they were scored, and scored once. This is the closest thing to "a class it has never heard".
+| | What the engine offered | Right |
+|---|---|---|
+| Definitions, 23 lectures it had never seen | 382 | about 78 (**about 20%**) |
+| Definitions, 2 lectures scored blind before any fix | 15 | 0 of the 8 real ones found |
+| Deadlines, the same 23 lectures | 9 at first contact, 2 after general fixes | 3 real deadlines existed: 3 found with 6 wrong, then 2 found with 0 wrong |
+
+So on a real lecture, most of the definitions Seekto offers are not real definitions. Treat a suggested definition as a suggestion. Deadlines look solid, but lectures carry few of them, so the quoted-lecture set below is the better test for those.
+
+**On written test sentences** (they sound like teachers, syllabi and meetings, with fillers, corrections and reschedules, in English, Spanish and Portuguese; written by separate AI sessions that never saw the code, [how](engine/bench#the-test-set)):
 
 | | Held out: found | Held out: right, of what it adds | Fresh: found | Fresh: right, of what it adds |
 |---|---|---|---|---|
-| Deadlines and tests | 90% | 93% | 76% | 90% |
-| Definitions | 70% | 78% | 58% | 82% |
+| Deadlines and tests | 90% | 93% | 78% | 92% |
+| Definitions | 70% | 78% | 58% | 84% |
 | Meeting action items | 82% | 85% right person | 76% | 85% right person |
 
-So: when Seekto puts a date on your calendar it's right about 9 times in 10, but it misses about 1 in 4 on new kinds of sentences, and it finds a bit over half of the terms a teacher explains, so the practice test also makes questions from the lesson's key sentences. The sentences sound real but aren't real recordings yet; [how they were written](engine/bench#the-test-set). Details, the history of every scored set and how to run it: [engine/bench](engine/bench). CI fails if a change lowers the held-out numbers.
+"Held out" is half of the first 360 sentences, only ever counted. "Fresh" is 190 sentences written after the rules were finished and scored once. A third set, 54 sentences quoted from real Open Yale lectures, stands at 2 of 2 deadlines found (3 false alarms) and 4 of 6 definitions on its held-out half. CI fails if a change lowers any held-out number. Every scored set, its history and how to run it: [engine/bench](engine/bench).
 
 ## Why it's different
 
