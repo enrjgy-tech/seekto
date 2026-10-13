@@ -25,12 +25,14 @@ Free and open source. No account, works without AI, and on computers the transcr
 
 The rules are measured on sentences they were never tuned on, written to sound the way teachers, syllabi and meetings really sound (fillers, corrections, reschedules, cancellations, day-first dates), in English, Spanish and Portuguese. Two numbers matter:
 
+The sentences were written by separate AI sessions that never saw the code ([how, and why that matters](engine/bench#the-test-set)); real class recordings are the next step.
+
 - **Held out:** half of the first 360 sentences, only ever counted, never used to fix the rules.
 - **Fresh:** 190 new sentences in the voices of lecturers and teachers in six countries, Spanish and Portuguese speakers from seven, and meetings in a dozen workplaces, written after the rules were finished, committed before they were scored, and scored once. This is the closest thing to "a class it has never heard".
 
 | | Held out: found | Held out: right, of what it adds | Fresh: found | Fresh: right, of what it adds |
 |---|---|---|---|---|
-| Deadlines and tests | 89% | 93% | 76% | 90% |
+| Deadlines and tests | 90% | 93% | 76% | 90% |
 | Definitions | 70% | 78% | 58% | 82% |
 | Meeting action items | 82% | 85% right person | 76% | 85% right person |
 

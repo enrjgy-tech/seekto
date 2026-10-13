@@ -1,6 +1,6 @@
 // The home screen: a guided assistant that answers from your notes and calendar,
 // starts quizzes, and talks out loud in talk mode.
-import { $, html, raw, toast } from "./ui.js";
+import { $, html, raw, toast, announce } from "./ui.js";
 import { state, today, noteText, updateSettings } from "./state.js";
 import { go } from "./nav.js";
 import {
@@ -95,7 +95,7 @@ export function render(main) {
           <div class="seg" role="group" aria-label="${t("Use Seekto for")}">${raw(["learning", "work"].map((m) => html`<button type="button" data-pickmode="${m}" aria-pressed="${m === mode()}">${m === "learning" ? t("Learning") : t("Work")}</button>`).join(""))}</div>
           <button class="btn ghost small" id="newChat">${t("New chat")}</button>
         </div>
-        <div class="msgs" id="msgs" aria-live="polite"></div>
+        <div class="msgs" id="msgs"></div>
       </div>
     </div>
     <div class="composer">
@@ -380,6 +380,7 @@ function reply(m) {
   history.push({ role: "bot", ...m });
   saveHistory();
   drawHistory();
+  announce(m.text); // only the new reply is read out, not the whole history
   if (talk && state.settings.speak !== false) return speak(m.speak || m.text);
   return Promise.resolve();
 }

@@ -21,12 +21,10 @@ function cryptoRandom() {
 
 /** Clean up a typed code: upper case, no spaces or dashes, common mix-ups fixed. */
 export function normalizeCode(input) {
+  // The alphabet has no 0, O, 1, I or L, so there is nothing to "correct" a mix-up to: just tidy.
   return String(input || "")
     .toUpperCase()
     .replace(/[\s-]/g, "")
-    .replace(/0/g, "O")
-    .replace(/[1IL]/g, "1")
-    .replace(/1/g, "I")
     .replace(/[^A-Z2-9]/g, "");
 }
 

@@ -26,7 +26,9 @@ test("makes readable 6-character codes and cleans typed ones", () => {
   assert.ok(!/[01OIL]/.test(makeCode()));
   assert.equal(normalizeCode(" abc-def "), "ABCDEF");
   assert.equal(normalizeCode("k7m 2p9"), "K7M2P9");
-  assert.equal(normalizeCode("h0use1"), "HOUSEI");
+  // 0, O, 1, I and L aren't in the alphabet at all, so nothing is "corrected" into a wrong code
+  assert.equal(normalizeCode("h0use1"), "HUSE");
+  assert.ok(!isValidCode(normalizeCode("h0use1")));
   assert.ok(!isValidCode("ABC12"));
 });
 

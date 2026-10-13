@@ -31,7 +31,7 @@ Fresh sets are written after the rules are finished, by AI sessions that never s
 
 | | Found | Right, of what it adds |
 |---|---|---|
-| Deadlines and tests (155 items) | 89% (99 of 111) | 93% are a real deadline on the right date |
+| Deadlines and tests (155 items) | 90% (100 of 111) | 93% are a real deadline on the right date |
 | Definitions (75 items) | 70% (21 of 30) | 78% are real definitions |
 | Action items (25 meetings) | 82% (18 of 22), no extra items | 85% name the right person, 94% the right due date |
 

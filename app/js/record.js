@@ -73,7 +73,7 @@ export function render(main) {
       </section>
       <section class="panel" id="livePanel" ${raw(rec.active || rec.cues.length ? "" : "hidden")}>
         <span class="label">${t("Live transcript")}</span>
-        <div class="live" id="live"></div>
+        <div class="live" id="live" role="log" aria-live="polite"></div>
       </section>
     </div>`;
 
