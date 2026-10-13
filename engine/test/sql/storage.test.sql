@@ -1,6 +1,8 @@
 -- Checks app/supabase.sql the way the browser uses it: as the "anon" role.
 -- Run after the setup script; every check raises an error if it fails.
 \set ON_ERROR_STOP 1
+-- Start from an empty store (the test creates accounts up to the limit)
+delete from public.seekto_accounts;
 -- A small storage limit for this test, so it doesn't write hundreds of megabytes
 create or replace function public.seekto_max_bytes() returns bigint language sql immutable set search_path = pg_catalog as $$ select 6000000::bigint $$;
 set role anon;
