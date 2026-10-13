@@ -42,9 +42,10 @@ test("finds tests and deadlines in what a teacher says", () => {
 });
 
 test("titles deadlines from the words before 'due'", () => {
+  // Said on a Monday: "next Monday" is the Monday of next week (weeks start on Monday).
   const [event] = findEvents("The lab write-up is due next Monday.", { ref });
   assert.equal(event.title, "Lab write-up due");
-  assert.equal(event.date, "2026-10-26");
+  assert.equal(event.date, "2026-10-19");
 });
 
 test("parses a Canvas-style .ics feed and writes one back", () => {
@@ -120,7 +121,8 @@ test("Spanish: dates, deadlines and definitions", () => {
   assert.deepEqual(ev("Tenemos prueba mañana."), [["2026-10-13", "test", "Prueba"]]);
   assert.deepEqual(ev("El proyecto vence en dos semanas."), [["2026-10-26", "assignment", "Proyecto"]]);
   assert.deepEqual(ev("El parcial es el jueves de la próxima semana."), [["2026-10-22", "test", "Parcial"]]);
-  assert.deepEqual(ev("El ensayo es para el próximo martes."), [["2026-10-13", "assignment", "Ensayo"]]);
+  // "el próximo martes" is the Tuesday of next week, like "next Tuesday"
+  assert.deepEqual(ev("El ensayo es para el próximo martes."), [["2026-10-20", "assignment", "Ensayo"]]);
   // "esta mañana" is "this morning", not tomorrow
   assert.deepEqual(findDates("Esta mañana hablamos de células.", ref), []);
   const defs = findDefinitions("Bueno, la mitosis es la división de una célula en dos células idénticas. La fotosíntesis significa convertir luz en azúcar. Esto es muy importante para el examen.");

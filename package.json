@@ -5,6 +5,7 @@
   "description": "Your study assistant: record class, organized notes, a calendar that fills itself, research and practice tests.",
   "scripts": {
     "test": "node --test engine/test/*.test.js",
+    "bench": "node engine/bench/run.mjs",
     "check:packs": "node pipeline/check-packs.mjs",
     "build": "node pipeline/build-site.mjs",
     "serve": "npx --yes serve@14.2.4 site"

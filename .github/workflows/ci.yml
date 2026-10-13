@@ -17,6 +17,8 @@ jobs:
         with:
           node-version: 20
       - run: npm test
+      - name: Accuracy on held-out sentences
+        run: node engine/bench/run.mjs --check
       - run: npm run check:packs
       - run: npm run build
 

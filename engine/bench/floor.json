@@ -1,0 +1,8 @@
+{
+  "deadlinesRecall": 0.882,
+  "deadlinesPrecision": 0.924,
+  "definitionsRecall": 0.566,
+  "definitionsPrecision": 0.708,
+  "actionItemsRecall": 0.818,
+  "actionItemsPrecision": 1.0
+}

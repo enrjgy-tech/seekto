@@ -56,27 +56,90 @@ export function detectTopic(text) {
   return bestWord ? titleCase(bestWord[0]) : "Untitled";
 }
 
-const PRONOUN = /^(it|this|that|these|those|there|here|he|she|they|we|you|i|which|what|who|so|and|but|then|now|well|esto|eso|esta|este|ese|esa|él|ella|ellos|ellas|nosotros|ustedes|usted|que|qué|y|pero|entonces|bueno|hoy|aquí|ahí)(?![\p{L}])/iu;
+const PRONOUN = /^(no|yes|sí|si|não|sim|it|it's|this|that|that's|these|those|there|here|he|she|they|we|you|i|which|what|who|so|and|but|then|now|well|if|when|because|my|your|our|his|her|their|its|esto|eso|esta|este|ese|esa|él|ella|ellos|ellas|nosotros|ustedes|usted|que|qué|y|pero|entonces|bueno|hoy|aquí|ahí|mi|tu|su|nuestro|isso|isto|esse|essa|ele|eles|elas|nós|você|vocês|meu|minha|seu|sua|nosso|nossa|aqui|hoje|mas|então)(?![\p{L}'])/iu;
+// Nouns that start sentences like definitions but aren't terms: "the answer is twelve"
+const NOT_TERM = /^(?:answer|point|thing|things|problem|idea|question|part|reason|key|goal|plan|rule|trick|difference|main|important|hard|easy|first|second|last|next|best|worst|only|whole|same|other|class|lecture|chapter|section|unit|grade|grades|deadline|due date|homework|reading|test|quiz|exam|essay|paper|project|lab|final|midterm|syllabus|room|book|textbook|slide|slides|example|short version|bottom line|catch|deal|story|goal|focus|topic|plan|schedule|today|tomorrow|tonight|week|weekend|semester|year|day|morning|afternoon|everyone|everybody|somebody|someone|nobody|people|guys|kids|class|teacher|professor|respuesta|pregunta|problema|idea|clase|tema|examen|prueba|tarea|trabajo|prova|aula|resposta|pergunta|matéria|semana|hoje|amanhã|mañana)$/iu;
+const EVENTISH = /(?<![\p{L}])(?:quiz|test|exam|midterm|final|essay|homework|assignment|deadline|due|lab report|examen|prueba|parcial|tarea|entrega|prova|teste|trabalho|seminário|relatório)(?![\p{L}])/iu;
+const NUMBERISH = /^(?:\d|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|a hundred|half|uno|dos|tres|um|dois|três)\b/i;
+const BAD_DEFINITION = /^(?:that|because|why|not|so|going|gonna|due|on|in|at|for|really|very|pretty|too|hard|easy|tough|fine|okay|ok|important|tricky|done|over|here|there|next|coming|up|out|back|cancelled|canceled|the part|the one|the hard|the easy|the best|the worst|the same|the answer|the reason|the problem|the point|the thing|the key|the main|the last|the first|the next|the deadline|the due date|a big|a lot|a good|a bad|a great|a hard|a tough|a pain|a problem|a bit|a little|my|your|our|his|her|their|yours|mine|worth|about|like|also|still|always|never|probably|definitely|el (?:próximo|lunes|martes|miércoles|jueves|viernes)|muy|importante|para|na|no|pra|o mais|a mais|isso|difícil|fácil|high|low|everywhere|something|anything|chapter|unit|page|section|one of the|part of|higher|lower|bigger|smaller|harder|easier|worse|better|more|less|great|huge|super|insane|wild|crazy|key|crucial|central|tested|on the test|in the|at the)\b/iu;
+const LEAD = /^(?:so|and|okay|ok|now|remember|basically|right|alright|all right|well|um|uh|then|also|anyway|entonces|bueno|recuerden|recuerda|o sea|básicamente|pues|então|gente|tipo|bom|olha|lembrem|lembra)[,]?\s+/i;
+const FILLER = /,?\s*\b(?:um|uh|like|basically|you know|right|o sea|eh|este|tipo|gente|né|tá|in simple terms|simply put|put simply|in short|essentially|roughly|informally|técnicamente|digamos)\b\s*,/giu;
 
-/** Find definition sentences: "X is a Y", "X means Y", "X refers to Y", and in Spanish "X es un Y", "X significa Y". */
+function cleanSentence(s) {
+  let c = s.trim();
+  for (let i = 0; i < 4 && LEAD.test(c); i++) c = c.replace(LEAD, "");
+  return c.replace(FILLER, ",").replace(/,\s*,/g, ",").replace(/,\s*(is|are|was|were|es|son|é|são)\s/i, " $1 ").replace(/\s(is|are|es|son|é|são),\s/i, " $1 ").replace(/\s+/g, " ").trim();
+}
+
+function goodTerm(term) {
+  const t = term.replace(/^(the|a|an|el|la|los|las|un|una|o|os|as)\s+/i, "").replace(/[,:;]+$/, "").trim();
+  if (t.length < 2 || t.length > 48 || t.includes(",")) return null;
+  if (PRONOUN.test(t) || NOT_TERM.test(t) || EVENTISH.test(t) || NUMBERISH.test(t)) return null;
+  if (t.split(/\s+/).length > 5 || /\d{3,}/.test(t) || findDates(t).length || /\b(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday|lunes|martes|miércoles|jueves|viernes|segunda|terça|quarta|quinta|sexta)\b/i.test(t)) return null;
+  return t;
+}
+
+function goodDefinition(def) {
+  const d = def.replace(/\s*(?:,\s*)?(?:right|okay|ok|¿sí|¿vale|¿no|né|tá|sabe|ok)\?*\s*$/i, "").replace(/[.!?]+$/, "").trim();
+  if (d.split(/\s+/).length < 3 || BAD_DEFINITION.test(d) || NUMBERISH.test(d) && d.split(/\s+/).length < 4) return null;
+  if (findDates(d).length && EVENTISH.test(d)) return null;
+  return d;
+}
+
+const VERBS = "speeds|slows|lowers|raises|converts|turns|breaks|stores|carries|controls|produces|makes|allows|lets|shows|measures|describes|tells|represents|transports|holds|binds|blocks|takes|gives|uses|calls|returns|moves|keeps|protects|regulates|connects|separates|absorbs|releases|creates|changes|reduces|increases|predicts|explains";
+
+/** Pull one definition out of a cleaned sentence: [term, definition] or null. */
+function matchDefinition(c, next) {
+  let m;
+  // "ROI, return on investment, is ..."
+  if ((m = c.match(/^([A-Z][A-Za-z]{1,6}),\s*([^,]{4,60}?),?\s+(?:is|are|means|es|é)\s+(.{6,})$/))) return [m[1], `${m[2]}: ${m[3]}`, true];
+  // "Osmosis, and people mix this up..., osmosis is specifically ..."
+  if ((m = c.match(/^([^,]{2,40}),\s.*?,\s*([^,]{2,40}?)\s+(?:is|are|es|é)\s+(?:specifically|basically|just|simply|really)?\s*(.{6,})$/i)) && m[1].toLowerCase().replace(/^(the|a|an)\s+/, "") === m[2].toLowerCase().replace(/^(the|a|an)\s+/, "")) return [m[1], m[3]];
+  // "Feudalism, the short version is ...", "the Columbian Exchange, that's the transfer of ..."
+  if ((m = c.match(/^([^,]{2,40}),\s*(?:that's|that is|it's|it is|the short version is|which is|es|é|eso es|isso é|o que é|es decir)\s+(.{6,})$/i))) return [m[1], m[2]];
+  // "Se llama inflación al aumento ...", "Chamamos de X o/a ..."
+  if ((m = c.match(/^se llama\s+(.{2,40}?)\s+(?:al|a la|a los|a las|a)\s+(.{6,})$/i))) return [m[1], m[2]];
+  if ((m = c.match(/^(?:chamamos(?: de)?|a gente chama(?: de)?)\s+(.{2,40}?)\s+(?:o|a|os|as)\s+(.{6,})$/i))) return [m[1], m[2]];
+  // "We say a function is continuous if ..."
+  if ((m = c.match(/^we say (?:that )?(?:a|an)\s+([a-z]+)\s+is\s+([a-z]+)\s+(if|when)\s+(.{6,})$/i))) return [`${m[2]} ${m[1]}`, `a ${m[1]} is ${m[2]} ${m[3]} ${m[4]}`];
+  // "We call this opportunity cost" / "this is called X" / "known as X": the definition is next door
+  if ((m = c.match(/^(?:we call (?:this|that|it)|(?:this|that|it)(?: is|'s) called|(?:this|that) is known as|lo llamamos|esto se llama|isso se chama|a gente chama isso de)\s+(.{2,40}?)[,.!?]*(?:\s*right\?*)?$/i)) && next) return [m[1], next];
+  // "X is/are/was ...", "X means/refers to/stands for ..."
+  if ((m = c.match(/^(.{2,48}?)\s+(?:means|refers to|is defined as|stands for|is called|significa|significan|se refiere a|se define como|quiere decir|quer dizer|se refere a|é definid[oa] como)\s+(.{6,})$/i))) return [m[1], m[2]];
+  if ((m = c.match(/^(.{2,48}?)\s+(tells (?:you|us)|lets (?:you|us)|allows (?:you|us) to|describes|measures)\s+(.{6,})$/i))) return [m[1], `${m[2]} ${m[3]}`];
+  if ((m = c.match(/^(.{2,48}?)\s+(?:is|are|was|were|es|son|era|fue|é|são|foi|era)\s+(?:basically|just|simply|really|specifically|essentially|actually|kind of|sort of|básicamente|simplemente|basicamente|simplesmente)?\s*(.{6,})$/iu))) return [m[1], m[2]];
+  // "A catalyst speeds up a reaction ..."
+  if ((m = c.match(new RegExp(`^(?:a|an)\\s+([a-z][\\w -]{2,30}?)\\s+((?:${VERBS})\\s+.{6,})$`, "i")))) return [m[1], m[2]];
+  return null;
+}
+
+/** Find definitions in notes or a transcript: [{ term, definition, sentence }]. Works on how people talk,
+ * not only on "X is a Y": "so mitosis, basically, it's when ...", "we call this opportunity cost", "what is an API? It's ...".
+ */
 export function findDefinitions(text) {
   const out = [];
   const seen = new Set();
-  for (const s of sentences(text)) {
-    const clean = s.replace(/^(so|and|okay|now|remember|basically|entonces|bueno|recuerden|recuerda|o sea|básicamente),?\s+/i, "");
-    const m =
-      clean.match(/^(.{2,48}?)\s+(?:is|are)\s+((?:a|an|the|when|how|what)\b.{8,})$/i) ||
-      clean.match(/^(.{2,48}?)\s+(?:means|refers to|is defined as|is called)\s+(.{8,})$/i) ||
-      clean.match(/^(.{2,48}?)\s+(?:es|son)\s+((?:un|una|unos|unas|el|la|los|las|cuando|como|lo que)(?![\p{L}]).{8,})$/iu) ||
-      clean.match(/^(.{2,48}?)\s+(?:significa|significan|se refiere a|se define como|quiere decir|se llama)\s+(.{8,})$/iu);
-    if (!m) continue;
-    const term = m[1].replace(/^(the|a|an|el|la|los|las|un|una)\s+/i, "").trim();
-    const definition = m[2].replace(/[.!?]+$/, "").trim();
-    if (PRONOUN.test(term) || term.split(/\s+/).length > 5 || /\d{3,}/.test(term)) continue;
-    const key = term.toLowerCase();
-    if (seen.has(key)) continue;
+  const list = sentences(text);
+  const push = (term, def, sentence, keepCase) => {
+    const t = goodTerm(term);
+    const d = t && goodDefinition(def);
+    if (!t || !d) return;
+    const key = t.toLowerCase();
+    if (seen.has(key)) return;
     seen.add(key);
-    out.push({ term: term.charAt(0).toUpperCase() + term.slice(1), definition, sentence: s });
+    out.push({ term: keepCase || /^[A-Z]{2,}/.test(t) ? t : t.charAt(0).toUpperCase() + t.slice(1), definition: d, sentence });
+  };
+  for (let i = 0; i < list.length; i++) {
+    const s = list[i];
+    const c = cleanSentence(s);
+    const next = list[i + 1] && cleanSentence(list[i + 1]);
+    // "What is an API? It's a contract ..." and "Okay, classical conditioning. That's learning by association."
+    const q = c.match(/^what(?:'s| is| are)\s+(?:an?\s+|the\s+)?(.{2,40}?)\?$/i) || c.match(/^qu[ée]\s+es\s+(?:un|una|el|la)?\s*(.{2,40}?)\?$/i) || c.match(/^o que (?:é|são)\s+(?:um|uma|o|a)?\s*(.{2,40}?)\?$/i);
+    const frag = !q && c.match(/^([\p{L}][\p{L}' -]{1,40})[.:]$/u);
+    const answer = next && next.match(/^(?:it's|it is|that's|that is|they're|they are|this is|es|son|é|são|isso é|eso es)\s+(?:basically\s+|básicamente\s+|basicamente\s+)?(.{6,})$/i);
+    if ((q || (frag && frag[1].split(/\s+/).length <= 4)) && answer) { push((q || frag)[1], answer[1], `${s} ${list[i + 1]}`); i++; continue; }
+    const m = matchDefinition(c, next);
+    if (m) push(m[0], m[1], s, m[2]);
   }
   return out;
 }
