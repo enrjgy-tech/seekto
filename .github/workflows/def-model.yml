@@ -38,8 +38,9 @@ jobs:
           node-version: 22
       - run: npm install --no-save --no-package-lock @huggingface/transformers@3.0.2
       - name: Score every candidate
-        run: node test/def-model-eval.mjs "${{ matrix.model }}" | tee out.log
+        run: node test/def-model-eval.mjs "${{ matrix.model }}" > out.log 2>&1 || true
       - name: Report
         run: |
+          tail -c 1500 out.log | tr '\n' ' ' | sed 's/^/::notice title=log::/'
           grep '^RESULT' out.log | while read -r line; do echo "::notice title=${{ matrix.model }}::$line"; done
-          gzip -9 -c scores.json | base64 -w0 | fold -w 3500 | awk '{print "::notice title=scores-" NR "::" $0}'
+          [ -f scores.json ] && gzip -9 -c scores.json | base64 -w0 | fold -w 3500 | awk '{print "::notice title=scores-" NR "::" $0}' || true

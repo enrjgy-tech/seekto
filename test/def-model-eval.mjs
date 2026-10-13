@@ -3,7 +3,7 @@
 // sentence defines the term, and prints how well the yes/no score separates real definitions from false ones.
 // Runs on a GitHub runner (the sandbox can't reach the model hub): see .github/workflows/def-model.yml.
 import { readFileSync, writeFileSync } from "node:fs";
-import { AutoTokenizer, AutoModelForSeq2SeqLM } from "@huggingface/transformers";
+import { AutoTokenizer, AutoModelForSeq2SeqLM, Tensor } from "@huggingface/transformers";
 
 const rows = readFileSync("engine/bench/judgments/definitions.jsonl", "utf8").trim().split("\n").map(JSON.parse);
 const [modelId = "Xenova/flan-t5-small"] = process.argv.slice(2);
@@ -25,7 +25,10 @@ const startId = model.config.decoder_start_token_id ?? 0;
 
 async function score(text) {
   const enc = await tok(text, { truncation: true, max_length: 384 });
-  const out = await model({ ...enc, decoder_input_ids: [[BigInt(startId)]] });
+  const out = await model({
+    ...enc,
+    decoder_input_ids: new Tensor("int64", BigInt64Array.from([BigInt(startId)]), [1, 1]),
+  });
   const l = out.logits.data;
   const v = out.logits.dims.at(-1);
   return Number(l[(out.logits.dims.at(-2) - 1) * v + yes]) - Number(l[(out.logits.dims.at(-2) - 1) * v + no]);
