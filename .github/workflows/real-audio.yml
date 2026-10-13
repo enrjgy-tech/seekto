@@ -29,7 +29,7 @@ jobs:
         env:
           URLS: ${{ inputs.urls }}
         run: |
-          if [ "$URLS" = "search" ]; then echo "search=yes" >> "$GITHUB_OUTPUT"; echo 'matrix=[]' >> "$GITHUB_OUTPUT"; exit 0; fi
+          if [ "$URLS" = "search" ] || [ "${URLS#list:}" != "$URLS" ]; then echo "search=yes" >> "$GITHUB_OUTPUT"; echo 'matrix=[]' >> "$GITHUB_OUTPUT"; exit 0; fi
           echo "search=no" >> "$GITHUB_OUTPUT"
           echo "matrix=$(printf '%s\n' $URLS | jq -R . | jq -sc .)" >> "$GITHUB_OUTPUT"
 
@@ -39,7 +39,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: List MIT OpenCourseWare items on the Internet Archive
+        env:
+          URLS: ${{ inputs.urls }}
         run: |
+          if [ "${URLS#list:}" != "$URLS" ]; then
+            for id in ${URLS#list:}; do
+              curl -sSL "https://archive.org/metadata/$id" -o ia.json
+              ID=$id node -e '
+                const f = (JSON.parse(require("fs").readFileSync("ia.json", "utf8")).files || []).filter((x) => /\.(mp4|mp3|m4a)$/i.test(x.name) && !/\.ia\./.test(x.name));
+                const t = process.env.ID + ": " + f.map((x) => x.name + " " + Math.round(x.size / 1e6) + "MB").slice(0, 30).join(" | ");
+                for (let i = 0; i < t.length; i += 3500) console.log("::notice::" + t.slice(i, i + 3500));
+              '
+            done
+            exit 0
+          fi
           for q in 'creator:"MIT OpenCourseWare" AND mediatype:movies' 'title:(MIT) AND (lecture OR "Fall 2018" OR "Spring 2018" OR "Fall 2017") AND mediatype:movies' 'identifier:MIT*F1*'; do
             curl -sSL -G 'https://archive.org/advancedsearch.php' --data-urlencode "q=$q" --data-urlencode 'fl[]=identifier' --data-urlencode 'fl[]=title' --data-urlencode 'rows=60' --data-urlencode 'output=json' -o ia.json
             node -e '
