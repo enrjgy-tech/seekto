@@ -35,6 +35,22 @@ Fresh sets are written after the rules are finished, by AI sessions that never s
 
 The odd-numbered half (realdev) is open: its mistakes print with `--show` and rules may be fixed on it (all five traps above were). The even-numbered half (realtest) is only ever counted, and currently stands at: **deadlines 2 of 2 found, 3 false alarms; definitions 4 of 6 found, 1 false.** CI fails if it drops. The next step is whole real recordings through Whisper, not just quoted sentences.
 
+## A whole real recording: MIT 14.01, lecture 1
+
+`data/real-audio.jsonl` is one complete lecture run through the same path the app uses: the recording (Jonathan Gruber, *14.01 Principles of Microeconomics*, Fall 2018, [MIT OpenCourseWare](https://ocw.mit.edu/courses/14-01-principles-of-microeconomics-fall-2018/), [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/); copy on the [Internet Archive](https://archive.org/details/MIT14.01F18)) went through Whisper "base" and Seekto's cue cleanup, 35 minutes in about 5 on a GitHub runner (`.github/workflows/real-audio.yml`, run by hand; nothing from the recording is stored except this transcript). The transcript is cut into 28 pieces of 16 lines. That data file carries the lecture's license, not the repo's MIT; Whisper's errors are left in on purpose ("1401", "the restations", "Samielson").
+
+What counts as right was written by hand from the transcript: 14 definitions a student would want as flashcards (microeconomics, opportunity cost, model, positive and normative analysis, market failures, invisible hand, command economy, capitalistic economy, demand curve, supply curve, market equilibrium, maximum surplus, budget constraint) and 2 dates (problem set 1 handed out "next Friday", and this Friday's section). Lines like "that will cover everything you've learned up through next Wednesday" are labelled as *not* events. The date is assumed to be Wednesday, September 5, 2018; the recording doesn't say.
+
+**Two caveats.** The labels were written *after* I had read the engine's first output, so these labels are not blind. And I read the engine's output on the whole lecture once before splitting it, so the even pieces (audiotest) are not as untouched as the other held-out halves. Treat these numbers as a reality check.
+
+| | At first contact | After fixes on the open half |
+|---|---|---|
+| Definitions found | 6 of 14 | 8 of 14 |
+| Definitions offered that were wrong | **34** (15% of what it offered was real) | 6 (57% real) |
+| Dates found | 1 of 2, 1 wrong date | 1 of 2, no wrong date |
+
+What went wrong at first contact was ordinary speech that looks like "X is Y": "On the x-axis is the quantity of roses", "Therefore, it's the equilibrium", "Producers are happy because…", "Auctions are a terrific example", "Higher price means you make more money". The fixes are general rules about what a *term* is (a noun phrase, not a clause that starts with a preposition, a comparative or "I'll"), what a definition isn't ("happy…", "an example of…", a passive "driven by…"), and two real patterns: "Where the points meet is the market equilibrium" (description first, term second) and "…is what's called the command economy" (the next sentence says what it is). Across all 822 labelled items, the share of definitions that are real went from 73% to 87%, and no other set moved down. Still missing: a definition said across a pause ("what we're going to call maximum surplus. Which is…"), a garbled one ("we know about demand curve is it simply represents…"), and "this Friday the section is all new material" (a class meeting, not a due date).
+
 ## Results on the held-out half
 
 | | Found | Right, of what it adds |

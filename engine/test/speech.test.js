@@ -288,3 +288,33 @@ test("action items the way meetings sound", () => {
   ]);
   assert.deepEqual(items("Maria sent the deck yesterday. Great quarter, everyone."), []);
 });
+
+test("traps from a whole real lecture, as Whisper wrote it (MIT 14.01, lecture 1)", () => {
+  const terms = (text) => findDefinitions(text).map((d) => d.term);
+  // Talk that looks like "X is Y" but isn't a definition
+  assert.deepEqual(terms("On the x-axis is the quantity of roses. On the y-axis is the price of roses."), []);
+  assert.deepEqual(terms("Higher price means you make more money, so you want to produce more of them."), []);
+  assert.deepEqual(terms("Therefore, it's the equilibrium, highly non-technical."), []);
+  assert.deepEqual(terms("Producers are happy because on their supply curve is the same point."), []);
+  assert.deepEqual(terms("Auctions are a terrific example. They're like the textbook examples of a market."), []);
+  assert.deepEqual(terms("Adam Smith is sort of considered the father of economics."), []);
+  assert.deepEqual(terms("Economics at its core is all about how the market knows best."), []);
+  assert.deepEqual(terms("Laws were driven by the capitalist signature of our economy."), []);
+  assert.deepEqual(terms("Many of these people are poor and lives could be changed by a payment."), []);
+  // Said the other way round: the description first, the term second
+  assert.deepEqual(terms("Where the points meet is the market equilibrium."), ["Market equilibrium"]);
+  // "is what's called X": the next sentence says what it is (and a repeated line is skipped)
+  assert.deepEqual(
+    findDefinitions(
+      "Now, the other extreme is what's called the command economy. Rather than a capitalist economy, it's what's called the command economy. In this case, the government makes all the production and consumption decisions.",
+    ).map((d) => [d.term, d.definition]),
+    [["Command economy", "the government makes all the production and consumption decisions"]],
+  );
+  assert.deepEqual(
+    terms("I'll have a budget constraint, which is the resource I have, and those who can train the optimization."),
+    ["Budget constraint"],
+  );
+  // Where the material stops is not an event
+  assert.deepEqual(dates("That will cover everything you've learned up through next Wednesday."), []);
+  assert.deepEqual(dates("So for example, problem set one is going to be assigned next Friday."), ["2026-10-23"]);
+});

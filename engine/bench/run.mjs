@@ -29,18 +29,23 @@ const items = readdirSync(dir)
 // mistakes are printed and rules may be fixed on it.
 // "real": sentences quoted from real recorded lectures (Open Yale Courses), labelled by hand before
 // the engine ever ran on them. Odd ids (realdev) are open; even ids (realtest) are only counted.
+// "audio": one whole real lecture (MIT 14.01) as Whisper transcribed it; odd chunks (audiodev) are open.
 const split = (item) =>
-  /^real-/.test(item.file)
+  /^real-audio/.test(item.file)
     ? Number(item.id.match(/(\d+)$/)[1]) % 2 === 0
-      ? "realtest"
-      : "realdev"
-    : /^fresh-/.test(item.file)
-      ? "fresh"
-      : /^r2-/.test(item.file)
-        ? "dev2"
-        : Number(item.id.match(/(\d+)$/)[1]) % 2 === 0
-          ? "test"
-          : "dev";
+      ? "audiotest"
+      : "audiodev"
+    : /^real-/.test(item.file)
+      ? Number(item.id.match(/(\d+)$/)[1]) % 2 === 0
+        ? "realtest"
+        : "realdev"
+      : /^fresh-/.test(item.file)
+        ? "fresh"
+        : /^r2-/.test(item.file)
+          ? "dev2"
+          : Number(item.id.match(/(\d+)$/)[1]) % 2 === 0
+            ? "test"
+            : "dev";
 const refDate = (iso) => {
   const [y, m, d] = iso.split("-").map(Number);
   return new Date(y, m - 1, d, 12);
@@ -159,7 +164,7 @@ for (const item of items) {
     t.items++;
     if (!wrong.length) t.perfect++;
   }
-  if (wrong.length && (s === "dev" || s === "dev2" || s === "realdev"))
+  if (wrong.length && (s === "dev" || s === "dev2" || s === "realdev" || s === "audiodev"))
     mistakes.push({ id: item.id, locale: item.locale, ref: item.ref, text: item.text, wrong, note: item.note });
 }
 
@@ -180,6 +185,7 @@ if (args.has("--check")) {
   const floor = JSON.parse(readFileSync(new URL("./floor.json", import.meta.url), "utf8"));
   const t = result.test;
   const rt = result.realtest;
+  const at = result.audiotest;
   const now = {
     ...(rt
       ? {
@@ -187,6 +193,13 @@ if (args.has("--check")) {
           realtestDeadlinesPrecision: rt.deadlines.precision,
           realtestDefinitionsRecall: rt.definitions.recall,
           realtestDefinitionsPrecision: rt.definitions.precision,
+        }
+      : {}),
+    ...(at
+      ? {
+          audiotestDeadlinesPrecision: at.deadlines.precision,
+          audiotestDefinitionsRecall: at.definitions.recall,
+          audiotestDefinitionsPrecision: at.definitions.precision,
         }
       : {}),
     deadlinesRecall: t.deadlines.recall,
@@ -213,7 +226,7 @@ if (args.has("--check")) {
   console.log(JSON.stringify(result, null, 2));
 } else {
   const pct = (x) => `${Math.round(x * 100)}%`;
-  for (const key of ["dev", "dev2", "test", "realdev", "realtest", "fresh", "all"]) {
+  for (const key of ["dev", "dev2", "test", "realdev", "realtest", "audiodev", "audiotest", "fresh", "all"]) {
     const r = result[key];
     if (!r) continue;
     console.log(`\n${key.toUpperCase()} (${r.items} items, ${r.perfect} fully right)`);

@@ -1365,7 +1365,15 @@ export function findEvents(text, { ref = new Date(), subject = null, locale } = 
       if (GRADES.test(own) || (NOT_DUE.test(own) && !DUE_CUE.test(part))) continue;
       const dates = all
         .filter((d) => d.index >= start && d.end <= start + part.length)
-        .map((d) => ({ ...d, index: d.index - start, end: d.end - start }));
+        .map((d) => ({ ...d, index: d.index - start, end: d.end - start }))
+        // "that will cover everything you've learned up through next Wednesday": where the material stops, not an event
+        .filter(
+          (d) =>
+            !(
+              /\bup (?:through|to|until)\s*$/i.test(part.slice(Math.max(0, d.index - 16), d.index)) &&
+              /\b(?:cover|covers|covered|learned|taught|material|everything)\b/i.test(part)
+            ),
+        );
       if (!dates.length) continue;
       // Cancelled, unless it was moved to a date said after the move ("cancelled Friday, moved to Monday")
       const moved = part.match(RESCHEDULE);

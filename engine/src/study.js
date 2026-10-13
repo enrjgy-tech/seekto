@@ -254,13 +254,29 @@ const PRONOUN =
   /^(no|yes|sí|si|não|sim|it|it's|this|that|that's|these|those|there|here|he|she|they|we|you|i|which|what|who|so|and|but|then|now|well|if|when|because|my|your|our|his|her|their|its|esto|eso|esta|este|ese|esa|él|ella|ellos|ellas|nosotros|ustedes|usted|que|qué|y|pero|entonces|bueno|hoy|aquí|ahí|mi|tu|su|nuestro|isso|isto|esse|essa|ele|eles|elas|nós|você|vocês|meu|minha|seu|sua|nosso|nossa|aqui|hoje|mas|então)(?![\p{L}'])/iu;
 // Nouns that start sentences like definitions but aren't terms: "the answer is twelve"
 const NOT_TERM =
-  /^(?:answer|point|thing|things|problem|idea|question|part|reason|key|goal|plan|rule|trick|difference|main|important|hard|easy|first|second|last|next|best|worst|only|whole|same|other|class|lecture|chapter|section|unit|grade|grades|deadline|due date|homework|reading|test|quiz|exam|essay|paper|project|lab|final|midterm|syllabus|room|book|textbook|slide|slides|example|whole thing|short version|bottom line|catch|deal|story|goal|focus|topic|plan|schedule|today|tomorrow|tonight|week|weekend|semester|year|day|morning|afternoon|everyone|everybody|somebody|someone|nobody|people|guys|kids|class|teacher|professor|respuesta|pregunta|problema|idea|clase|tema|examen|prueba|tarea|trabajo|prova|aula|resposta|pergunta|matéria|semana|hoje|amanhã|mañana)$/iu;
+  /^(?:answer|point|thing|things|problem|idea|question|part|reason|key|goal|plan|rule|trick|difference|main|important|hard|easy|first|second|last|next|best|worst|only|whole|same|other|class|lecture|chapter|section|unit|grade|grades|deadline|due date|homework|reading|test|quiz|exam|essay|paper|project|lab|final|midterm|syllabus|room|book|textbook|slide|slides|example|whole thing|short version|bottom line|catch|deal|story|goal|focus|topic|plan|schedule|today|tomorrow|tonight|week|weekend|semester|year|day|morning|afternoon|everyone|everybody|somebody|someone|nobody|people|guys|kids|class|teacher|professor|actually|therefore|thus|hence|however|yeah|yes|obviously|certainly|clearly|honestly|generally|typically|anyway|again|respuesta|pregunta|problema|idea|clase|tema|examen|prueba|tarea|trabajo|prova|aula|resposta|pergunta|matéria|semana|hoje|amanhã|mañana)$/iu;
 const EVENTISH =
   /(?<![\p{L}])(?:p[1-4]|av[1-4]|quiz|test|exam|midterm|final|essay|homework|assignment|deadline|due|lab report|examen|prueba|parcial|tarea|entrega|prova|teste|trabalho|seminário|relatório)(?![\p{L}])/iu;
 const NUMBERISH =
   /^(?:\d|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|a hundred|half|uno|dos|tres|um|dois|três)\b/i;
+// A term is a noun phrase. These aren't: a phrase that opens with a preposition or linking word
+// ("On the x-axis", "Rather than a capitalist economy"), a comparative ("Higher price"), a vague
+// subject ("Many of these people"), or a slide description ("Blue downward sloping line").
+const TERM_NOT_NP = new RegExp(
+  [
+    "^(?:on|in|at|by|for|with|from|to|of|into|over|under|about|than|rather|many|some|most|several|few|each|every|both|either|any|other|another|where|when|while|what|which|who|how|why|if|that|those|these|therefore|thus|hence|however|actually|yeah|yes|but|higher|lower|bigger|smaller|more|less|better|worse|greater|fewer|people|everyone|everybody|nobody|somebody|someone|students|kids|guys)\\s",
+    "^(?:first|second|third|fourth|fifth|last|next|final)\\s+and\\b",
+    "^(?:first|second|third|fourth|fifth|last|next|final)\\s+(?:problem|question|point|reason|issue|step|thing|part|extreme|one)$",
+    "^(?:blue|red|yellow|green|orange|purple|black|dotted|dashed|solid)\\b.*\\b(?:line|curve|bar|dot|arrow|box|area)$",
+    "(?<![\\p{L}])(?:i|we|you|they|he|she|it|that|there)'(?:ll|d|ve|re|m|s)(?![\\p{L}])",
+    "[?>]",
+  ].join("|"),
+  "iu",
+);
+// "Economics at its core": a possessive pronoun inside a phrase means it's a clause, not a term
+const TERM_POSSESSIVE = /\s(?:its|their|our|my|your)\s/i;
 const BAD_DEFINITION =
-  /^(?:that(?!\s+\p{L}+\s+(?:where|when|which|that|in which|you))|because|why|not|so|going|gonna|due|on|in|at|for|really|very|pretty|too|hard|easy|tough|fine|okay|ok|important|tricky|done|over|here|there|next|coming|up|out|back|cancelled|canceled|the part (?:everyone|people|you|that everyone|where you)|the one|the hard|the easy|the best|the worst|the same|the answer is|the reason (?:is|why)|the problem is|the point is|the thing is|the key is|the main thing|the last|the first|the next|the deadline|the due date|a big|a lot|a good|a bad|a great|a hard|a tough|a pain|a problem|a bit|a little|(?:my|your|our|his|her|their)\s+(?:homework|job|task|responsibility|problem|grade|turn|choice|call|fault)|yours|mine|worth|about|like|also|still|always|never|probably|definitely|el (?:próximo|lunes|martes|miércoles|jueves|viernes)|muy|importante|para|na|no|pra|o mais|a mais|isso|difícil|fácil|high|low|everywhere|something(?!\s+(?:that|which|created|made|used))|anything|well|awesome|amazing|fun|nice|cool|lovely|fantastic|brilliant|terrible|incredible|chapter|unit|page|section|one of the|part of|higher|lower|bigger|smaller|harder|easier|worse|better|more|less|great|huge|super|insane|wild|crazy|key|crucial|central|tested|on the test|in the|at the)\b/iu;
+  /^(?:that(?!\s+\p{L}+\s+(?:where|when|which|that|in which|you))|because|why|not|so|going|gonna|due|on|in|at|for|really|very|pretty|too|hard|easy|tough|fine|okay|ok|important|tricky|done|over|here|there|next|coming|up|out|back|cancelled|canceled|the part (?:everyone|people|you|that everyone|where you)|the one|the hard|the easy|the best|the worst|the same|the answer is|the reason (?:is|why)|the problem is|the point is|the thing is|the key is|the main thing|the last|the first|the next|the deadline|the due date|a big|a lot|a good|a bad|a great|a hard|a tough|a pain|a problem|a bit|a little|(?:my|your|our|his|her|their)\s+(?:homework|job|task|responsibility|problem|grade|turn|choice|call|fault)|yours|mine|worth|about|like|also|still|always|never|probably|definitely|el (?:próximo|lunes|martes|miércoles|jueves|viernes)|muy|importante|para|na|no|pra|o mais|a mais|isso|difícil|fácil|high|low|everywhere|something(?!\s+(?:that|which|created|made|used))|anything|well|awesome|amazing|fun|nice|cool|lovely|fantastic|brilliant|terrible|incredible|chapter|unit|page|section|one of the|part of|happy|unhappy|sad|willing|able|likely|unlikely|possible|impossible|probable|incredibly|extremely|quite|fairly|totally|absolutely|highly|especially|relatively|considered|regarded|said to|thought to|supposed to|an?\s+(?:\w+\s+)?example|(?:we|you|i|they)\s+(?:would|will|could|should|can|may|might)|what happens (?:if|when)|(?:\w+ed|driven|given|taken|shown|known|chosen|written)\s+by\b|higher|lower|bigger|smaller|harder|easier|worse|better|more|less|great|huge|super|insane|wild|crazy|key|crucial|central|tested|on the test|in the|at the)\b/iu;
 const LEAD =
   /^(?:so|and|okay|ok|now|remember|basically|right|alright|all right|well|um|uh|hm+|oh|ah|eh|hã|ahn|then|also|anyway|look|listen|guys|everyone|everybody|okay everyone|entonces|bueno|recuerden|recuerda|o sea|básicamente|pues|a ver|ojo|oigan|mira|miren|chicos|chicas|muchachos|chavos|ahorita|vale|então|gente|pessoal|galera|tipo|bom|olha|lembrem|lembra|tá|beleza)[,]?\s+/iu;
 const FILLER =
@@ -288,6 +304,7 @@ function goodTerm(term) {
     .trim();
   if (t.length < 2 || t.length > 48 || t.includes(",")) return null;
   if (PRONOUN.test(t) || NOT_TERM.test(t) || EVENTISH.test(t) || NUMBERISH.test(t)) return null;
+  if (TERM_NOT_NP.test(t) || TERM_POSSESSIVE.test(t)) return null;
   // "Others say it", "Some people think": a clause, not a term
   if (
     /(?<![\p{L}])(?:it|they|we|you|i|he|she|say|says|said|think|thinks|argue|argues|believe|believes)(?![\p{L}'])/iu.test(
@@ -313,6 +330,7 @@ function goodDefinition(def) {
     .replace(/\s*(?:,\s*)?(?:right|okay|ok|¿sí|¿vale|¿no|né|tá|sabe|ok)\?*\s*$/i, "")
     .replace(/[.!?]+$/, "")
     .trim();
+  if (/\$\d/.test(d)) return null;
   if (d.split(/\s+/).length < 3 || BAD_DEFINITION.test(d) || (NUMBERISH.test(d) && d.split(/\s+/).length < 4))
     return null;
   // "The exhibition is next week, ...", "Picture day is Thursday, so dress nice": a date, not a meaning
@@ -370,7 +388,7 @@ function matchDefinition(c, next) {
   // "... we start with elasticity, which is how much ...": the term comes right before ", which is"
   if (
     (m = c.match(
-      /(?:^|\s)(?:with|on|about|con|sobre|com|de)\s+([\p{L}][\p{L} -]{1,30}?),\s*(?:which is|que es|que é|o que é)\s+(.{6,})$/iu,
+      /(?:^|\s)(?:with|on|about|have an?|have the|need an?|con|sobre|com|de)\s+([\p{L}][\p{L} -]{1,30}?),\s*(?:which is|que es|que é|o que é)\s+(.{6,})$/iu,
     ))
   )
     return [m[1], m[2]];
@@ -424,8 +442,12 @@ function matchDefinition(c, next) {
     (m = c.match(
       /^(.{2,48}?)\s+(?:is|are|was|were|es|son|era|fue|é|são|foi|era)\s+(?:basically|just|simply|really|specifically|essentially|actually|kind of|sort of|básicamente|simplemente|basicamente|simplesmente)?\s*(.{6,})$/iu,
     ))
-  )
+  ) {
+    // "Where the points meet is the market equilibrium": the clause describes, the short noun phrase is the term
+    const named = /^where\b/i.test(m[1]) && m[2].match(/^the\s+(.{3,30})$/i);
+    if (named && named[1].split(/\s+/).length <= 3) return [named[1].replace(/[.!?]+$/, ""), m[1]];
     return [m[1], m[2]];
+  }
   // "A catalyst speeds up a reaction ..."
   if ((m = c.match(new RegExp(`^(?:a|an)\\s+([a-z][\\w -]{2,30}?)\\s+((?:${VERBS})\\s+.{6,})$`, "i"))))
     return [m[1], m[2]];
@@ -479,6 +501,18 @@ export function findDefinitions(text) {
     if ((q || (frag && frag[1].split(/\s+/).length <= 4)) && answer) {
       push((q || frag)[1], answer[1], `${s} ${list[i + 1]}`);
       i++;
+      continue;
+    }
+    // "The other extreme is what's called the command economy." The next sentence says what it is
+    // (skipping a repeat of the same line, which Whisper sometimes makes).
+    const called = c.match(
+      /\b(?:is|are|it's|that's)\s+what(?:'s| is| are)\s+(?:called|known as)\s+(?:the\s+|an?\s+)?(.{2,40}?)[.!?]*$/i,
+    );
+    if (called) {
+      const follow = [list[i + 1], list[i + 2]]
+        .map((x) => x && cleanSentence(x).replace(/^(?:in (?:this|that) case|here|so|then),?\s+/i, ""))
+        .find((x) => x && !/\b(?:called|we call|known as)\b/i.test(x));
+      if (follow) push(called[1], follow, s);
       continue;
     }
     const m = matchDefinition(c, next);
