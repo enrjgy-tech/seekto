@@ -58,12 +58,12 @@ export function detectTopic(text) {
 
 const PRONOUN = /^(no|yes|sí|si|não|sim|it|it's|this|that|that's|these|those|there|here|he|she|they|we|you|i|which|what|who|so|and|but|then|now|well|if|when|because|my|your|our|his|her|their|its|esto|eso|esta|este|ese|esa|él|ella|ellos|ellas|nosotros|ustedes|usted|que|qué|y|pero|entonces|bueno|hoy|aquí|ahí|mi|tu|su|nuestro|isso|isto|esse|essa|ele|eles|elas|nós|você|vocês|meu|minha|seu|sua|nosso|nossa|aqui|hoje|mas|então)(?![\p{L}'])/iu;
 // Nouns that start sentences like definitions but aren't terms: "the answer is twelve"
-const NOT_TERM = /^(?:answer|point|thing|things|problem|idea|question|part|reason|key|goal|plan|rule|trick|difference|main|important|hard|easy|first|second|last|next|best|worst|only|whole|same|other|class|lecture|chapter|section|unit|grade|grades|deadline|due date|homework|reading|test|quiz|exam|essay|paper|project|lab|final|midterm|syllabus|room|book|textbook|slide|slides|example|short version|bottom line|catch|deal|story|goal|focus|topic|plan|schedule|today|tomorrow|tonight|week|weekend|semester|year|day|morning|afternoon|everyone|everybody|somebody|someone|nobody|people|guys|kids|class|teacher|professor|respuesta|pregunta|problema|idea|clase|tema|examen|prueba|tarea|trabajo|prova|aula|resposta|pergunta|matéria|semana|hoje|amanhã|mañana)$/iu;
-const EVENTISH = /(?<![\p{L}])(?:quiz|test|exam|midterm|final|essay|homework|assignment|deadline|due|lab report|examen|prueba|parcial|tarea|entrega|prova|teste|trabalho|seminário|relatório)(?![\p{L}])/iu;
+const NOT_TERM = /^(?:answer|point|thing|things|problem|idea|question|part|reason|key|goal|plan|rule|trick|difference|main|important|hard|easy|first|second|last|next|best|worst|only|whole|same|other|class|lecture|chapter|section|unit|grade|grades|deadline|due date|homework|reading|test|quiz|exam|essay|paper|project|lab|final|midterm|syllabus|room|book|textbook|slide|slides|example|whole thing|short version|bottom line|catch|deal|story|goal|focus|topic|plan|schedule|today|tomorrow|tonight|week|weekend|semester|year|day|morning|afternoon|everyone|everybody|somebody|someone|nobody|people|guys|kids|class|teacher|professor|respuesta|pregunta|problema|idea|clase|tema|examen|prueba|tarea|trabajo|prova|aula|resposta|pergunta|matéria|semana|hoje|amanhã|mañana)$/iu;
+const EVENTISH = /(?<![\p{L}])(?:p[1-4]|av[1-4]|quiz|test|exam|midterm|final|essay|homework|assignment|deadline|due|lab report|examen|prueba|parcial|tarea|entrega|prova|teste|trabalho|seminário|relatório)(?![\p{L}])/iu;
 const NUMBERISH = /^(?:\d|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|a hundred|half|uno|dos|tres|um|dois|três)\b/i;
-const BAD_DEFINITION = /^(?:that|because|why|not|so|going|gonna|due|on|in|at|for|really|very|pretty|too|hard|easy|tough|fine|okay|ok|important|tricky|done|over|here|there|next|coming|up|out|back|cancelled|canceled|the part (?:everyone|people|you|that everyone|where you)|the one|the hard|the easy|the best|the worst|the same|the answer is|the reason (?:is|why)|the problem is|the point is|the thing is|the key is|the main thing|the last|the first|the next|the deadline|the due date|a big|a lot|a good|a bad|a great|a hard|a tough|a pain|a problem|a bit|a little|my|your|our|his|her|their|yours|mine|worth|about|like|also|still|always|never|probably|definitely|el (?:próximo|lunes|martes|miércoles|jueves|viernes)|muy|importante|para|na|no|pra|o mais|a mais|isso|difícil|fácil|high|low|everywhere|something|anything|chapter|unit|page|section|one of the|part of|higher|lower|bigger|smaller|harder|easier|worse|better|more|less|great|huge|super|insane|wild|crazy|key|crucial|central|tested|on the test|in the|at the)\b/iu;
-const LEAD = /^(?:so|and|okay|ok|now|remember|basically|right|alright|all right|well|um|uh|then|also|anyway|entonces|bueno|recuerden|recuerda|o sea|básicamente|pues|então|gente|tipo|bom|olha|lembrem|lembra)[,]?\s+/i;
-const FILLER = /,?\s*\b(?:um|uh|like|basically|you know|right|o sea|eh|este|tipo|gente|né|tá|in simple terms|simply put|put simply|in short|essentially|roughly|informally|técnicamente|digamos)\b\s*,/giu;
+const BAD_DEFINITION = /^(?:that(?!\s+\p{L}+\s+(?:where|when|which|that|in which|you))|because|why|not|so|going|gonna|due|on|in|at|for|really|very|pretty|too|hard|easy|tough|fine|okay|ok|important|tricky|done|over|here|there|next|coming|up|out|back|cancelled|canceled|the part (?:everyone|people|you|that everyone|where you)|the one|the hard|the easy|the best|the worst|the same|the answer is|the reason (?:is|why)|the problem is|the point is|the thing is|the key is|the main thing|the last|the first|the next|the deadline|the due date|a big|a lot|a good|a bad|a great|a hard|a tough|a pain|a problem|a bit|a little|my|your|our|his|her|their|yours|mine|worth|about|like|also|still|always|never|probably|definitely|el (?:próximo|lunes|martes|miércoles|jueves|viernes)|muy|importante|para|na|no|pra|o mais|a mais|isso|difícil|fácil|high|low|everywhere|something(?!\s+(?:that|which|created|made|used))|anything|well|awesome|amazing|fun|nice|cool|lovely|fantastic|brilliant|terrible|incredible|chapter|unit|page|section|one of the|part of|higher|lower|bigger|smaller|harder|easier|worse|better|more|less|great|huge|super|insane|wild|crazy|key|crucial|central|tested|on the test|in the|at the)\b/iu;
+const LEAD = /^(?:so|and|okay|ok|now|remember|basically|right|alright|all right|well|um|uh|hm+|oh|ah|eh|hã|ahn|then|also|anyway|look|listen|guys|everyone|everybody|okay everyone|entonces|bueno|recuerden|recuerda|o sea|básicamente|pues|a ver|ojo|oigan|mira|miren|chicos|chicas|muchachos|chavos|ahorita|vale|então|gente|pessoal|galera|tipo|bom|olha|lembrem|lembra|tá|beleza)[,]?\s+/iu;
+const FILLER = /,?\s*(?<![\p{L}])(?:um|uh|like|basically|you know|right|o sea|eh|hã|ahn|este|tipo|gente|pessoal|né|tá|¿sí\?|¿vale\?|¿no\?|a ver|in simple terms|simply put|put simply|in short|essentially|roughly|informally|técnicamente|digamos|para que quede claro|pra quem não lembra|pra ficar claro|for the record|if you remember)(?![\p{L}])\s*,/giu;
 
 function cleanSentence(s) {
   let c = s.trim();
@@ -72,7 +72,7 @@ function cleanSentence(s) {
 }
 
 function goodTerm(term) {
-  const t = term.replace(/^(the|a|an|el|la|los|las|un|una|o|os|as)\s+/i, "").replace(/[,:;]+$/, "").trim();
+  const t = (/^a (?:priori|posteriori|fortiori)$/i.test(term.trim()) ? term : term.replace(/^(the|a|an|el|la|los|las|un|una|o|os|as)\s+/i, "")).replace(/[,:;]+$/, "").trim();
   if (t.length < 2 || t.length > 48 || t.includes(",")) return null;
   if (PRONOUN.test(t) || NOT_TERM.test(t) || EVENTISH.test(t) || NUMBERISH.test(t)) return null;
   if (t.split(/\s+/).length > 5 || /\d{3,}/.test(t) || findDates(t).length || /\b(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday|lunes|martes|miércoles|jueves|viernes|segunda|terça|quarta|quinta|sexta)\b/i.test(t)) return null;
@@ -82,11 +82,20 @@ function goodTerm(term) {
 function goodDefinition(def) {
   const d = def.replace(/\s*(?:,\s*)?(?:right|okay|ok|¿sí|¿vale|¿no|né|tá|sabe|ok)\?*\s*$/i, "").replace(/[.!?]+$/, "").trim();
   if (d.split(/\s+/).length < 3 || BAD_DEFINITION.test(d) || NUMBERISH.test(d) && d.split(/\s+/).length < 4) return null;
-  if (findDates(d).length && EVENTISH.test(d)) return null;
+  // "The exhibition is next week, ...", "Picture day is Thursday, so dress nice": a date, not a meaning
+  if (findDates(d).some((x) => x.index === 0)) return null;
+  if (findDates(d).length && EVENTISH.test(d)) {
+    // "Sepsis is the body's response ..., and you'll need it for the quiz on Thursday": keep the part before
+    const parts = d.split(/,\s+/);
+    while (parts.length > 1 && (findDates(parts.at(-1)).length || EVENTISH.test(parts.at(-1)))) parts.pop();
+    const kept = parts.join(", ");
+    if (kept === d || kept.split(/\s+/).length < 4 || (findDates(kept).length && EVENTISH.test(kept))) return null;
+    return kept;
+  }
   return d;
 }
 
-const VERBS = "speeds|slows|lowers|raises|converts|turns|breaks|stores|carries|controls|produces|makes|allows|lets|shows|measures|describes|tells|represents|transports|holds|binds|blocks|takes|gives|uses|calls|returns|moves|keeps|protects|regulates|connects|separates|absorbs|releases|creates|changes|reduces|increases|predicts|explains";
+const VERBS = "compares|speeds|slows|lowers|raises|converts|turns|breaks|stores|carries|controls|produces|makes|allows|lets|shows|measures|describes|tells|represents|transports|holds|binds|blocks|takes|gives|uses|calls|returns|moves|keeps|protects|regulates|connects|separates|absorbs|releases|creates|changes|reduces|increases|predicts|explains";
 
 /** Pull one definition out of a cleaned sentence: [term, definition] or null. */
 function matchDefinition(c, next) {
@@ -95,8 +104,16 @@ function matchDefinition(c, next) {
   if ((m = c.match(/^([A-Z][A-Za-z]{1,6}),\s*([^,]{4,60}?),?\s+(?:is|are|means|es|é)\s+(.{6,})$/))) return [m[1], `${m[2]}: ${m[3]}`, true];
   // "Osmosis, and people mix this up..., osmosis is specifically ..."
   if ((m = c.match(/^([^,]{2,40}),\s.*?,\s*([^,]{2,40}?)\s+(?:is|are|es|é)\s+(?:specifically|basically|just|simply|really)?\s*(.{6,})$/i)) && m[1].toLowerCase().replace(/^(the|a|an)\s+/, "") === m[2].toLowerCase().replace(/^(the|a|an)\s+/, "")) return [m[1], m[3]];
+  // "X, X is ...": "a ratio, a ratio is just a comparison ..."
+  if ((m = c.match(/^([^,]{2,40}),\s*(.{2,40}?)\s+(?:is|are|es|é)\s+(?:basically|just|simply|really)?\s*(.{6,})$/iu)) && m[1].toLowerCase().replace(/^(the|a|an|el|la|un|una|o|a|um|uma)\s+/, "") === m[2].toLowerCase().replace(/^(the|a|an|el|la|un|una|o|a|um|uma)\s+/, "")) return [m[1], m[3]];
+  // A short aside between the term and "is": "Recursion, and everyone groans here, is just a function ..."
+  if ((m = c.match(/^([^,]{2,40}),\s*((?:and|in|at|as|if|or|which|anyway|y|o|e|como|por|pra|para|en|em|no|na)\s[^,]{2,40}?),?\s+(?:is|are|es|son|é|são)\s+(?:basically|just|simply|really|básicamente|basicamente)?\s*(.{6,})$/iu)) && m[2].split(/\s+/).length <= 6) return [m[1], m[3]];
+  // "afterload, think of it as the resistance ..."
+  if ((m = c.match(/^([^,]{2,40}),\s*(?:think of it as|think of (?:this|that) as|picture it as|piensen en (?:él|ella|eso) como|pensem nisso como)\s+(.{6,})$/iu))) return [m[1], m[2]];
+  // "... we start with elasticity, which is how much ...": the term comes right before ", which is"
+  if ((m = c.match(/(?:^|\s)(?:with|on|about|con|sobre|com|de)\s+([\p{L}][\p{L} -]{1,30}?),\s*(?:which is|que es|que é|o que é)\s+(.{6,})$/iu))) return [m[1], m[2]];
   // "Feudalism, the short version is ...", "the Columbian Exchange, that's the transfer of ..."
-  if ((m = c.match(/^([^,]{2,40}),\s*(?:that's|that is|it's|it is|the short version is|which is|es|é|eso es|isso é|o que é|es decir)\s+(.{6,})$/i))) return [m[1], m[2]];
+  if ((m = c.match(/^([^,]{2,40}),\s*(?:that's|that is|it's|it is|the short version is|which is|es|é|eso es|isso é|o que é|que es|que é|es decir)\s+(.{6,})$/i))) return [m[1], m[2]];
   // "Se llama inflación al aumento ...", "Chamamos de X o/a ..."
   if ((m = c.match(/^se llama\s+(.{2,40}?)\s+(?:al|a la|a los|a las|a)\s+(.{6,})$/i))) return [m[1], m[2]];
   if ((m = c.match(/^(?:chamamos(?: de)?|a gente chama(?: de)?)\s+(.{2,40}?)\s+(?:o|a|os|as)\s+(.{6,})$/i))) return [m[1], m[2]];
@@ -134,6 +151,8 @@ export function findDefinitions(text) {
     const c = cleanSentence(s);
     const next = list[i + 1] && cleanSentence(list[i + 1]);
     // "What is an API? It's a contract ..." and "Okay, classical conditioning. That's learning by association."
+    const mean = c.match(/^what do (?:i|we) mean by\s+(?:an?\s+(?!priori|posteriori|fortiori)|the\s+)?(.{2,40}?)\?$/i) || c.match(/^¿?qu[ée] (?:quiero decir|queremos decir|significa)\s+(?:con\s+)?(.{2,40}?)\?$/iu) || c.match(/^o que (?:eu )?quero dizer com\s+(.{2,40}?)\?$/iu);
+    if (mean && next && next.split(/\s+/).length >= 4) { push(mean[1], next.replace(/^(?:it's|it is|that's|es|é)\s+/i, ""), `${s} ${list[i + 1]}`); i++; continue; }
     const q = c.match(/^what(?:'s| is| are)\s+(?:an?\s+|the\s+)?(.{2,40}?)\?$/i) || c.match(/^qu[ée]\s+es\s+(?:un|una|el|la)?\s*(.{2,40}?)\?$/i) || c.match(/^o que (?:é|são)\s+(?:um|uma|o|a)?\s*(.{2,40}?)\?$/i);
     const frag = !q && c.match(/^([\p{L}][\p{L}' -]{1,40})[.:]$/u);
     const answer = next && next.match(/^(?:it's|it is|that's|that is|they're|they are|this is|es|son|é|são|isso é|eso es)\s+(?:basically\s+|básicamente\s+|basicamente\s+)?(.{6,})$/i);

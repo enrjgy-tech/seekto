@@ -648,7 +648,7 @@ export default {
   "Your notes, recordings, calendar and assignments are now kept encrypted in your storage. To add another device, connect it with a code and choose Get it from a connected device in Settings, or enter your key there.": "Tus notas, grabaciones, calendario y tareas ahora se guardan cifrados en tu almacenamiento. Para agregar otro dispositivo, conéctalo con un código y elige Obtenerla de un dispositivo conectado en Ajustes, o ingresa ahí tu clave.",
   "Your recovery kit has all three of these.": "Tu kit de recuperación tiene estos tres datos.",
   "Your reviews are on the calendar.": "Tus repasos están en el calendario.",
-  "Your storage is full for this account. Delete old recordings, or raise seekto_max_bytes in the setup script and run it again.": "Tu almacenamiento está lleno para esta cuenta. Borra grabaciones antiguas o sube seekto_max_bytes en el script de configuración y vuelve a ejecutarlo.",
+  "Your storage is full (450 MB, shared by everyone using it). Delete old recordings, or raise seekto_max_total_bytes in the setup script and run it again.": "Tu almacenamiento está lleno (450 MB, compartidos por todos los que lo usan). Borra grabaciones antiguas o sube seekto_max_total_bytes en el script de configuración y vuelve a ejecutarlo.",
   "Your teacher says it once.": "Tu profe lo dice una vez.",
   "a model ID from openrouter.ai/models (free ones end in :free)": "un ID de modelo de openrouter.ai/models (los gratis terminan en :free)",
   "a model ID from your OpenAI account": "un ID de modelo de tu cuenta de OpenAI",

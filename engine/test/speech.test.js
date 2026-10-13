@@ -56,6 +56,21 @@ test("a weekday with a day number, British phrasing, spelled-out ordinals", () =
   assert.equal(findEvents("Homework: finish questions 1 to 5, due Monday.", { ref })[0].title, "Homework due");
 });
 
+test("end of the month, dates relative to another, long counts, 'now'", () => {
+  assert.deepEqual(dates("Your care plans are due end of the month."), ["2026-10-31"]);
+  assert.deepEqual(dates("La tarea hay que entregarla a fin de mes.", { locale: "es" }), ["2026-10-31"]);
+  assert.deepEqual(dates("La entrega del TP es dentro de quince días.", { locale: "es" }), ["2026-10-27"]);
+  assert.deepEqual(dates("O trabalho é pra daqui a quinze dias.", { locale: "pt-BR" }), ["2026-10-27"]);
+  assert.deepEqual(dates("Bom, a P2 vai ser no dia vinte e dois de outubro, e a substitutiva uma semana depois.", { locale: "pt-BR" }), ["2026-10-22", "2026-10-29"]);
+  assert.deepEqual(dates("Your presentations are the 20th, and the slides are due the day before."), ["2026-10-20", "2026-10-19"]);
+  assert.deepEqual(dates("Isso vai cair na prova final, que é dia catorze.", { locale: "pt-BR" }), ["2026-10-14"]);
+  assert.deepEqual(dates("The pharm exam got moved. It was gonna be on the 20th and now it's on the 27th."), ["2026-10-27"]);
+  assert.deepEqual(dates("We didn't get to the quiz Monday because of the fire drill, it's on Friday now."), ["2026-10-16"]);
+  assert.deepEqual(dates("The grade nine French quiz is Tuesday.", { locale: "en-CA" }), ["2026-10-13"]);
+  assert.deepEqual(dates("Report cards go home tomorrow."), []);
+  assert.deepEqual(dates("The museum trip is in 3 days, bring a bag lunch."), ["2026-10-15"]);
+});
+
 test("corrections, reschedules, cancellations and the past", () => {
   assert.deepEqual(dates("The vocab quiz is Wednesday, no, Thursday. Thursday, sorry."), ["2026-10-15"]);
   assert.deepEqual(dates("The test is the 16th. No, wait, the 19th, sorry."), ["2026-10-19"]);
@@ -99,6 +114,23 @@ test("Portuguese", () => {
   assert.equal(findEvents("A prova de cálculo é na sexta.", { ref, locale: "pt-BR" })[0].title, "Prova de cálculo");
 });
 
+test("definitions with asides, fillers and a deadline in the same sentence", () => {
+  const terms = (t) => findDefinitions(t).map((d) => d.term);
+  assert.deepEqual(terms("Recursion, and everyone groans here, is just a function that calls itself on a smaller problem."), ["Recursion"]);
+  assert.deepEqual(terms("Entonces, eh, una variable aleatoria es básicamente una función que asigna un número a cada resultado."), ["Variable aleatoria"]);
+  assert.deepEqual(terms("Pessoal, osmose, né, é a passagem de água através de uma membrana."), ["Osmose"]);
+  assert.deepEqual(terms("Okay, so afterload, think of it as the resistance the left ventricle has to push against."), ["Afterload"]);
+  assert.deepEqual(terms("What do I mean by a priori? Knowledge you can have without checking the world."), ["A priori"]);
+  assert.deepEqual(terms("Hoy empezamos con elasticidad, que es qué tanto cambia la cantidad demandada cuando cambia el precio."), ["Elasticidad"]);
+  assert.equal(findDefinitions("Sepsis is basically the body's response to an infection damaging its own organs, and you'll need it for the quiz on Thursday.")[0].definition, "the body's response to an infection damaging its own organs");
+  assert.deepEqual(terms("Okay, a metaphor compares two things without using like or as."), ["Metaphor"]);
+  // Not definitions
+  assert.deepEqual(terms("The winter concert was awesome last night, thank you band kids."), []);
+  assert.deepEqual(terms("Fall picture day is Thursday, so dress nice."), []);
+  assert.deepEqual(terms("Gente, a AV1 foi adiada, vai ser na segunda."), []);
+  assert.deepEqual(terms("Elasticity is something we'll define properly on Thursday."), []);
+});
+
 test("definitions the way teachers say them", () => {
   const terms = (t) => findDefinitions(t).map((d) => d.term);
   assert.deepEqual(terms("Okay so mitosis, basically, it's when the cell splits into two identical daughter cells."), ["Mitosis"]);
@@ -114,6 +146,20 @@ test("definitions the way teachers say them", () => {
   assert.deepEqual(terms("The test is a week from tomorrow."), []);
   assert.deepEqual(terms("Big O is the part everyone loses points on in the final."), []);
   assert.deepEqual(terms("So basically entropy, which is hard, we'll get to later."), []);
+});
+
+test("tasks given to someone mid-sentence", () => {
+  const items = (t) => findActionItems(t, { ref }).map((a) => [a.owner, a.due]);
+  assert.deepEqual(items("Drywall crew shows up Thursday, so Luis, I need that inspection signed off by Thursday morning."), [["Luis", "2026-10-15"]]);
+  assert.deepEqual(items("Okay, Dana, the water rates story is yours, I want a draft by Friday."), [["Dana", "2026-10-16"]]);
+  assert.deepEqual(items("Hannah, Ben, I need the photos from you two by the 20th, and I'll write the intro tomorrow."), [["Hannah and Ben", "2026-10-20"], ["Me", "2026-10-13"]]);
+  assert.deepEqual(items("Kofi and Mei, you two own the seating chart, and we need it locked by 10/30."), [["Kofi and Mei", "2026-10-30"]]);
+  assert.deepEqual(items("From now on, Marco, you're doing lockup."), [["Marco", null]]);
+  assert.deepEqual(items("Rachel's out, so Tom, can you take the customer call on Thursday instead of her?"), [["Tom", "2026-10-15"]]);
+  assert.equal(findActionItems("Priya, you're pulling her drain tomorrow morning.", { ref })[0].task, "Pull her drain tomorrow morning");
+  assert.deepEqual(items("Before we adjourn, can someone volunteer to draft the letter to parents?"), [[null, null]]);
+  assert.deepEqual(items("Let's be real, nobody reads the changelog. We'll see how many people sign up."), []);
+  assert.deepEqual(items("Thanks, Mark, that was really helpful."), []);
 });
 
 test("action items the way meetings sound", () => {

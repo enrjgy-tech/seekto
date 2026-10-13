@@ -24,6 +24,9 @@ const COUNTS = {
   a: 1, an: 1, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, "a couple of": 2, couple: 2,
   un: 1, una: 1, uno: 1, dos: 2, tres: 3, cuatro: 4, cinco: 5, seis: 6, siete: 7, ocho: 8, nueve: 9, diez: 10,
   um: 1, uma: 1, dois: 2, duas: 2, "três": 3, quatro: 4, sete: 7, oito: 8, nove: 9, dez: 10,
+  eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15, twenty: 20, thirty: 30,
+  once: 11, doce: 12, trece: 13, catorce: 14, quince: 15, veinte: 20, treinta: 30,
+  onze: 11, doze: 12, treze: 13, catorze: 14, quatorze: 14, quinze: 15, vinte: 20, trinta: 30,
 };
 
 // Day numbers as words (Spanish and Portuguese), for transcripts that spell them out.
@@ -55,7 +58,7 @@ const ordinalValue = (w) => EN_ORDINALS[w.toLowerCase().replace(/[\s-]+/g, " ")]
 const EN_MONTH = "(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sept?(?:ember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)";
 const ANY_MONTH = `(${EN_MONTH.slice(1, -1)}|enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre|janeiro|fevereiro|mar[çc]o|maio|junho|julho|setembro|outubro|novembro|dezembro)`;
 const DAY = "(\\d{1,2})(?:st|nd|rd|th|º|°)?";
-const COUNT = "(a couple of|a|an|one|two|three|four|five|six|seven|eight|nine|ten|\\d{1,2}|un|una|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|um|uma|dois|duas|três|quatro|sete|oito|nove|dez)";
+const COUNT = "(a couple of|a|an|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|twenty|thirty|\\d{1,2}|un|una|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|veinte|treinta|um|uma|dois|duas|três|quatro|sete|oito|nove|dez|onze|doze|treze|catorze|quatorze|quinze|vinte|trinta)";
 const EN_DAY = "(sunday|monday|tuesday|wednesday|thursday|friday|saturday)";
 const L = "\\p{L}"; // any letter, for word edges that work with accents
 
@@ -183,6 +186,13 @@ export function findDates(text, ref = new Date(), { locale } = {}) {
     const date = resolveYear(month, day, null, today);
     if (valid(date, month, day)) add(date, m.index, m[0], 3);
   }
+  // "dia catorze", "el quince": a day of the month said as a word (with "el", only 10 and up, since
+  // "el dos" is more often "the two")
+  for (const m of all(new RegExp(`(?<![${L}])(dia|el)\\s+(${DAY_WORDS_RE})(?![${L}])(?!\\s+de\\s)`, "giu"))) {
+    const day = DAY_WORDS[fold(m[2]).replace(/\s+/g, " ")];
+    if (!day || (/^el$/i.test(m[1]) && day < 10)) continue;
+    add(nextDayOfMonth(today, day), m.index, m[0], 2.5);
+  }
   // "10/20", "10/20/2026"; "20/10" outside the US
   for (const m of all(/(?<![\d/.])(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?(?![\d/])/g)) {
     let [a, b] = [Number(m[1]), Number(m[2])];
@@ -242,6 +252,10 @@ export function findDates(text, ref = new Date(), { locale } = {}) {
     add(addDays(base, span), m.index, m[0], 2.2);
   }
   for (const m of all(/\bin\s+a\s+fortnight\b|\bfortnight\s+from\s+now\b/gi)) add(addDays(today, 14), m.index, m[0], 2);
+  // "end of the month", "a fin de mes", "no fim do mês": its last day
+  for (const m of all(new RegExp(`(?<![${L}])(?:(?:the\\s+)?end of (?:the |this )?month|(?:a\\s+|al\\s+)?fin(?:al)?\\s+de(?:l)?\\s+mes|(?:no\\s+|o\\s+|até\\s+o\\s+)?(?:fim|final)\\s+do\\s+m[êe]s)(?![${L}])`, "giu"))) {
+    add(new Date(today.getFullYear(), today.getMonth() + 1, 0), m.index, m[0], 1.6);
+  }
   for (const m of all(/\b(?:the\s+)?end of (?:the |this )?week\b/gi)) add(endOfWeek(today), m.index, m[0], 1.5);
   for (const m of all(/\bend of next week\b/gi)) add(nextWeek(today, 5), m.index, m[0], 1.6);
   for (const m of all(/\bnext week(?:'s)?\b/gi)) add(nextWeek(today, 1), m.index, m[0], 1.2, { week: true });
@@ -317,6 +331,16 @@ export function findDates(text, ref = new Date(), { locale } = {}) {
     for (const k of near) k.date = nextWeek(today, k.weekday);
     w.drop = true;
   }
+  // Dates said relative to the one before: "the 3rd, and the slides are due the day before",
+  // "el 4 de diciembre y el coloquio una semana después", "a P2 ... e a substitutiva uma semana depois"
+  const RELATIVE = new RegExp(`(?<![${L}])(?:(a|one|two|una|dos|uma|duas)\\s+(weeks?|semanas?)\\s+(?:later|after(?:wards)?|after that|despu[eé]s|m[aá]s tarde|depois)|the day (before|after)|el d[ií]a (anterior|siguiente)|o dia (anterior|seguinte))(?![${L}])`, "giu");
+  for (const m of source.matchAll(RELATIVE)) {
+    const prev = [...kept].reverse().find((k) => !k.drop && k.end <= m.index);
+    if (!prev || kept.some((k) => m.index < k.end && k.index < m.index + m[0].length)) continue;
+    const delta = m[2] ? (COUNTS[m[1].toLowerCase()] || 1) * 7 : /before|anterior/i.test(m[0]) ? -1 : 1;
+    kept.push({ date: addDays(prev.date, delta), index: m.index, end: m.index + m[0].length, match: m[0] });
+  }
+  kept.sort((a, b) => a.index - b.index);
   return kept.filter((k) => !k.drop).map(({ date, index, end, match }) => ({ date: toISO(date), index, end, match }));
 }
 
@@ -352,6 +376,7 @@ const EVENT_WORDS = [
   ["reading", "assignment"], ["forum", "assignment"], ["discussion post", "assignment"], ["submission", "assignment"], ["sign up", "assignment"], ["deadline", "assignment"],
   ["submitted", "assignment"], ["submit", "assignment"], ["hand in", "assignment"], ["handed in", "assignment"], ["turn in", "assignment"], ["turned in", "assignment"],
   ["read", "assignment"], ["due", "assignment"],
+  ["field trip", "event"], ["school trip", "event"], ["museum trip", "event"], ["excursion", "event"], ["picture day", "event"], ["photo day", "event"],
   // Spanish
   ["examen parcial", "test", 1], ["examen final", "test", 1], ["examen", "test", 1], ["parcial", "test", 1], ["prueba", "test", 1], ["control", "test", 1], ["simulacro", "test", 1],
   ["recuperatorio", "test", 1], ["cuestionario", "test", 1], ["evaluación", "test", 1],
@@ -365,6 +390,7 @@ const EVENT_WORDS = [
   ["redação", "assignment", 1], ["redacao", "assignment", 1], ["dever de casa", "assignment", 1], ["dever", "assignment", 1], ["leitura", "assignment", 1], ["fórum", "assignment", 1],
   // from KeuqS's Portuguese support (#11)
   ["exame", "test", 1], ["ensaio", "assignment", 1], ["tarefa", "assignment", 1], ["prazo", "assignment", 1],
+  ["excursión", "event", 1], ["excursão", "event", 1], ["salida de campo", "event", 1], ["coloquio", "test", 1], ["práctica", "assignment", 1],
 ];
 const EVENT_RES = EVENT_WORDS.map(([word, type, romance]) => [new RegExp(`(?<![${L}])${word}(?:s|es)?(?![${L}])`, "iu"), word, type, !!romance]);
 
@@ -381,12 +407,12 @@ const NEGATION = new RegExp(`(?:^|[\\s(])(?:no|not|n[ãa]o|nunca|nem|isn't|aren'
 // "Mañana no, pasado mañana", "Friday, no, Thursday", "na sexta não."
 const NEGATED_AFTER = /^\s*,?\s*(?:no|not|n[ãa]o)\s*(?:[,.;!?]|$)/iu;
 const PAST = new RegExp(`(?<![${L}])(?:was|were|had|took|fue|era|ia|iba|tuvimos|foi|tivemos|teve)(?![${L}])`, "iu");
-const RESCHEDULE = new RegExp(`(?<![${L}])(?:mov(?:ed|ing|e)|push(?:ed|ing)?(?: it| that)? back|postpon(?:ed|ing|e)|extend(?:ed|ing)?|resched(?:uled|uling)|changed|bump(?:ed|ing)?|instead|giving (?:you|everybody|everyone|you all)(?: guys)? until|pas[óo]|cambi[óo]|movi(?:mos|ó)|aplaz(?:ó|amos|ado)|pospu?s|adiad[oa]|adiamos|mudou|mudamos|transferid[oa]|ficou para|fica para|vai ser|vai ficar|passou|passa)(?![${L}])`, "iu");
+const RESCHEDULE = new RegExp(`(?<![${L}])(?:mov(?:ed|ing|e)|push(?:ed|ing)?(?: it| that)? back|postpon(?:ed|ing|e)|extend(?:ed|ing)?|resched(?:uled|uling)|changed|bump(?:ed|ing)?|instead|giving (?:you|everybody|everyone|you all)(?: guys)? until|pas[óo]|cambi[óo]|movi(?:mos|ó)|aplaz(?:ó|amos|ado)|pospu?s|adiad[oa]|adiamos|mudou|mudamos|transferid[oa]|ficou para|fica para|vai ser|vai ficar|passou|passa|se pasa|se cambia|se mueve|is now|are now|it's now|now it's|now it is|ahora es|agora é|agora vai)(?![${L}])|it's on [^,.]{2,24} now(?![${L}])`, "iu");
 const CANCELLED = new RegExp(`(?<![${L}])(?:cancel+(?:ed|led)?|skip(?:ping|ped)?|called off|scrapp(?:ed|ing)|cancelad[oa]s?|suspendid[oa]|no va a haber|n[ãa]o vai (?:ter|haver)|n[ãa]o tem mais)(?![${L}])`, "iu");
 const CORRECTION = /(?:^|[,.;]\s*|\s)(?:no,|no wait|wait|sorry|i mean|actually|rather|correction|scratch that|perd[oó]n|digo|mejor dicho|desculp[ae]|quer dizer|ou melhor)(?![\p{L}])/giu;
 // Things that come with a date but aren't something to prepare for or hand in.
-const NOT_DUE = new RegExp(`(?<![${L}])(?:grades?|marks|results?|resultados?|notas|feedback|comments|come back|comes back|coming back|get (?:them|it|those|these) back|give (?:them|it|you|those) back|hand(?:ing)? (?:them|it|those) back|hand back|return(?:ed|ing)?|distribut(?:e|ing)|discuss(?:ing)?|go over|going over|post(?:ing)? the|grad(?:e|ing) (?:them|it|those)|sai o|saem|discut(?:e|ir|imos)|devuelvo|corrijo|corregir|corregimos|corrige|corrigir|corrigimos|office hours)(?![${L}])`, "iu");
-const GRADES = /(?<![\p{L}])(?:grades?|marks|results?|resultados?|notas)(?![\p{L}])/iu;
+const NOT_DUE = new RegExp(`(?<![${L}])(?:grades?(?!\\s+(?:\\d|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|k\\b))|report cards?|marks|results?|resultados?|notas|feedback|comments|come back|comes back|coming back|get (?:them|it|those|these) back|give (?:them|it|you|those) back|hand(?:ing)? (?:them|it|those) back|hand back|return(?:ed|ing)?|distribut(?:e|ing)|discuss(?:ing)?|go over|going over|post(?:ing)? the|grad(?:e|ing) (?:them|it|those)|sai o|saem|discut(?:e|ir|imos)|devuelvo|devolvo|devolver|devolvemos|corrigi|corrijo|corregir|corregimos|corrige|corrigir|corrigimos|office hours)(?![${L}])`, "iu");
+const GRADES = /(?<![\p{L}])(?:grades?(?!\s+(?:\d|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|k\b))|marks|results?|resultados?|notas)(?![\p{L}])/iu;
 const DUE_CUE = /(?<![\p{L}])(?:due|submit|hand in|turn in|entrega|entregar|se entrega)(?![\p{L}])/iu;
 const ELLIPTICAL_NEXT = /(?<![\p{L}])(?:el|la|o|a)\s+(?:pr[oó]xim[oa]|outr[oa])\s*[.,!?]*\s*$|(?<![\p{L}])the (?:next|following) one\b/iu;
 
@@ -472,7 +498,7 @@ function pickDates(part, dates, hit) {
 
 const TITLE_SKIP = new Set(["the", "a", "an", "our", "your", "my", "their", "his", "her", "this", "that", "is", "are", "will", "be", "and", "so", "next", "big", "on", "um", "uh", "like", "okay", "ok", "also", "then", "don't", "forget", "remember", "just", "itself", "whole", "first", "second"]);
 const ROMANCE_STOP = new Set(["es", "será", "sera", "se", "va", "hay", "para", "el", "la", "los", "las", "este", "esta", "que", "y", "en", "vence", "tiene", "tienen", "hasta", "antes", "lo", "a", "hoy", "mañana", "pasado", "dentro", "lunes", "martes", "miércoles", "miercoles", "jueves", "viernes", "sábado", "sabado", "domingo", "próximo", "proximo", "próxima", "proxima", "eh", "pues", "bueno", "cierra", "hace", "pasó",
-  "é", "vai", "ser", "tem", "pra", "o", "os", "as", "no", "na", "nos", "nas", "e", "em", "até", "hoje", "amanhã", "depois", "daqui", "segunda", "terça", "quarta", "quinta", "sexta", "semana", "dia", "vocês", "gente", "tá", "né", "entregam", "mandam", "me", "então", "só", "mais", "foi", "fica", "ficou", "sai", "pelo", "pela", "tipo", "não", "nao", "já", "ja", "ya", "ahora", "agora", "passou", "pasó", "mudou"]);
+  "é", "vai", "ser", "tem", "uma", "una", "un", "um", "después", "despues", "semanas", "anterior", "siguiente", "seguinte", "pra", "o", "os", "as", "no", "na", "nos", "nas", "e", "em", "até", "hoje", "amanhã", "depois", "daqui", "segunda", "terça", "quarta", "quinta", "sexta", "semana", "dia", "vocês", "gente", "tá", "né", "entregam", "mandam", "me", "então", "só", "mais", "foi", "fica", "ficou", "sai", "pelo", "pela", "tipo", "não", "nao", "já", "ja", "ya", "ahora", "agora", "passou", "pasó", "mudou"]);
 
 /** Spanish and Portuguese titles name the thing after the event word: "el examen de química es el viernes" -> "Examen de química". */
 function romanceTitle(sentence, hit, subject) {
@@ -542,18 +568,24 @@ function withCorrections(list) {
   return out;
 }
 
-/** Split a sentence that holds several deadlines into one part per deadline. */
-function splitDeadlines(sentence, ref, opts) {
-  const clauses = sentence.split(/(?<=[,;])\s+|\s+(?=(?:and|but|then|plus|y|pero|e|mas)\s)/i).filter((c) => c.trim());
+/** Split a sentence that holds several deadlines into one part per deadline: [{ text, start }]. */
+function splitDeadlines(sentence, all) {
+  // ("vinte e dois", "treinta y uno" are one number, not two clauses)
+  const clauses = sentence.split(/(?<=[,;])\s+|(?<!(?:vinte|trinta|veinte|treinta))\s+(?=(?:and|but|then|plus|y|pero|e|mas)\s)/i).filter((c) => c.trim());
   const chunks = [];
   let current = "";
+  let start = 0;
+  let pos = 0;
   for (const c of clauses) {
+    const at = sentence.indexOf(c, pos);
+    pos = at + c.length;
+    if (!current) start = at;
     current = current ? `${current} ${c}` : c;
     const elliptical = chunks.length && /^(?:and|y|e)\s+(?:the|el|la|o|a)\s+(?!other|otr|outr)[\p{L}]+\s/iu.test(current);
-    if ((eventWord(current) || elliptical) && findDates(current, ref, opts).length) { chunks.push(current); current = ""; }
+    if ((eventWord(current) || elliptical) && all.some((d) => d.index >= start && d.index < pos)) { chunks.push({ text: sentence.slice(start, pos), start }); current = ""; }
   }
-  if (current && chunks.length) chunks[chunks.length - 1] += ` ${current}`;
-  return chunks.length > 1 ? chunks : [sentence];
+  if (current && chunks.length) chunks[chunks.length - 1].text = sentence.slice(chunks[chunks.length - 1].start);
+  return chunks.length > 1 ? chunks : [{ text: sentence, start: 0 }];
 }
 
 /**
@@ -566,21 +598,29 @@ export function findEvents(text, { ref = new Date(), subject = null, locale } = 
   const events = [];
   const seen = new Set();
   let lastHit = null;
+  let carried = null; // the event of the sentence before, for "It was gonna be on the 10th, now it's the 17th"
   for (const sentence of withCorrections(sentences(text))) {
-    const parts = findDates(sentence, ref, opts).length > 1 ? splitDeadlines(sentence, ref, opts) : [sentence];
-    for (const part of parts) {
+    const before = carried;
+    carried = null;
+    // Dates are found in the whole sentence, so one said relative to another ("a week later") still counts.
+    const all = findDates(sentence, ref, opts);
+    const parts = all.length > 1 ? splitDeadlines(sentence, all) : [{ text: sentence, start: 0 }];
+    for (const { text: part, start } of parts) {
       let hit = eventWord(part);
       // "el examen práctico es el 26/11, y el teórico el 30/11": the second part borrows the event
       const ell = !hit && parts.length > 1 && lastHit && part.match(/^(?:and|y|e)\s+(?:the|el|la|o|a)\s+([\p{L}]+)/iu);
       if (ell) hit = { ...lastHit, index: ell[0].length - ell[1].length, text: ell[1] };
+      let title = null;
+      if (!hit && before && /^(?:it|it's|that|that's|this|now it's|now it|so it's)(?![\p{L}])/iu.test(part)) ({ hit, title } = { hit: { ...before.hit, index: 0 }, title: before.title });
       if (!hit) continue;
       lastHit = hit;
+      title ||= titleFor(part, hit, subject);
+      carried = { hit, title };
       const own = clauseAt(part, hit.index);
       if (GRADES.test(own) || (NOT_DUE.test(own) && !DUE_CUE.test(part))) continue;
-      const dates = findDates(part, ref, opts);
+      const dates = all.filter((d) => d.index >= start && d.end <= start + part.length).map((d) => ({ ...d, index: d.index - start, end: d.end - start }));
       if (!dates.length) continue;
       if (CANCELLED.test(clauseAt(part, hit.index)) && !RESCHEDULE.test(part)) continue;
-      const title = titleFor(part, hit, subject);
       for (const d of pickDates(part, dates, hit)) {
         const key = `${d.date}|${title.toLowerCase()}`;
         if (seen.has(key)) continue;

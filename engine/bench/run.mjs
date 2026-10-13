@@ -1,10 +1,10 @@
 // Measure the engine on a labelled set of sentences (engine/bench/data/*.jsonl).
 // The sentences were written by people who never saw the rules, so the engine can't be
-// tuned to them by accident. Half of the set is held out: items with an even number are
-// "test" and their mistakes are never printed, only counted. Fix rules using "dev" only.
+// tuned to them by accident. Half of the first set is held out: items with an even number are
+// "test" and their mistakes are never printed, only counted. Fix rules using "dev" and "dev2" only.
 //
 //   node engine/bench/run.mjs            # scores for dev, test and all
-//   node engine/bench/run.mjs --show     # also print every dev mistake
+//   node engine/bench/run.mjs --show     # also print every dev and dev2 mistake
 //   node engine/bench/run.mjs --json     # machine-readable results
 //   node engine/bench/run.mjs --check    # fail if the held-out scores drop below floor.json (CI)
 import { readFileSync, readdirSync } from "node:fs";
@@ -17,8 +17,10 @@ const args = new Set(process.argv.slice(2));
 const items = readdirSync(dir).filter((f) => f.endsWith(".jsonl")).sort().flatMap((file) =>
   readFileSync(dir + file, "utf8").split("\n").filter(Boolean).map((line) => ({ file, ...JSON.parse(line) })));
 
-// "fresh": written after the rules were finished (October 13, 2026) and scored once; never shown.
-const split = (item) => (/^fresh-/.test(item.file) ? "fresh" : Number(item.id.match(/(\d+)$/)[1]) % 2 === 0 ? "test" : "dev");
+// "fresh": written after the rules were finished and scored once; never shown.
+// "dev2": the previous fresh set (r2-*), scored once on October 12, 2026 and then opened up, so its
+// mistakes are printed and rules may be fixed on it.
+const split = (item) => (/^fresh-/.test(item.file) ? "fresh" : /^r2-/.test(item.file) ? "dev2" : Number(item.id.match(/(\d+)$/)[1]) % 2 === 0 ? "test" : "dev");
 const refDate = (iso) => { const [y, m, d] = iso.split("-").map(Number); return new Date(y, m - 1, d, 12); };
 const normTerm = (t) => String(t).toLowerCase().replace(/^(the|a|an|el|la|los|las|un|una|o|os|as)\s+/, "").replace(/[^\p{L}\d ]/gu, "").trim();
 const sameTerm = (a, b) => { a = normTerm(a); b = normTerm(b); return a === b || (a.length > 3 && b.length > 3 && (a.includes(b) || b.includes(a))); };
@@ -54,7 +56,7 @@ for (const item of items) {
 
   // Definitions: only scored in files that label them.
   let df = { tp: 0, fp: 0, fn: 0 };
-  const scoresDefs = /^(defs|es-pt|fresh-(?:lectures|school|espt))/.test(item.file);
+  const scoresDefs = /^(defs|es-pt|(?:fresh|r2)-(?:lectures|school|espt))/.test(item.file);
   if (scoresDefs) {
     const got = findDefinitions(item.text, { lang: item.lang }).map((d) => d.term);
     const want = item.definitions.map((d) => d.term);
@@ -103,7 +105,7 @@ for (const item of items) {
     t.items++;
     if (!wrong.length) t.perfect++;
   }
-  if (wrong.length && s === "dev") mistakes.push({ id: item.id, locale: item.locale, ref: item.ref, text: item.text, wrong, note: item.note });
+  if (wrong.length && (s === "dev" || s === "dev2")) mistakes.push({ id: item.id, locale: item.locale, ref: item.ref, text: item.text, wrong, note: item.note });
 }
 
 const result = {};
@@ -132,7 +134,7 @@ if (args.has("--check")) {
   console.log(JSON.stringify(result, null, 2));
 } else {
   const pct = (x) => `${Math.round(x * 100)}%`;
-  for (const key of ["dev", "test", "fresh", "all"]) {
+  for (const key of ["dev", "dev2", "test", "fresh", "all"]) {
     const r = result[key];
     if (!r) continue;
     console.log(`\n${key.toUpperCase()} (${r.items} items, ${r.perfect} fully right)`);
@@ -141,7 +143,7 @@ if (args.has("--check")) {
     console.log(`  action items  found ${r.actionItems.tp} of ${r.actionItems.tp + r.actionItems.fn} (recall ${pct(r.actionItems.recall)}), ${r.actionItems.fp} extra, owner right ${pct(r.owners)}, due date right ${pct(r.dueDates)}`);
   }
   if (args.has("--show")) {
-    console.log(`\nDev mistakes (${mistakes.length}):`);
+    console.log(`\nDev and dev2 mistakes (${mistakes.length}):`);
     for (const m of mistakes) console.log(`\n${m.id} [${m.locale}, said ${m.ref}] ${m.text}\n  ${m.wrong.join("\n  ")}${m.note ? `\n  note: ${m.note}` : ""}`);
   }
 }

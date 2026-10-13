@@ -27,6 +27,8 @@ create table if not exists public.seekto_items (
 );
 
 create index if not exists seekto_items_changes on public.seekto_items (account_id, seq);
+-- Each item's size, kept with the row, so checking the storage limit doesn't read every item.
+alter table public.seekto_items add column if not exists body_size int generated always as (octet_length(body)) stored;
 
 -- No direct table access from the browser keys. Row level security with no policies denies
 -- everything, and the grants are removed as well.
@@ -59,11 +61,13 @@ create or replace function public.seekto_max_accounts() returns int
 language sql immutable set search_path = pg_catalog
 as $$ select 10 $$;
 
--- How much each account may store, in characters of encrypted data (about 1.3 MB of
--- characters per MB of notes and recordings). Raise it if you need more.
-create or replace function public.seekto_max_bytes() returns bigint
+-- How much encrypted data the whole database may hold, shared by all its accounts: 450 MB, so
+-- it fits in a free Supabase project (500 MB) with room to spare. Encrypted data is about 1.3 MB
+-- per MB of notes and recordings. Raise it if your project has more space.
+drop function if exists public.seekto_max_bytes();
+create or replace function public.seekto_max_total_bytes() returns bigint
 language sql immutable set search_path = pg_catalog
-as $$ select 300000000::bigint $$;
+as $$ select 450000000::bigint $$;
 
 -- Claim an account id with a write token. Only someone with the account key can derive both.
 create or replace function public.seekto_register(p_account text, p_token text) returns jsonb
@@ -101,14 +105,14 @@ begin
   if jsonb_typeof(p_items) <> 'array' or jsonb_array_length(p_items) > 200 then
     raise exception 'seekto: send at most 200 items at a time' using errcode = '22023';
   end if;
-  -- Each account has a storage limit, so one account can't fill the whole database. Saves to one
-  -- account run one at a time, and items being replaced aren't counted twice.
-  perform pg_advisory_xact_lock(hashtext('seekto_put:' || p_account));
-  if (select coalesce(sum(length(i.body)), 0) from seekto_items i
-       where i.account_id = p_account
-         and i.item_id not in (select x.item_id from jsonb_to_recordset(p_items) as x(item_id text) where x.item_id is not null))
-     + (select coalesce(sum(length(x.body)), 0) from jsonb_to_recordset(p_items) as x(body text)) > seekto_max_bytes() then
-    raise exception 'seekto: this account is out of storage space' using errcode = '53100';
+  -- The database has a storage limit, shared by its accounts, so nobody can fill the project.
+  -- Saves run one at a time, and items being replaced aren't counted twice.
+  perform pg_advisory_xact_lock(hashtext('seekto_put'));
+  if (select coalesce(sum(i.body_size), 0) from seekto_items i
+       where not (i.account_id = p_account
+         and i.item_id in (select x.item_id from jsonb_to_recordset(p_items) as x(item_id text) where x.item_id is not null)))
+     + (select coalesce(sum(octet_length(x.body)), 0) from jsonb_to_recordset(p_items) as x(body text)) > seekto_max_total_bytes() then
+    raise exception 'seekto: this storage is full' using errcode = '53100';
   end if;
   for it in select * from jsonb_to_recordset(p_items) as x(item_id text, version bigint, body text) loop
     insert into seekto_items (account_id, item_id, version, body)
