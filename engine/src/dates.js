@@ -289,7 +289,9 @@ const EVENT_WORDS = [
   ["prova", "test", 1], ["provinha", "test", 1], ["teste", "test", 1], ["simulado", "test", 1], ["avaliação", "test", 1], ["recuperação", "test", 1],
   ["trabalho", "assignment", 1], ["seminário", "assignment", 1], ["relatório", "assignment", 1], ["lista de exercícios", "assignment", 1], ["lista", "assignment", 1],
   ["exercício", "assignment", 1], ["resenha", "assignment", 1], ["apresentação", "assignment", 1], ["projeto", "assignment", 1], ["atividade", "assignment", 1],
-  ["redação", "assignment", 1], ["dever de casa", "assignment", 1], ["leitura", "assignment", 1], ["fórum", "assignment", 1],
+  ["redação", "assignment", 1], ["redacao", "assignment", 1], ["dever de casa", "assignment", 1], ["dever", "assignment", 1], ["leitura", "assignment", 1], ["fórum", "assignment", 1],
+  // from KeuqS's Portuguese support (#11)
+  ["exame", "test", 1], ["ensaio", "assignment", 1], ["tarefa", "assignment", 1], ["prazo", "assignment", 1],
 ];
 const EVENT_RES = EVENT_WORDS.map(([word, type, romance]) => [new RegExp(`(?<![${L}])${word}(?:s|es)?(?![${L}])`, "iu"), word, type, !!romance]);
 
