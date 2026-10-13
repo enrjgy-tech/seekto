@@ -59,6 +59,12 @@ create or replace function public.seekto_max_accounts() returns int
 language sql immutable set search_path = pg_catalog
 as $$ select 10 $$;
 
+-- How much each account may store, in characters of encrypted data (about 1.3 MB of
+-- characters per MB of notes and recordings). Raise it if you need more.
+create or replace function public.seekto_max_bytes() returns bigint
+language sql immutable set search_path = pg_catalog
+as $$ select 300000000::bigint $$;
+
 -- Claim an account id with a write token. Only someone with the account key can derive both.
 create or replace function public.seekto_register(p_account text, p_token text) returns jsonb
 language plpgsql security definer set search_path = public, pg_temp
@@ -92,6 +98,11 @@ begin
   perform seekto_check(p_account, p_token);
   if jsonb_typeof(p_items) <> 'array' or jsonb_array_length(p_items) > 200 then
     raise exception 'seekto: send at most 200 items at a time' using errcode = '22023';
+  end if;
+  -- Each account has a storage limit, so one account can't fill the whole database.
+  if (select coalesce(sum(length(body)), 0) from seekto_items where account_id = p_account)
+     + (select coalesce(sum(length(x.body)), 0) from jsonb_to_recordset(p_items) as x(body text)) > seekto_max_bytes() then
+    raise exception 'seekto: this account is out of storage space' using errcode = '53100';
   end if;
   for it in select * from jsonb_to_recordset(p_items) as x(item_id text, version bigint, body text) loop
     insert into seekto_items (account_id, item_id, version, body)

@@ -339,6 +339,13 @@ export function hostPairing(ui) {
         const ok = await ui.onRequest({ name: peer.name, check });
         if (done || link !== current) return;
         if (!ok) { denied.add(peer.id); current.send({ type: "denied" }); current.close(); link = null; return; }
+        // The other device must confirm the same number too before anything is shared.
+        ui.onWaitingForOther?.();
+        await Promise.race([
+          next(current, "sas-ok", 180000),
+          new Promise((resolve, reject) => current.on("denied", () => reject(new Error(t("The other device said the numbers don't match. Nothing was shared."))))),
+        ]);
+        if (done || link !== current) return;
         const secret = randomId(24);
         current.on("paired", () => {
           done = true;
@@ -365,8 +372,9 @@ export function hostPairing(ui) {
 }
 
 /**
- * Enter a code shown on another device. ui: onWaiting(), onCheck(check) with the 6-digit number to
- * compare, onPaired(peer), onError(err). Returns cancel.
+ * Enter a code shown on another device. ui: onWaiting(), onCheck(check) -> Promise<boolean>, which shows
+ * the 6-digit number and resolves true once the person confirms it matches, onPaired(peer), onError(err).
+ * Returns cancel.
  */
 export function joinPairing(input, ui) {
   const code = normalizeCode(input);
@@ -383,7 +391,10 @@ export function joinPairing(input, ui) {
       const peer = { id: msg.from, name: msg.name };
       link = new Link({ peer, initiator: true, sendSignal: (m) => Topic.send(topicName, { ...m, to: peer.id }) });
       link.on("denied", () => { done = true; topic.close(); ui.onError(new Error(t("The other device said no."))); link.close(); });
+      let confirmed = false;
       link.on("pair", (m) => {
+        // Never accept a pairing before this device's user confirmed the number.
+        if (!confirmed) { link.close(); return; }
         done = true;
         savePaired([...paired().filter((p) => p.id !== peer.id), { ...peer, name: m.name, secret: m.secret, lastSync: null }]);
         link.send({ type: "paired" });
@@ -398,7 +409,10 @@ export function joinPairing(input, ui) {
         link.send({ type: "sas-commit", value: await sasCommit(mine) });
         const host = await next(link, "sas-host");
         link.send({ type: "sas-reveal", random: mine });
-        ui.onCheck?.(await sasCode(mine, host.random, bindingOf(link)));
+        const same = await ui.onCheck(await sasCode(mine, host.random, bindingOf(link)));
+        if (!same) { done = true; link.send({ type: "denied" }); link.close(); topic.close(); return; }
+        confirmed = true;
+        link.send({ type: "sas-ok" });
       }).catch((err) => ui.onError(err));
       link.offer().catch((err) => ui.onError(err));
     }
@@ -444,8 +458,10 @@ function authenticate(link, secret) {
   });
 }
 
-async function connectTo(peer) {
-  if (links.get(peer.id)?.open || pending.has(peer.id)) return;
+// `fresh`: the other device asked us to connect (it reloaded), so an old link we still think is
+// open is probably dead. The new link replaces it only after it authenticates.
+async function connectTo(peer, fresh = false) {
+  if ((!fresh && links.get(peer.id)?.open) || pending.has(peer.id)) return;
   const topicName = `seekto-dev-${peer.id}`;
   const link = new Link({ peer, initiator: true, sendSignal: (m) => Topic.send(topicName, { ...m, to: peer.id }) });
   pending.set(peer.id, link);
@@ -469,9 +485,10 @@ function startInbox() {
     if (msg.to !== me().id) return;
     const peer = paired().find((p) => p.id === msg.from);
     if (!peer) return;
-    if (msg.type === "ping") { if (me().id < peer.id) connectTo(peer); return; }
+    if (msg.type === "ping") { if (me().id < peer.id) connectTo(peer, true); return; }
     if (msg.type === "offer") {
-      if (links.get(peer.id)?.open) links.get(peer.id).close();
+      // Don't drop a working connection for an offer that hasn't proved anything yet:
+      // the new link replaces the old one only after it authenticates (register closes the old one).
       const link = new Link({ peer, initiator: false, sendSignal: (m) => Topic.send(`seekto-dev-${peer.id}`, { ...m, to: peer.id }) });
       try {
         await link.answer(msg.sdp);

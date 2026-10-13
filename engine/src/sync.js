@@ -5,11 +5,18 @@
 export const STORES = ["notes", "events", "projects"];
 const CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // no 0/O or 1/I/L, easy to read aloud
 
-/** A 6-character pairing code. `random` returns numbers in [0, 1). */
-export function makeCode(random = Math.random, length = 6) {
+/** A 6-character pairing code from a secure random source. `random` (numbers in [0, 1)) is for tests. */
+export function makeCode(random = cryptoRandom, length = 6) {
   let code = "";
   for (let i = 0; i < length; i++) code += CODE_ALPHABET[Math.floor(random() * CODE_ALPHABET.length)];
   return code;
+}
+
+/** A uniform number in [0, 1) from the system's secure random source. */
+function cryptoRandom() {
+  const a = new Uint32Array(1);
+  globalThis.crypto.getRandomValues(a);
+  return a[0] / 4294967296;
 }
 
 /** Clean up a typed code: upper case, no spaces or dashes, common mix-ups fixed. */

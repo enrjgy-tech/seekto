@@ -64,7 +64,7 @@ export function openConnect(mode = "choose") {
         return new Promise((resolve) => {
           $("#request", sheet).innerHTML = html`<div class="qcard"><b>${t("{name} wants to connect.", { name })}</b><p class="sub">${t("Check that it shows the same number:")}</p><div class="mono check-number">${check}</div><p class="sub">${t("Allow only if the numbers match and it's your device. It will get a copy of your notes, recordings, calendar and assignments.")}</p><div class="row"><button class="btn" data-allow>${t("The numbers match, allow")}</button><button class="btn ghost" data-deny>${t("Don't allow")}</button></div></div>`;
           $("[data-allow]", sheet).focus();
-          $("[data-allow]", sheet).addEventListener("click", () => { $("#request", sheet).innerHTML = `<p class="note-small">${t("Connecting…")}</p>`; resolve(true); });
+          $("[data-allow]", sheet).addEventListener("click", () => { $("#request", sheet).innerHTML = `<p class="note-small">${t("Waiting for the other device to confirm the number…")}</p>`; resolve(true); });
           $("[data-deny]", sheet).addEventListener("click", () => { $("#request", sheet).innerHTML = ""; resolve(false); });
         });
       },
@@ -88,7 +88,12 @@ export function openConnect(mode = "choose") {
       cancel = joinPairing($("#codeIn", sheet).value, {
         onWaiting() { $("#joinStatus", sheet).textContent = t("Looking for the device showing the code…"); },
         onCheck(check) {
-          $("#joinStatus", sheet).innerHTML = html`<span class="sub">${t("Check that the other device shows this number, then tap Allow there:")}</span><span class="mono check-number">${check}</span>`;
+          return new Promise((resolve) => {
+            $("#joinStatus", sheet).innerHTML = html`<span class="sub">${t("Check that the other device shows the same number:")}</span><span class="mono check-number">${check}</span><span class="row"><button type="button" class="btn" data-same>${t("The numbers match")}</button><button type="button" class="btn ghost" data-differ>${t("They don't match")}</button></span>`;
+            $("[data-same]", sheet).focus();
+            $("[data-same]", sheet).addEventListener("click", () => { $("#joinStatus", sheet).textContent = t("Now tap Allow on the other device."); resolve(true); });
+            $("[data-differ]", sheet).addEventListener("click", () => { $("#joinStatus", sheet).textContent = t("Not connected. Nothing was shared. Try again with a new code."); resolve(false); });
+          });
         },
         onPaired(peer) { done(peer); },
         onError(err) { $("#joinStatus", sheet).textContent = err.message; },
