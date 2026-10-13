@@ -1,12 +1,15 @@
-// On-device transcription: Whisper in the browser. Works in any modern browser, offline after the
-// first download, in about 100 languages. Audio is decoded here and handed to a background thread.
+// On-device transcription: Whisper in the browser (checked so far in Chrome and Edge on Windows),
+// offline after the first download, in about 100 languages. Audio is decoded here and handed to a background thread.
 import { whisperCues, toMono16k } from "../engine/index.js";
 import { t } from "./i18n.js";
 
+// Download sizes: with a graphics card (WebGPU) Transformers.js loads full-precision weights, which
+// are bigger than the compressed ones it uses otherwise.
+const gpu = typeof navigator !== "undefined" && "gpu" in navigator;
 export const MODELS = {
-  fast: { id: "Xenova/whisper-tiny", label: t("Fast (about 40 MB)") },
-  better: { id: "Xenova/whisper-base", label: t("Better (about 80 MB)") },
-  best: { id: "Xenova/whisper-small", label: t("Best, for fast computers (about 250 MB)") },
+  fast: { id: "Xenova/whisper-tiny", label: t("Fast (about {size})", { size: gpu ? "150 MB" : "40 MB" }) },
+  better: { id: "Xenova/whisper-base", label: t("Better (about {size})", { size: gpu ? "300 MB" : "80 MB" }) },
+  best: { id: "Xenova/whisper-small", label: t("Best, for fast computers (about {size})", { size: gpu ? "1 GB" : "250 MB" }) },
 };
 
 export const supported = typeof Worker !== "undefined" && typeof WebAssembly !== "undefined" && typeof (globalThis.AudioContext || globalThis.webkitAudioContext) !== "undefined";

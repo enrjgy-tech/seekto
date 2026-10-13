@@ -38,6 +38,24 @@ test("ordinals and numbers", () => {
   assert.deepEqual(dates("The lab write-up deadline is 11/6."), ["2026-11-06"]);
 });
 
+test("a weekday with a day number, British phrasing, spelled-out ordinals", () => {
+  assert.deepEqual(dates("Bueno chavos, el primer parcial es el jueves 22.", { locale: "es-MX" }), ["2026-10-22"]);
+  assert.deepEqual(dates("Entréguenme el ensayo a más tardar el viernes 23.", { locale: "es-MX" }), ["2026-10-23"]);
+  assert.deepEqual(dates("A prova é na quinta 22.", { locale: "pt-BR" }), ["2026-10-22"]);
+  assert.deepEqual(dates("The quiz is Thursday 22.", { locale: "en-GB" }), ["2026-10-22"]);
+  assert.deepEqual(dates("Queda para la otra semana, el examen, el miércoles.", { locale: "es-MX" }), ["2026-10-21"]);
+  assert.deepEqual(dates("Your essay is due Friday week.", { locale: "en-GB" }), ["2026-10-23"]);
+  assert.deepEqual(dates("The test is a fortnight today.", { locale: "en-GB" }), ["2026-10-26"]);
+  assert.deepEqual(dates("The mock is a week on Thursday.", { locale: "en-GB" }), ["2026-10-22"]);
+  assert.deepEqual(dates("Homework is due the twenty first."), ["2026-10-21"]);
+  assert.deepEqual(dates("The essay is due by midnight on the twentieth."), ["2026-10-20"]);
+  assert.deepEqual(dates("The paper is due November third."), ["2026-11-03"]);
+  // Not dates
+  assert.deepEqual(dates("The quiz on Friday has 20 questions."), ["2026-10-16"]);
+  assert.deepEqual(dates("Read the third chapter for the quiz."), []);
+  assert.equal(findEvents("Homework: finish questions 1 to 5, due Monday.", { ref })[0].title, "Homework due");
+});
+
 test("corrections, reschedules, cancellations and the past", () => {
   assert.deepEqual(dates("The vocab quiz is Wednesday, no, Thursday. Thursday, sorry."), ["2026-10-15"]);
   assert.deepEqual(dates("The test is the 16th. No, wait, the 19th, sorry."), ["2026-10-19"]);

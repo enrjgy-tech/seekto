@@ -46,7 +46,7 @@ function route() {
   return (hash || (firstVisit() ? "home" : "chat")).split("/");
 }
 
-function render() {
+function render(e) {
   const [name, param] = route();
   if (document.querySelector("#overlay .overlay")) closeOverlay();
   clearToast();
@@ -63,6 +63,16 @@ function render() {
   main.scrollTop = 0;
   cleanup = views[view](main, param ? (view === "shared" ? param : decodeURIComponent(param)) : undefined) || null;
   updateModelPill();
+  // Tell screen readers the page changed: name the tab after the view and, when the person moved
+  // to another screen, put focus on its heading.
+  const heading = main.querySelector("h1, h2");
+  const label = heading?.textContent.trim();
+  document.title = label && !["chat", "home"].includes(view) ? `${label} · Seekto` : "Seekto";
+  if (e?.type === "hashchange") {
+    const target = heading || main;
+    target.setAttribute("tabindex", "-1");
+    target.focus({ preventScroll: true });
+  }
 }
 
 function updateModelPill() {

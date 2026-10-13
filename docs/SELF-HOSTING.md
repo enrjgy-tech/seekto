@@ -64,7 +64,7 @@ Then in **Settings → More → Connection server → STUN and TURN servers**:
 
 ## 4. Encrypted storage (optional)
 
-Storage sync works with any Supabase project, including [self-hosted Supabase](https://supabase.com/docs/guides/self-hosting). Run [`app/supabase.sql`](../app/supabase.sql) in its SQL editor. It accepts at most 10 accounts; change `seekto_max_accounts` in the script to allow more. Everything is encrypted before it leaves the browser.
+Storage sync works with any Supabase project, including [self-hosted Supabase](https://supabase.com/docs/guides/self-hosting). Run [`app/supabase.sql`](../app/supabase.sql) in its SQL editor. It accepts at most 10 accounts of about 300 MB each; change `seekto_max_accounts` and `seekto_max_bytes` in the script to fit your project (a free Supabase project holds 500 MB). Everything is encrypted before it leaves the browser.
 
 Adapters for WebDAV (Nextcloud) and S3-compatible storage are open issues, and help is welcome.
 

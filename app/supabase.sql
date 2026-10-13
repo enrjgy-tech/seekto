@@ -75,6 +75,8 @@ begin
   if length(p_token) <> 64 then
     raise exception 'seekto: bad token' using errcode = '22023';
   end if;
+  -- One registration at a time, so two at once can't both slip under the account limit.
+  perform pg_advisory_xact_lock(hashtext('seekto_register'));
   if not exists (select 1 from seekto_accounts where account_id = p_account)
      and (select count(*) from seekto_accounts) >= seekto_max_accounts() then
     raise exception 'seekto: this storage already has the most accounts it allows' using errcode = '53400';
@@ -99,8 +101,12 @@ begin
   if jsonb_typeof(p_items) <> 'array' or jsonb_array_length(p_items) > 200 then
     raise exception 'seekto: send at most 200 items at a time' using errcode = '22023';
   end if;
-  -- Each account has a storage limit, so one account can't fill the whole database.
-  if (select coalesce(sum(length(body)), 0) from seekto_items where account_id = p_account)
+  -- Each account has a storage limit, so one account can't fill the whole database. Saves to one
+  -- account run one at a time, and items being replaced aren't counted twice.
+  perform pg_advisory_xact_lock(hashtext('seekto_put:' || p_account));
+  if (select coalesce(sum(length(i.body)), 0) from seekto_items i
+       where i.account_id = p_account
+         and i.item_id not in (select x.item_id from jsonb_to_recordset(p_items) as x(item_id text) where x.item_id is not null))
      + (select coalesce(sum(length(x.body)), 0) from jsonb_to_recordset(p_items) as x(body text)) > seekto_max_bytes() then
     raise exception 'seekto: this account is out of storage space' using errcode = '53100';
   end if;

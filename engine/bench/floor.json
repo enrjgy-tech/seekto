@@ -1,6 +1,6 @@
 {
-  "deadlinesRecall": 0.882,
-  "deadlinesPrecision": 0.924,
+  "deadlinesRecall": 0.891,
+  "deadlinesPrecision": 0.925,
   "definitionsRecall": 0.566,
   "definitionsPrecision": 0.708,
   "actionItemsRecall": 0.818,

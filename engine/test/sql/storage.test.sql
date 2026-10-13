@@ -48,6 +48,10 @@ begin
     raise exception 'FAIL: an account stored more than its limit';
   exception when sqlstate '53100' then null;
   end;
+  -- Saving a new version of an item doesn't count the old version against the limit
+  perform public.seekto_put(repeat('e', 32), t, jsonb_build_array(jsonb_build_object('item_id', i, 'version', 1, 'body', repeat('y', 2900000))));
+  perform public.seekto_put(repeat('e', 32), t, jsonb_build_array(jsonb_build_object('item_id', repeat('2', 40), 'version', 1, 'body', repeat('y', 2900000))));
+  perform public.seekto_put(repeat('e', 32), t, jsonb_build_array(jsonb_build_object('item_id', i, 'version', 2, 'body', repeat('z', 2900000))));
   perform public.seekto_forget(repeat('e', 32), t);
   -- Only a limited number of accounts can be created with the public browser key
   for n in 1..public.seekto_max_accounts() loop

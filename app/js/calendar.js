@@ -27,7 +27,7 @@ export function render(main) {
       <div class="view-head">
         <h1>${t("Calendar")}</h1>
         <div class="row">
-          <label class="btn ghost" style="cursor:pointer">${t("Import calendar (.ics)")}<input type="file" id="ics" accept=".ics,text/calendar" hidden></label>
+          <label class="btn ghost" style="cursor:pointer">${t("Import calendar (.ics)")}<input type="file" id="ics" accept=".ics,text/calendar" class="sr-only"></label>
           <button class="btn ghost" id="exportIcs">${t("Export")}</button>
         </div>
       </div>

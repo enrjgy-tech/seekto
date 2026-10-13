@@ -15,19 +15,21 @@ Seekto finds deadlines, definitions and action items with rules, not an AI model
 
 After the rules were finished, four more writers (again without access to the code) wrote 190 new items: US college lectures, school teachers in the US, UK, Canada and Australia, Spanish and Brazilian Portuguese classes, and meetings in very different workplaces. The files (`data/fresh-*.jsonl`) were committed before they were scored, and they were scored once, on October 12, 2026:
 
-| | Found | Right when found |
+| | Found | Right, of what it adds |
 |---|---|---|
-| Deadlines and tests (150 items) | 78% (102 of 131) | 90% have the right date |
+| Deadlines and tests (150 items) | 78% (102 of 131) | 90% are a real deadline on the right date |
 | Definitions (about 100 items) | 35% (16 of 46) | 70% are real definitions |
 | Action items (40 meetings) | 33% (13 of 40) | 57% name the right person, 92% the right due date |
+
+"Right, of what it adds" counts every date Seekto would put on the calendar: a wrong date and a date that isn't a deadline at all both count against it.
 
 These are lower than the held-out half, which is expected: the held-out half shares writers and styles with the sentences the rules were fixed on. The fresh numbers are the better guide to a class Seekto has never heard. Their mistakes are never printed, and the rules must not be tuned on them; they'll be scored again only at releases.
 
 ## Results on the held-out half
 
-| | Found | Right when found |
+| | Found | Right, of what it adds |
 |---|---|---|
-| Deadlines and tests (155 items) | 88% (98 of 111) | 92% have the right date |
+| Deadlines and tests (155 items) | 89% (99 of 111) | 93% are a real deadline on the right date |
 | Definitions (75 items) | 57% (17 of 30) | 71% are real definitions |
 | Action items (25 meetings) | 82% (18 of 22), no extra items | 85% name the right person, 94% the right due date |
 

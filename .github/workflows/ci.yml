@@ -24,6 +24,19 @@ jobs:
       - run: npm run check:packs
       - run: npm run build
 
+  browser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm run build
+      - name: Install a headless browser
+        run: npm i --no-save playwright@1.56.0 && npx playwright install --with-deps chromium
+      - name: First screen, practice test, shared link on a phone, paste, Spanish
+        run: node test/smoke.mjs
+
   storage-sql:
     runs-on: ubuntu-latest
     services:

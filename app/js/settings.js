@@ -48,8 +48,8 @@ export function render(main, section) {
       </section>
       <section class="panel">
         <h2>${t("Transcription")}</h2>
-        <label class="row"><input type="radio" name="asr" value="device" ${raw(transcriber === "device" || !canListen ? "checked" : "")} style="width:auto"> <span><b>${t("Private, on this device.")}</b> <span class="note-small">${t("Recommended. Whisper runs in your browser when you stop recording, so audio never leaves this device. Works offline after a one-time download, in about 100 languages. Slower on phones.")}</span></span></label>
-        <label class="row"><input type="radio" name="asr" value="browser" ${raw(transcriber !== "device" && canListen ? "checked" : "")} ${raw(canListen ? "" : "disabled")} style="width:auto"> <span><b>${t("Live, with your browser's speech service.")}</b> <span class="note-small">${t("You see words as they're spoken. In Chrome and Edge, audio is processed online by the browser maker.")}${canListen ? "" : " " + t("Not available in this browser.")}</span></span></label>
+        <label class="row radio-row"><input type="radio" name="asr" value="device" ${raw(transcriber === "device" || !canListen ? "checked" : "")} style="width:auto"> <span><b>${t("Private, on this device.")}</b> <span class="note-small">${t("Recommended. Whisper runs in your browser when you stop recording, so audio never leaves this device. Works offline after a one-time download, in about 100 languages. Slower on phones.")}</span></span></label>
+        <label class="row radio-row"><input type="radio" name="asr" value="browser" ${raw(transcriber !== "device" && canListen ? "checked" : "")} ${raw(canListen ? "" : "disabled")} style="width:auto"> <span><b>${t("Live, with your browser's speech service.")}</b> <span class="note-small">${t("You see words as they're spoken. In Chrome and Edge, audio is processed online by the browser maker.")}${canListen ? "" : " " + t("Not available in this browser.")}</span></span></label>
         <div class="row">
           <label class="field" style="min-width:200px"><span class="label">${t("Model")}</span><select id="asrQuality">${raw(Object.entries(ASR_MODELS).map(([k, m]) => html`<option value="${k}" ${k === (s.asrQuality || "fast") ? "selected" : ""}>${m.label}</option>`).join(""))}</select></label>
           <label class="field" style="min-width:200px"><span class="label">${t("Language")}</span><select id="asrLanguage">${raw(LANGS.map(([code, name]) => html`<option value="${code}" ${code === (s.asrLanguage || "") ? "selected" : ""}>${name}</option>`).join(""))}</select></label>
@@ -68,7 +68,7 @@ export function render(main, section) {
         <div class="row">
           ${raw(hasSamples() ? `<button class="btn ghost" id="noSamples">${t("Remove the samples")}</button>` : "")}
           <button class="btn ghost" id="backup">${t("Download backup")}</button>
-          <label class="btn ghost" style="cursor:pointer">${t("Restore backup")}<input type="file" id="restore" accept=".json" hidden></label>
+          <label class="btn ghost" style="cursor:pointer">${t("Restore backup")}<input type="file" id="restore" accept=".json" class="sr-only"></label>
           <button class="btn danger" id="wipe">${t("Delete everything")}</button>
         </div>
         <p class="note-small">${t("Recordings aren't included in backups yet.")}</p>

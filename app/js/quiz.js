@@ -112,7 +112,7 @@ export function openQuiz({ notes = [], questions: given = null, title = t("Pract
     const p = promptFor(q);
     answered = false;
     sheet.innerHTML = html`
-      ${raw(head(`<span class="note-small mono" aria-label="${t("Question {n} of {total}", { n: i + 1, total: questions.length })}">${i + 1} / ${questions.length}</span>`))}
+      ${raw(head(`<span class="note-small mono"><span aria-hidden="true">${i + 1} / ${questions.length}</span><span class="sr-only">${t("Question {n} of {total}", { n: i + 1, total: questions.length })}</span></span>`))}
       <div class="progress" aria-hidden="true"><span style="width:${Math.round((i / questions.length) * 100)}%"></span></div>
       <div class="qcard">
         <span class="label" id="qLabel">${p.label}</span>

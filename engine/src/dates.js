@@ -37,6 +37,21 @@ const DAY_WORDS = (() => {
 })();
 const DAY_WORDS_RE = Object.keys(DAY_WORDS).sort((a, b) => b.length - a.length).map((w) => w.replace(/ /g, "\\s+").replace(/e/g, "[eé]").replace(/i/g, "[ií]").replace(/a/g, "[aá]")).join("|");
 
+// Ordinal day numbers as words (English): "the twenty first", "October third"
+const EN_ORDINALS = (() => {
+  const units = ["", "first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth", "ninth"];
+  const map = {};
+  units.forEach((w, n) => { if (n) map[w] = n; });
+  ["tenth", "eleventh", "twelfth", "thirteenth", "fourteenth", "fifteenth", "sixteenth", "seventeenth", "eighteenth", "nineteenth"].forEach((w, i) => (map[w] = 10 + i));
+  map.twentieth = 20;
+  map.thirtieth = 30;
+  units.forEach((w, n) => { if (n) map[`twenty ${w}`] = 20 + n; });
+  map["thirty first"] = 31;
+  return map;
+})();
+const EN_ORD_RE = Object.keys(EN_ORDINALS).sort((a, b) => b.length - a.length).map((w) => w.replace(/ /g, "[\\s-]+")).join("|");
+const ordinalValue = (w) => EN_ORDINALS[w.toLowerCase().replace(/[\s-]+/g, " ")];
+
 const EN_MONTH = "(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sept?(?:ember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)";
 const ANY_MONTH = `(${EN_MONTH.slice(1, -1)}|enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre|janeiro|fevereiro|mar[çc]o|maio|junho|julho|setembro|outubro|novembro|dezembro)`;
 const DAY = "(\\d{1,2})(?:st|nd|rd|th|º|°)?";
@@ -147,6 +162,19 @@ export function findDates(text, ref = new Date(), { locale } = {}) {
     const d2 = resolveYear(month, Number(m[2]), year, today);
     if (valid(d2, month, Number(m[2]))) add(d2, m[1] ? second : m.index, m[1] ? source.slice(second, m.index + m[0].length) : m[0], 3);
   }
+  // "October third", "the twenty first of October"
+  for (const m of all(new RegExp(`\\b${EN_MONTH}\\.?\\s+(?:the\\s+)?(${EN_ORD_RE})\\b`, "gi"))) {
+    const month = MONTHS[m[1].toLowerCase()];
+    const day = ordinalValue(m[2]);
+    const date = resolveYear(month, day, null, today);
+    if (valid(date, month, day)) add(date, m.index, m[0], 3);
+  }
+  for (const m of all(new RegExp(`\\b(?:the\\s+)?(${EN_ORD_RE})\\s+of\\s+${EN_MONTH}\\b`, "gi"))) {
+    const month = MONTHS[m[2].toLowerCase()];
+    const day = ordinalValue(m[1]);
+    const date = resolveYear(month, day, null, today);
+    if (valid(date, month, day)) add(date, m.index, m[0], 3);
+  }
   // Days said as words in Spanish and Portuguese: "dia vinte e cinco de novembro", "el quince de octubre"
   for (const m of all(new RegExp(`(?<![${L}])(${DAY_WORDS_RE})\\s+de\\s+${ANY_MONTH}(?![${L}])`, "giu"))) {
     const day = DAY_WORDS[fold(m[1]).replace(/\s+/g, " ")];
@@ -170,6 +198,25 @@ export function findDates(text, ref = new Date(), { locale } = {}) {
     const at = m.index + m[0].lastIndexOf(m[1]);
     add(nextDayOfMonth(today, Number(m[1])), at, source.slice(at, m.index + m[0].length), 2.5);
   }
+  // "on the twentieth", "due the twenty first": only after a word that introduces a date, and not
+  // before a noun ("the third chapter")
+  for (const m of all(new RegExp(`\\b(?:on|by|until|till|before|due)\\s+the\\s+(${EN_ORD_RE})\\b(?!\\s+(?:of\\s+)?${EN_MONTH}\\b)(?![\\s-]+(?:${NOT_A_DAY}|\\p{L}+(?:s|ing|ed)\\b))`, "giu"))) {
+    const at = m.index + m[0].toLowerCase().lastIndexOf("the");
+    add(nextDayOfMonth(today, ordinalValue(m[1])), at, source.slice(at, m.index + m[0].length), 2.5);
+  }
+  // A weekday with a day number: "el jueves 22", "na quinta 22", "Thursday 22", "Friday the 23rd".
+  // The weekday picks which month: the next day with that number that falls on that weekday.
+  for (const m of all(new RegExp(`(?<![${L}])(${EN_DAY.slice(1, -1)}|mon|tues?|wed|thu(?:rs?)?|fri|sat|sun|domingo|lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|segunda|ter[çc]a|quarta|quinta|sexta)(?:-feira)?\\.?,?\\s+(?:the\\s+|el\\s+|dia\\s+)?(\\d{1,2})(?:st|nd|rd|th|º|°)?(?![\\d/:.,]\\d|\\s*(?:de\\s+|of\\s+)?${ANY_MONTH}|\\s*(?:%|am|pm|a\\.m|p\\.m|h\\b|hs\\b|horas|hours|minutes|minutos|students|alumnos|alunos|people|pages|p[aá]ginas|points|puntos|pontos|questions|preguntas|quest[õo]es|${NOT_A_DAY})(?![${L}]))`, "giu"))) {
+    const weekday = WEEKDAYS[fold(m[1]).replace(/\.$/, "")];
+    const n = Number(m[2]);
+    if (weekday === undefined || n < 1 || n > 31) continue;
+    let date = null;
+    for (let i = 0; i < 12 && !date; i++) {
+      const d = new Date(today.getFullYear(), today.getMonth() + i, n);
+      if (d.getDate() === n && d >= today && d.getDay() === weekday) date = d;
+    }
+    add(date || nextDayOfMonth(today, n), m.index, m[0], 2.6);
+  }
   // "dia 20", "el 20" (Portuguese and Spanish day of the month)
   for (const m of all(new RegExp(`(?<![${L}])(?:dia|el)\\s+(\\d{1,2})(?![\\d/%:.,]\\d|\\s*(?:de\\s+)?${ANY_MONTH}|\\s*%|\\s*(?:de\\s+)?(?:la|las|los)\\b)`, "giu"))) {
     if (Number(m[1]) > 31 || Number(m[1]) < 1) continue;
@@ -188,6 +235,13 @@ export function findDates(text, ref = new Date(), { locale } = {}) {
     const n = COUNTS[m[1].toLowerCase()] ?? Number(m[1]);
     add(addDays(today, /^week/i.test(m[2]) ? n * 7 : n), m.index, m[0], 2);
   }
+  // British: "a fortnight today", "in a fortnight", "a week on Friday", "a week tomorrow"
+  for (const m of all(new RegExp(`\\b(?:in\\s+)?a\\s+(fortnight|week)\\s+(?:(today|tomorrow|from\\s+today|from\\s+tomorrow)|on\\s+${EN_DAY})\\b`, "gi"))) {
+    const span = m[1].toLowerCase() === "fortnight" ? 14 : 7;
+    const base = m[3] ? upcoming(today, WEEKDAYS[m[3].toLowerCase()]) : /tomorrow/i.test(m[2]) ? addDays(today, 1) : today;
+    add(addDays(base, span), m.index, m[0], 2.2);
+  }
+  for (const m of all(/\bin\s+a\s+fortnight\b|\bfortnight\s+from\s+now\b/gi)) add(addDays(today, 14), m.index, m[0], 2);
   for (const m of all(/\b(?:the\s+)?end of (?:the |this )?week\b/gi)) add(endOfWeek(today), m.index, m[0], 1.5);
   for (const m of all(/\bend of next week\b/gi)) add(nextWeek(today, 5), m.index, m[0], 1.6);
   for (const m of all(/\bnext week(?:'s)?\b/gi)) add(nextWeek(today, 1), m.index, m[0], 1.2, { week: true });
@@ -202,7 +256,7 @@ export function findDates(text, ref = new Date(), { locale } = {}) {
     const n = COUNTS[m[1].toLowerCase()] ?? Number(m[1]);
     add(addDays(today, /^semana/i.test(m[2]) ? n * 7 : n), m.index, m[0], 2);
   }
-  for (const m of all(new RegExp(`(?<![${L}])(?:la\\s+)?(?:semana\\s+que\\s+viene|pr[oó]xima\\s+semana|semana\\s+pr[oó]xima)(?![${L}])`, "giu"))) add(nextWeek(today, 1), m.index, m[0], 1.2, { week: true });
+  for (const m of all(new RegExp(`(?<![${L}])(?:la\\s+)?(?:semana\\s+que\\s+viene|pr[oó]xima\\s+semana|semana\\s+pr[oó]xima|otra\\s+semana)(?![${L}])`, "giu"))) add(nextWeek(today, 1), m.index, m[0], 1.2, { week: true });
   // Portuguese
   for (const m of all(new RegExp(`(?<![${L}])(depois\\s+de\\s+amanh[ãa]|hoje|amanh[ãa])(?![${L}])`, "giu"))) {
     const word = fold(m[1]);
@@ -218,7 +272,7 @@ export function findDates(text, ref = new Date(), { locale } = {}) {
 
   // ---- Weekdays ----
   // English: "Friday", "on Friday", "this Friday", "next Friday", "Friday next week", "the Tuesday after that", "Tues."
-  for (const m of all(new RegExp(`\\b(?:(next|this coming|this|coming|on|by|until|till|before|for|last|past|the)\\s+)?${EN_DAY}(?!s\\b)\\b(\\s+(?:after\\s+(?:that|next)|next\\s+week|the\\s+week\\s+after))?`, "gi"))) {
+  for (const m of all(new RegExp(`\\b(?:(next|this coming|this|coming|on|by|until|till|before|for|last|past|the)\\s+)?${EN_DAY}(?!s\\b)\\b(\\s+(?:after\\s+(?:that|next)|next\\s+week|the\\s+week\\s+after|week(?![${L}'])))?`, "giu"))) {
     const word = (m[1] || "").toLowerCase();
     if (word === "last" || word === "past") continue;
     const target = WEEKDAYS[m[2].toLowerCase()];
@@ -446,6 +500,7 @@ function titleFor(sentence, hit, subject) {
     return capitalize(out.join(" "));
   }
   const due = sentence.toLowerCase().search(/\b(due|deadline)\b/);
+  const named = hit;
   if (due >= 0 && hit.type === "assignment" && !/fee|last date/.test(hit.word)) hit = { ...hit, word: "due", index: due };
   if (hit.word === "due" || hit.word === "deadline") {
     // "the lab write-up is due Friday" -> words before "due"
@@ -458,6 +513,8 @@ function titleFor(sentence, hit, subject) {
       if (/[,;:]$/.test(before[i]) && words.length) break;
       words.unshift(w);
     }
+    // "Homework: finish questions 1 to 5, due Monday" -> "Homework due", not "5 due"
+    if (!words.some((w) => /\p{L}/u.test(w))) words.splice(0, words.length, ...(named.word !== "due" && named.word !== "deadline" ? [named.text] : []));
     return capitalize(`${withSubject(words.length ? words.join(" ") : "Assignment", subject)} due`);
   }
   // Up to three meaningful words before the event word: "chapter 5 quiz"

@@ -37,6 +37,7 @@ export function toast(message) {
   const el = $("#toast");
   el.textContent = message;
   el.hidden = false;
+  announce(message); // the toast appears and fills in the same moment, which some screen readers skip
   toastAt = Date.now();
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => (el.hidden = true), Math.max(2400, message.length * 60));
@@ -71,6 +72,7 @@ const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]):not([t
  * Open a dialog. Focus moves into it, Tab stays inside it, Esc closes it, and focus goes back
  * to whatever opened it. The dialog is named by its first heading.
  */
+let namer = null;
 export function openOverlay(content, onClose = null) {
   onOverlayClose?.();
   onOverlayClose = onClose;
@@ -87,7 +89,9 @@ export function openOverlay(content, onClose = null) {
     const h = sheet.querySelector("h1, h2, h3");
     if (h) { h.id ||= "dialogTitle"; dialog.setAttribute("aria-labelledby", h.id); }
   };
-  new MutationObserver(name).observe(sheet, { childList: true });
+  namer?.disconnect();
+  namer = new MutationObserver(name);
+  namer.observe(sheet, { childList: true });
   name();
   requestAnimationFrame(() => { if (!sheet.contains(document.activeElement)) (sheet.querySelector("input, textarea, select") || sheet).focus(); });
   return sheet;
@@ -107,6 +111,8 @@ function onKey(e) {
 }
 
 export function closeOverlay() {
+  namer?.disconnect();
+  namer = null;
   const fn = onOverlayClose;
   onOverlayClose = null;
   fn?.();

@@ -58,7 +58,7 @@ export function renderList(main) {
         <h1>${t("Notes")}</h1>
         <div class="row">
           <button class="btn ghost" id="newNote">${t("New note")}</button>
-          <label class="btn ghost" style="cursor:pointer">${t("Import")}<input type="file" id="importFile" accept=".vtt,.srt,.txt,audio/*,video/*" hidden></label>
+          <label class="btn ghost" style="cursor:pointer">${t("Import")}<input type="file" id="importFile" accept=".vtt,.srt,.txt,audio/*,video/*" class="sr-only"></label>
           <button class="btn" id="goRecord">${t("Record")}</button>
         </div>
       </div>
@@ -162,7 +162,7 @@ export async function renderDetail(main, id) {
           ${raw(note.audioId ? `<audio id="audio" controls preload="metadata"></audio>` : "")}
           ${raw(typed ? `<textarea id="body" rows="16" placeholder="${esc(t("Write your notes. Dates like \"quiz on Friday\" are added to your calendar."))}">${esc(note.text)}</textarea>` : `<span class="label">${t("Transcript and notes")}</span><div class="transcript" id="lines"></div>`)}
           ${raw(!typed && !note.cues?.length && note.audioId && canTranscribeHere ? `<div class="field"><span class="label">${t("Transcript")}</span><p class="note-small" id="asrStatus">${transcribing(note.id) || t("Make the transcript on this device: private, works offline after a one-time download, about 100 languages.")}</p><div class="row"><button class="btn small" id="asrGo" ${transcribing(note.id) ? "disabled" : ""}>${t("Transcribe on this device")}</button></div></div>` : "")}
-          ${raw(!typed && !note.cues?.length ? `<div class="field"><span class="label">${note.audioId ? t("Or add a transcript") : t("No transcript yet")}</span><p class="note-small">${t("Add a caption file (.vtt or .srt) or paste a transcript with times.")}</p><textarea id="pasteT" rows="4" placeholder="0:00&#10;${esc(t("Today we start chapter 5…"))}"></textarea><div class="row"><button class="btn small" id="useT">${t("Use transcript")}</button><label class="btn ghost small" style="cursor:pointer">${t("Caption file")}<input type="file" id="capFile" accept=".vtt,.srt,.txt" hidden></label></div></div>` : "")}
+          ${raw(!typed && !note.cues?.length ? `<div class="field"><span class="label">${note.audioId ? t("Or add a transcript") : t("No transcript yet")}</span><p class="note-small">${t("Add a caption file (.vtt or .srt) or paste a transcript with times.")}</p><textarea id="pasteT" rows="4" placeholder="0:00&#10;${esc(t("Today we start chapter 5…"))}"></textarea><div class="row"><button class="btn small" id="useT">${t("Use transcript")}</button><label class="btn ghost small" style="cursor:pointer">${t("Caption file")}<input type="file" id="capFile" accept=".vtt,.srt,.txt" class="sr-only"></label></div></div>` : "")}
         </section>
         <section class="panel">
           ${raw(isMeeting(note) ? `<div id="meetingBox" style="display:grid;gap:8px">${meetingPanelHtml(note)}</div>` : "")}

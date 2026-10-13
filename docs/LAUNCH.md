@@ -4,7 +4,7 @@ Dates are proposed by the maintainer's plan and confirmed a week ahead. Nobody i
 
 ## The one thing to show
 
-Seekto launches as a student tool. Every post leads with one moment: a teacher says "the quiz is on Friday", it lands on the calendar, and the lesson becomes a practice test a classmate opens from a link. That's the hero GIF at the top of the README, plus **Try a sample class** (no microphone, account or AI needed). Work mode for meetings stays in the app and gets its own launch on Nov 16.
+Seekto launches as a student tool. Every post leads with one moment: a teacher says "the quiz is on Friday", it lands on the calendar, and the lesson becomes a practice test a classmate opens from a link. That's the hero GIF at the top of the README, and the first screen of the app, where the sample class plays by itself (no microphone, account or AI needed). Work mode for meetings stays in the app and gets its own launch on Nov 16.
 
 ## Timeline (proposed)
 

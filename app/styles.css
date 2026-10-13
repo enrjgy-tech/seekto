@@ -75,7 +75,7 @@ button.chip[aria-pressed="true"] { background: var(--fg); color: var(--bg); bord
 .empty { color: var(--muted); font-size: 14px; }
 .note-small { font-size: 12px; color: var(--faint); }
 .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
-.toast { position: fixed; left: 50%; top: calc(16px + env(safe-area-inset-top, 0px)); transform: translateX(-50%); background: var(--accent); color: var(--on-accent); padding: 8px 14px; border-radius: 999px; font-size: 13px; font-weight: 500; z-index: 50; max-width: calc(100% - 32px); }
+.toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--accent); color: var(--on-accent); padding: 8px 14px; border-radius: 999px; font-size: 13px; font-weight: 500; z-index: 50; max-width: calc(100% - 32px); }
 
 /* Chat */
 .chat { display: grid; grid-template-rows: minmax(0, 1fr) auto; height: 100%; }
@@ -275,13 +275,45 @@ a.brand { text-decoration: none; color: inherit; }
 @keyframes drop { from { opacity: 0; transform: translateY(-14px) scale(.9); } to { opacity: 1; transform: none; } }
 @keyframes bump { 50% { transform: scale(1.25); } }
 @keyframes sweep { from { background: linear-gradient(90deg, var(--found) 0%, transparent 0%); } to { background: linear-gradient(90deg, var(--found) 100%, transparent 100%); } }
+.dcell.past { opacity: .45; }
+.dcell.today .dn { text-decoration: underline; text-underline-offset: 3px; }
 @media (max-width: 900px) {
   .stage { grid-template-columns: minmax(0, 1fr); }
   .stage-class { min-height: 0; }
+  /* On phones the newest three or four lines show, so the calendar and the test stay in view */
+  .stage-lines { max-height: 9.5em; overflow-y: auto; scroll-behavior: smooth; }
   .view.home { padding-top: 24px; }
 }
 @media (max-width: 560px) {
-  .week .days { grid-template-columns: repeat(7, minmax(44px, 1fr)); overflow-x: auto; }
-  .home-head .lede { font-size: 16px; }
-  .cta .btn { flex: 1 1 100%; justify-content: center; }
+  /* Phones: everything the sample does (transcript, calendar, test) fits on the first screen */
+  .view.home { gap: 14px; padding-top: 16px; }
+  .home-head { gap: 10px; }
+  .home-head h1 { font-size: 30px; }
+  .home-head .lede { font-size: 15px; line-height: 1.45; }
+  .cta { gap: 8px; }
+  .cta .btn.big { flex: 1 1 40%; justify-content: center; padding: 12px 10px; font-size: 15px; }
+  .cta .linkish { flex: 1 1 100%; justify-content: center; padding: 2px; }
+  .stage { gap: 10px; }
+  .stage .panel { padding: 12px 14px; }
+  .stage-lines { max-height: 6.6em; font-size: 14px; gap: 4px; }
+  .stage-side { gap: 10px; }
+  .week .days { gap: 4px; }
+  .dcell { min-height: 40px; padding: 4px; border-radius: 8px; gap: 3px; }
+  .dcell .dw { font-size: 10px; }
+  .added { gap: 4px; }
+  .added li { font-size: 13px; }
+  .testcard { grid-template-columns: auto 1fr; align-items: center; }
+  .testcard .qcount { margin: 0; }
+  .testcard .qcount span:first-child { font-size: 28px; vertical-align: -3px; }
+  .testcard .row { grid-column: 1 / -1; }
+  .testcard { order: -1; }
+  .dcell:nth-child(n+8) .dw { display: none; }
+  .dcell:nth-child(n+8) { min-height: 32px; }
+  #hClock { display: none; }
 }
+/* File pickers: the real input stays in the tab order (visually hidden) and its label looks like a button */
+label.btn:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+[tabindex="-1"]:focus:not(:focus-visible) { outline: none; }
+@media (max-width: 760px) { .toast { bottom: calc(76px + env(safe-area-inset-bottom, 0px)); } body.standalone .toast { bottom: calc(16px + env(safe-area-inset-bottom, 0px)); } }
+.consent-hint { color: var(--warn, #b45309); text-align: center; margin: 0; }
+.radio-row { flex-wrap: nowrap; align-items: flex-start; gap: 10px; } .radio-row input { margin-top: 4px; flex: none; }

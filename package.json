@@ -9,7 +9,8 @@
     "check:packs": "node pipeline/check-packs.mjs",
     "build": "node pipeline/build-site.mjs",
     "serve": "npx --yes serve@14.2.4 site",
-    "i18n": "node pipeline/i18n.mjs"
+    "i18n": "node pipeline/i18n.mjs",
+    "test:browser": "node test/smoke.mjs"
   },
   "engines": {
     "node": ">=20"

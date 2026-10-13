@@ -27,9 +27,9 @@ The rules are measured on sentences written by people who never saw them, the wa
 - **Held out:** half of the first 360 sentences, only ever counted, never used to fix the rules.
 - **Fresh:** 190 new sentences written after the rules were finished, committed before they were scored, and scored once. This is the closest thing to "a class it has never heard".
 
-| | Held out: found | Held out: right | Fresh: found | Fresh: right |
+| | Held out: found | Held out: right, of what it adds | Fresh: found | Fresh: right, of what it adds |
 |---|---|---|---|---|
-| Deadlines and tests | 88% | 92% | 78% | 90% |
+| Deadlines and tests | 89% | 93% | 78% | 90% |
 | Definitions | 57% | 71% | 35% | 70% |
 | Meeting action items | 82% | 85% right person | 33% | 57% right person |
 
@@ -39,7 +39,7 @@ So: when Seekto puts a date on your calendar it's right about 9 times in 10, but
 
 - **No AI needed.** Dates, deadlines, definitions and quizzes come from tested rules in [`engine/`](engine/src), in English, Spanish and Portuguese. Add an AI model only if you want one: Ollama on your computer, free models on OpenRouter, or OpenAI or Anthropic with your own key.
 - **Private transcripts in about 100 languages.** Whisper runs in your browser: no audio leaves your device, and it works offline after a one-time download. Tested so far in Chrome and Edge on Windows; reports from other browsers and phones are welcome.
-- **Your notes stay yours.** Everything lives in your browser. Connect your phone and laptop with a 6-letter code (both screens show the same number to confirm) and they sync directly, encrypted. Optional storage goes to a Supabase project *you* own, end-to-end encrypted with a key only you hold. Or [run all of it yourself](docs/SELF-HOSTING.md).
+- **Your notes stay yours.** Everything lives in your browser. Connect your phone and laptop with a 6-character pairing code; then both screens show the same 6-digit number, and you confirm it on both and they sync directly, encrypted. Optional storage goes to a Supabase project *you* own, end-to-end encrypted with a key only you hold. Or [run all of it yourself](docs/SELF-HOSTING.md).
 
 ## Also for meetings
 

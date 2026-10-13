@@ -110,7 +110,7 @@ export function renderDetail(main, id) {
           <form id="vidForm" class="field">
             <input type="url" id="vidUrl" placeholder="${t("YouTube link")}" aria-label="${t("YouTube link")}">
             <textarea id="vidT" rows="3" placeholder="${t("Paste the video's transcript (with times), or add a caption file below")}"></textarea>
-            <div class="row"><button class="btn small">${t("Add video")}</button><label class="btn ghost small" style="cursor:pointer">${t("Caption file")}<input type="file" id="vidFile" accept=".vtt,.srt,.txt" hidden></label></div>
+            <div class="row"><button class="btn small">${t("Add video")}</button><label class="btn ghost small" style="cursor:pointer">${t("Caption file")}<input type="file" id="vidFile" accept=".vtt,.srt,.txt" class="sr-only"></label></div>
             <p class="note-small">${t("Seekto plays videos in YouTube's player and never downloads them. To ask a video questions, add its transcript or captions.")}</p>
           </form>
           <div id="videos" style="display:grid;gap:10px"></div>
@@ -203,7 +203,7 @@ export function renderDetail(main, id) {
     const ok = await loadYouTube();
     if (!el.isConnected) return;
     if (!ok) {
-      el.innerHTML = `<p class="note-small" style="padding:12px">${t("The video player couldn't load here.")} <a href="${watchUrl(p.videos[i].videoId, 0)}" target="_blank" rel="noopener">${t("Open on YouTube")}</a>.</p>`;
+      el.innerHTML = html`<p class="note-small" style="padding:12px">${t("The video player couldn't load here.")} <a href="${watchUrl(p.videos[i].videoId, 0)}" target="_blank" rel="noopener">${t("Open on YouTube")}</a>.</p>`;
       return;
     }
     players[i] = new window.YT.Player(el, { host: "https://www.youtube-nocookie.com", videoId: p.videos[i].videoId, playerVars: { rel: 0, playsinline: 1 } });

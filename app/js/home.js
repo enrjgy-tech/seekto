@@ -9,6 +9,8 @@ import { openPaste } from "./paste.js";
 import { openQuiz, shareLink } from "./quiz.js";
 import { findEvents, findDefinitions, findDates, toISO, fromISO, makeQuiz, formatTime } from "../engine/index.js";
 import { t, uiLocale } from "./i18n.js";
+import { defaultTranscriber } from "./ondevice.js";
+import { canListen } from "./voice.js";
 
 let run = 0;
 
@@ -38,14 +40,24 @@ export function render(main) {
   const locale = uiLocale();
   const all = findEvents(script.lines.join(" "), { ref, locale, subject: script.subject });
   const last = all.reduce((m, e) => (e.date > m ? e.date : m), toISO(ref));
-  const span = Math.min(14, Math.max(7, Math.round((fromISO(last) - fromISO(toISO(ref))) / 86400000) + 2));
-  const days = Array.from({ length: span }, (_, i) => { const d = new Date(ref); d.setDate(d.getDate() + i); return d; });
+  // Whole weeks from Monday, so the strip reads like a calendar, as many weeks as the dates need.
+  const monday = new Date(ref);
+  monday.setHours(12, 0, 0, 0);
+  monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+  const span = Math.min(21, 7 * Math.ceil((Math.round((fromISO(last) - monday) / 86400000) + 1) / 7));
+  const days = Array.from({ length: span }, (_, i) => { const d = new Date(monday); d.setDate(d.getDate() + i); return d; });
+  const todayISO = toISO(ref);
+  // The practice test this class becomes, so the counter ends on the number of questions it really has.
+  const quiz = makeQuiz([{ title: script.title, topic: script.topic, text: script.lines.join(" ") }]);
+  const blankLines = quiz.filter((q) => q.kind === "blank").map((q) => q.prompt.replace("_____", q.answer));
+  const asks = (line) => findDefinitions(line).length + blankLines.filter((b) => line.includes(b)).length;
 
+  const privateHere = (state.settings.transcriber || defaultTranscriber(canListen)) === "device" || !canListen;
   main.innerHTML = html`
     <div class="view home">
       <header class="home-head">
         <h1>${t("Your teacher says it once.")}<br>${t("Seekto catches it.")}</h1>
-        <p class="lede">${t("Record a class. The deadlines go on your calendar, and the lesson becomes a practice test you can share with your class. Free, no account, and the transcript is made on your device.")}</p>
+        <p class="lede">${privateHere ? t("Record a class. The deadlines go on your calendar, and the lesson becomes a practice test you can share with your class. Free, no account, and the transcript is made on your device.") : t("Record a class. The deadlines go on your calendar, and the lesson becomes a practice test you can share with your class. Free and no account. On this device, live transcripts use your browser's speech service; you can switch to private, on-device transcripts in Settings.")}</p>
         <div class="row cta">
           <button class="btn big rec" data-go-record><span class="dot" aria-hidden="true"></span>${t("Record a class")}</button>
           <button class="btn big ghost" data-paste>${t("Paste notes or a syllabus")}</button>
@@ -60,7 +72,7 @@ export function render(main) {
         <div class="stage-side">
           <div class="panel week">
             <b>${t("Your calendar")}</b>
-            <div class="days" id="hDays">${raw(days.map((d) => html`<div class="dcell" data-day="${toISO(d)}"><span class="dw">${d.toLocaleDateString(locale, { weekday: "short" })}</span><span class="dn">${d.getDate()}</span></div>`).join(""))}</div>
+            <div class="days" id="hDays">${raw(days.map((d) => html`<div class="dcell ${toISO(d) < todayISO ? "past" : toISO(d) === todayISO ? "today" : ""}" data-day="${toISO(d)}" aria-label="${d.toLocaleDateString(locale, { weekday: "long", month: "long", day: "numeric" })}"><span class="dw">${d.toLocaleDateString(locale, { weekday: "short" })}</span><span class="dn">${d.getDate()}</span></div>`).join(""))}</div>
             <ul class="added" id="hAdded" aria-live="polite"></ul>
           </div>
           <div class="panel testcard">
@@ -100,6 +112,7 @@ export function render(main) {
       row.className = "live-line";
       row.innerHTML = `<span class="t mono">${formatTime(i * 9 + 2)}</span><span>${marked(text, ref, locale, script.subject)}</span>`;
       $("#hLines").appendChild(row);
+      $("#hLines").scrollTop = $("#hLines").scrollHeight;
       $("#hClock").textContent = formatTime(i * 9 + 6);
       const events = findEvents(text, { ref, locale, subject: script.subject });
       for (const e of events) {
@@ -114,19 +127,23 @@ export function render(main) {
         item.innerHTML = html`<span class="when">${friendlyDate(e.date)}</span><mark class="found">${((x) => x.charAt(0).toUpperCase() + x.slice(1))(e.title.replace(new RegExp(`^${script.subject}:?\\s+`, "i"), ""))}</mark>`;
         $("#hAdded").appendChild(item);
       }
-      if (findDefinitions(text).length) {
-        questions++;
+      const add = asks(text);
+      if (add) {
+        questions += add;
         $("#hQn").textContent = questions;
+        $("#hQl").textContent = questions === 1 ? t("question so far") : t("questions so far");
         $("#hQn").parentElement.classList.remove("bump");
         void $("#hQn").offsetWidth;
         $("#hQn").parentElement.classList.add("bump");
       }
-      await wait(events.length ? 1300 : findDefinitions(text).length ? 900 : 520);
+      await wait(events.length ? 1300 : add ? 900 : 520);
     }
     await ready;
     if (me !== run || !document.contains(main)) return;
     $("#hPulse").remove();
-    $("#hQl").textContent = t("questions, ready");
+    const total = makeQuiz([{ title: note.title, topic: note.topic, text: note.text }]).length;
+    $("#hQn").textContent = total;
+    $("#hQl").textContent = total === 1 ? t("question, ready") : t("questions, ready");
     $("#hTest").hidden = false;
     $("#hReplay").hidden = false;
     main.querySelector("[data-take]").addEventListener("click", () => openQuiz({ notes: [note], title: note.title.replace(/^[^:]+:\s*/, "") }));

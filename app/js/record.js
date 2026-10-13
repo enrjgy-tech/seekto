@@ -1,6 +1,6 @@
 // Record a class: audio stays on the device, a live transcript where the browser supports it,
 // "lost here" marks and typed notes stamped to the second. Dates it hears go to the calendar.
-import { $, html, raw, toast, esc } from "./ui.js";
+import { $, html, raw, toast, esc, announce } from "./ui.js";
 import { state, saveNote } from "./state.js";
 import { words, mode } from "./profile.js";
 import { addDates, transcribeNote } from "./capture.js";
@@ -33,11 +33,11 @@ export function render(main) {
             <input type="text" id="recTitle" placeholder="${t("Seekto names it for you")}" value="${rec.title}"></label>
         </div>
         <div class="timer mono" id="recTimer">${formatTime(elapsed())}</div>
-        ${raw(!rec.active ? html`<label class="row note-small" style="justify-content:center;gap:8px"><input type="checkbox" id="consent" style="width:auto"> ${words().consentCheck}</label>` : "")}
-        <button class="recbtn ${rec.active ? "on" : ""}" id="recBtn" aria-pressed="${rec.active}" ${raw(!rec.active ? "disabled" : "")}>${rec.active ? t("Stop") : t("Record")}</button>
+        ${raw(!rec.active ? html`<label class="row note-small" style="justify-content:center;gap:8px"><input type="checkbox" id="consent" style="width:auto" aria-describedby="consentHint"> ${words().consentCheck}</label><p class="note-small consent-hint" id="consentHint" hidden>${t("Tick the box above first, then press Record.")}</p>` : "")}
+        <button class="recbtn ${rec.active ? "on" : ""}" id="recBtn">${rec.active ? t("Stop") : t("Record")}</button>
         <div class="row" id="recTools" ${raw(rec.active ? "" : "hidden")} style="justify-content:center">
           <button class="btn ghost" id="markBtn">${t("Lost here")}</button>
-          <form id="mineForm" class="row"><input type="text" id="mineInput" placeholder="${t("Type a note, press Enter")}" style="min-width:240px"></form>
+          <form id="mineForm" class="row"><input type="text" id="mineInput" aria-label="${t("Type a note, press Enter")}" placeholder="${t("Type a note, press Enter")}" style="min-width:240px"></form>
         </div>
         <p class="note-small" id="recHelp">${onDevice() ? t("Private: the recording and its transcript stay on this device. Seekto transcribes it here when you stop (the speech model downloads once).") : t("The recording is saved on this device, but the live transcript sends audio to your browser's speech service (Google in Chrome, Microsoft in Edge). For a private transcript, choose On this device in Settings.")} ${words().consent}</p>
       </section>
@@ -47,7 +47,16 @@ export function render(main) {
       </section>
     </div>`;
 
-  $("#recBtn").addEventListener("click", () => (rec.active ? stop() : start()));
+  $("#recBtn").addEventListener("click", () => {
+    if (rec.active) return stop();
+    const consent = $("#consent");
+    if (consent && !consent.checked) {
+      $("#consentHint").hidden = false;
+      announce(t("Tick the box above first, then press Record."));
+      return consent.focus();
+    }
+    start();
+  });
   $("#markBtn").addEventListener("click", () => { rec.marks.push({ start: elapsed(), label: t("Lost here") }); drawLive(); toast(t("Marked")); });
   $("#mineForm").addEventListener("submit", (e) => {
     e.preventDefault();
@@ -58,7 +67,7 @@ export function render(main) {
     drawLive();
   });
   $("#recSubject")?.addEventListener("change", (e) => (rec.subject = e.target.value));
-  $("#consent")?.addEventListener("change", (e) => ($("#recBtn").disabled = !e.target.checked));
+  $("#consent")?.addEventListener("change", (e) => { if (e.target.checked) $("#consentHint").hidden = true; });
   $("#recTitle").addEventListener("input", (e) => (rec.title = e.target.value));
   drawLive();
   clearInterval(tick);

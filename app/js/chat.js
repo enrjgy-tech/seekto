@@ -62,7 +62,7 @@ export function render(main) {
       <div class="suggest" id="suggest" style="max-width:880px;margin:0 auto 10px"></div>
       <form id="chatForm">
         <label for="chatInput" class="label" style="position:absolute;left:-9999px">${t("Message")}</label>
-        <input id="chatInput" type="text" autocomplete="off" placeholder="${words().placeholder}">
+        <input id="chatInput" type="text" autocomplete="off" aria-label="${words().placeholder}" placeholder="${matchMedia("(max-width: 480px)").matches ? t("Ask Seekto…") : words().placeholder}">
         <button type="button" class="iconbtn" id="talkBtn" aria-pressed="false" title="${t("Talk mode")}" aria-label="${t("Talk mode")}"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
         <button class="btn">${t("Send")}</button>
       </form>
