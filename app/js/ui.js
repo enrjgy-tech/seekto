@@ -19,12 +19,25 @@ export function html(strings, ...values) {
 }
 export const raw = (value) => ({ __raw: String(value) });
 
+/** Say something to screen readers without showing it. */
+export function announce(message) {
+  const el = $("#sr");
+  if (!el) return;
+  el.textContent = "";
+  setTimeout(() => (el.textContent = message), 50);
+}
+
 let toastTimer;
+/** Hide the current message, for example when the person moves to another screen. */
+// A message shown right before moving ("Saved. Added 2 dates…") stays; older ones go.
+let toastAt = 0;
+export function clearToast() { if (Date.now() - toastAt < 800) return; clearTimeout(toastTimer); const el = $("#toast"); if (el) el.hidden = true; }
 /** A short message at the top of the screen, also read out by screen readers. */
 export function toast(message) {
   const el = $("#toast");
   el.textContent = message;
   el.hidden = false;
+  toastAt = Date.now();
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => (el.hidden = true), Math.max(2400, message.length * 60));
 }

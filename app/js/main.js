@@ -14,7 +14,7 @@ import { applyChrome } from "./profile.js";
 import { initDevices, onStatus, connected, paired } from "./devices.js";
 import { openConnect } from "./connect.js";
 import { startCloud, askToShareAccount } from "./account.js";
-import { toast, closeOverlay } from "./ui.js";
+import { toast, closeOverlay, clearToast } from "./ui.js";
 import { t, translatePage } from "./i18n.js";
 
 const views = {
@@ -40,6 +40,7 @@ function route() {
 function render() {
   const [name, param] = route();
   if (document.querySelector("#overlay .overlay")) closeOverlay();
+  clearToast();
   const view = views[name] ? name : "chat";
   const top = { note: "notes", project: "settings", research: "settings" }[view] || view;
   for (const b of $$("[data-go]")) {

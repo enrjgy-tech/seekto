@@ -72,6 +72,12 @@ test("Portuguese", () => {
   assert.deepEqual(pt("Não tem prova nessa sexta, gente, a prova é só na sexta que vem."), ["2026-10-23"]);
   assert.deepEqual(pt("A prova de cálculo foi adiada, não vai ser mais na terça, vai ser na quinta."), ["2026-10-15"]);
   assert.deepEqual(pt("A quinta questão da prova vale dois pontos."), []);
+  assert.deepEqual(pt("A prova é no dia 28 de outubro."), ["2026-10-28"]);
+  assert.deepEqual(pt("A P1 é dia 28/10."), ["2026-10-28"]);
+  assert.deepEqual(pt("A P2 é dia vinte e cinco de novembro."), ["2026-11-25"]);
+  assert.deepEqual(pt("Não tem prova no dia 20."), []);
+  assert.equal(findEvents("A prova não é mais na sexta, passou pra segunda.", { ref, locale: "pt-BR" })[0].title, "Prova");
+  assert.deepEqual(dates("El examen es el quince de noviembre.", { locale: "es" }), ["2026-11-15"]);
   assert.equal(findEvents("A prova de cálculo é na sexta.", { ref, locale: "pt-BR" })[0].title, "Prova de cálculo");
 });
 

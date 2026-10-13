@@ -26,6 +26,17 @@ const COUNTS = {
   um: 1, uma: 1, dois: 2, duas: 2, "três": 3, quatro: 4, sete: 7, oito: 8, nove: 9, dez: 10,
 };
 
+// Day numbers as words (Spanish and Portuguese), for transcripts that spell them out.
+const DAY_WORDS = (() => {
+  const es = ["", "uno|primero", "dos", "tres", "cuatro", "cinco", "seis", "siete", "ocho", "nueve", "diez", "once", "doce", "trece", "catorce", "quince", "dieciseis", "diecisiete", "dieciocho", "diecinueve", "veinte", "veintiuno", "veintidos", "veintitres", "veinticuatro", "veinticinco", "veintiseis", "veintisiete", "veintiocho", "veintinueve", "treinta", "treinta y uno"];
+  const ptUnits = ["", "um|primeiro", "dois", "tres", "quatro", "cinco", "seis", "sete", "oito", "nove"];
+  const pt = ["", ...ptUnits.slice(1), "dez", "onze", "doze", "treze", "catorze|quatorze", "quinze", "dezesseis", "dezessete", "dezoito", "dezenove", "vinte", ...ptUnits.slice(1).map((u) => u.split("|").map((x) => `vinte e ${x}`).join("|")), "trinta", "trinta e um"];
+  const map = {};
+  [es, pt].forEach((list) => list.forEach((words, n) => { if (n) for (const w of words.split("|")) map[w] = n; }));
+  return map;
+})();
+const DAY_WORDS_RE = Object.keys(DAY_WORDS).sort((a, b) => b.length - a.length).map((w) => w.replace(/ /g, "\\s+").replace(/e/g, "[eé]").replace(/i/g, "[ií]").replace(/a/g, "[aá]")).join("|");
+
 const EN_MONTH = "(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sept?(?:ember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)";
 const ANY_MONTH = `(${EN_MONTH.slice(1, -1)}|enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre|janeiro|fevereiro|mar[çc]o|maio|junho|julho|setembro|outubro|novembro|dezembro)`;
 const DAY = "(\\d{1,2})(?:st|nd|rd|th|º|°)?";
@@ -135,6 +146,14 @@ export function findDates(text, ref = new Date(), { locale } = {}) {
     }
     const d2 = resolveYear(month, Number(m[2]), year, today);
     if (valid(d2, month, Number(m[2]))) add(d2, m[1] ? second : m.index, m[1] ? source.slice(second, m.index + m[0].length) : m[0], 3);
+  }
+  // Days said as words in Spanish and Portuguese: "dia vinte e cinco de novembro", "el quince de octubre"
+  for (const m of all(new RegExp(`(?<![${L}])(${DAY_WORDS_RE})\\s+de\\s+${ANY_MONTH}(?![${L}])`, "giu"))) {
+    const day = DAY_WORDS[fold(m[1]).replace(/\s+/g, " ")];
+    const month = MONTHS[fold(m[2])];
+    if (!day || month === undefined) continue;
+    const date = resolveYear(month, day, null, today);
+    if (valid(date, month, day)) add(date, m.index, m[0], 3);
   }
   // "10/20", "10/20/2026"; "20/10" outside the US
   for (const m of all(/(?<![\d/.])(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?(?![\d/])/g)) {
@@ -286,7 +305,7 @@ const EVENT_WORDS = [
   ["informe", "assignment", 1], ["reporte", "assignment", 1], ["laboratorio", "assignment", 1], ["presentación", "assignment", 1], ["exposición", "assignment", 1],
   ["lectura", "assignment", 1], ["foro", "assignment", 1], ["actividad", "assignment", 1], ["ejercicios", "assignment", 1], ["entrega", "assignment", 1], ["entregar", "assignment", 1], ["fecha límite", "assignment", 1],
   // Portuguese
-  ["prova", "test", 1], ["provinha", "test", 1], ["teste", "test", 1], ["simulado", "test", 1], ["avaliação", "test", 1], ["recuperação", "test", 1],
+  ["prova substitutiva", "test", 1], ["prova", "test", 1], ["provinha", "test", 1], ["p1", "test", 1], ["p2", "test", 1], ["p3", "test", 1], ["p4", "test", 1], ["av1", "test", 1], ["av2", "test", 1], ["av3", "test", 1], ["teste", "test", 1], ["simulado", "test", 1], ["avaliação", "test", 1], ["recuperação", "test", 1],
   ["trabalho", "assignment", 1], ["seminário", "assignment", 1], ["relatório", "assignment", 1], ["lista de exercícios", "assignment", 1], ["lista", "assignment", 1],
   ["exercício", "assignment", 1], ["resenha", "assignment", 1], ["apresentação", "assignment", 1], ["projeto", "assignment", 1], ["atividade", "assignment", 1],
   ["redação", "assignment", 1], ["redacao", "assignment", 1], ["dever de casa", "assignment", 1], ["dever", "assignment", 1], ["leitura", "assignment", 1], ["fórum", "assignment", 1],
@@ -308,7 +327,7 @@ const NEGATION = new RegExp(`(?:^|[\\s(])(?:no|not|n[ãa]o|nunca|nem|isn't|aren'
 // "Mañana no, pasado mañana", "Friday, no, Thursday", "na sexta não."
 const NEGATED_AFTER = /^\s*,?\s*(?:no|not|n[ãa]o)\s*(?:[,.;!?]|$)/iu;
 const PAST = new RegExp(`(?<![${L}])(?:was|were|had|took|fue|era|ia|iba|tuvimos|foi|tivemos|teve)(?![${L}])`, "iu");
-const RESCHEDULE = new RegExp(`(?<![${L}])(?:mov(?:ed|ing|e)|push(?:ed|ing)?(?: it| that)? back|postpon(?:ed|ing|e)|extend(?:ed|ing)?|resched(?:uled|uling)|changed|bump(?:ed|ing)?|instead|giving (?:you|everybody|everyone|you all)(?: guys)? until|pas[óo]|cambi[óo]|movi(?:mos|ó)|aplaz(?:ó|amos|ado)|pospu?s|adiad[oa]|adiamos|mudou|mudamos|transferid[oa]|ficou para|fica para|vai ser|vai ficar)(?![${L}])`, "iu");
+const RESCHEDULE = new RegExp(`(?<![${L}])(?:mov(?:ed|ing|e)|push(?:ed|ing)?(?: it| that)? back|postpon(?:ed|ing|e)|extend(?:ed|ing)?|resched(?:uled|uling)|changed|bump(?:ed|ing)?|instead|giving (?:you|everybody|everyone|you all)(?: guys)? until|pas[óo]|cambi[óo]|movi(?:mos|ó)|aplaz(?:ó|amos|ado)|pospu?s|adiad[oa]|adiamos|mudou|mudamos|transferid[oa]|ficou para|fica para|vai ser|vai ficar|passou|passa)(?![${L}])`, "iu");
 const CANCELLED = new RegExp(`(?<![${L}])(?:cancel+(?:ed|led)?|skip(?:ping|ped)?|called off|scrapp(?:ed|ing)|cancelad[oa]s?|suspendid[oa]|no va a haber|n[ãa]o vai (?:ter|haver)|n[ãa]o tem mais)(?![${L}])`, "iu");
 const CORRECTION = /(?:^|[,.;]\s*|\s)(?:no,|no wait|wait|sorry|i mean|actually|rather|correction|scratch that|perd[oó]n|digo|mejor dicho|desculp[ae]|quer dizer|ou melhor)(?![\p{L}])/giu;
 // Things that come with a date but aren't something to prepare for or hand in.
@@ -340,6 +359,7 @@ function isNegated(text, d) {
   let lead = leadIn(text, d.index).split(/\s+/).slice(-6).join(" ");
   // Portuguese "no" before a day is "on the": "a prova é no sábado", "no dia 20"
   if (/(?:^|\s)no\s*$/i.test(lead) && /^(?:dia|s[aá]bado|domingo|segunda|ter[çc]a|quarta|quinta|sexta|\d|fim|final|pr[oó]ximo)/i.test(d.match)) lead = lead.replace(/no\s*$/i, "");
+  lead = lead.replace(/(^|\s)no(?=\s+(?:dia|pr[oó]xim[oa]|fim|final|come[cç]o|in[ií]cio)\b)/giu, "$1");
   if (NEGATION.test(lead) && !/no (?:later|more) than|not (?:later|after) than/i.test(lead)) return true;
   return NEGATED_AFTER.test(text.slice(d.end, d.end + 8));
 }
@@ -398,7 +418,7 @@ function pickDates(part, dates, hit) {
 
 const TITLE_SKIP = new Set(["the", "a", "an", "our", "your", "my", "their", "his", "her", "this", "that", "is", "are", "will", "be", "and", "so", "next", "big", "on", "um", "uh", "like", "okay", "ok", "also", "then", "don't", "forget", "remember", "just", "itself", "whole", "first", "second"]);
 const ROMANCE_STOP = new Set(["es", "será", "sera", "se", "va", "hay", "para", "el", "la", "los", "las", "este", "esta", "que", "y", "en", "vence", "tiene", "tienen", "hasta", "antes", "lo", "a", "hoy", "mañana", "pasado", "dentro", "lunes", "martes", "miércoles", "miercoles", "jueves", "viernes", "sábado", "sabado", "domingo", "próximo", "proximo", "próxima", "proxima", "eh", "pues", "bueno", "cierra", "hace", "pasó",
-  "é", "vai", "ser", "tem", "pra", "o", "os", "as", "no", "na", "nos", "nas", "e", "em", "até", "hoje", "amanhã", "depois", "daqui", "segunda", "terça", "quarta", "quinta", "sexta", "semana", "dia", "vocês", "gente", "tá", "né", "entregam", "mandam", "me", "então", "só", "mais", "foi", "fica", "ficou", "sai", "pelo", "pela", "tipo"]);
+  "é", "vai", "ser", "tem", "pra", "o", "os", "as", "no", "na", "nos", "nas", "e", "em", "até", "hoje", "amanhã", "depois", "daqui", "segunda", "terça", "quarta", "quinta", "sexta", "semana", "dia", "vocês", "gente", "tá", "né", "entregam", "mandam", "me", "então", "só", "mais", "foi", "fica", "ficou", "sai", "pelo", "pela", "tipo", "não", "nao", "já", "ja", "ya", "ahora", "agora", "passou", "pasó", "mudou"]);
 
 /** Spanish and Portuguese titles name the thing after the event word: "el examen de química es el viernes" -> "Examen de química". */
 function romanceTitle(sentence, hit, subject) {

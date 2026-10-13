@@ -1,6 +1,6 @@
 // Practice tests from notes: typed or spoken answers, a score at the end, sharing with
 // "beat my score", spaced reviews before the test, and exports.
-import { html, raw, openOverlay, closeOverlay, download, copy, toast, $, friendlyDate, esc } from "./ui.js";
+import { html, raw, openOverlay, closeOverlay, download, copy, toast, announce, $, friendlyDate, esc } from "./ui.js";
 import { state, noteText, saveEvent, today } from "./state.js";
 import { uid } from "./store.js";
 import { makeQuiz, checkAnswer, exportQuiz, isReady, chat, encodeShare, shuffle, reviewPlan } from "../engine/index.js";
@@ -116,7 +116,7 @@ export function openQuiz({ notes = [], questions: given = null, title = t("Pract
       <div class="progress" aria-hidden="true"><span style="width:${Math.round((i / questions.length) * 100)}%"></span></div>
       <div class="qcard">
         <span class="label" id="qLabel">${p.label}</span>
-        <div class="prompt" id="qPrompt">${p.text}</div>
+        <div class="prompt" id="qPrompt">${raw(esc(p.text).replace(/_{3,}/g, `<span aria-hidden="true">_____</span><span class="sr-only">${esc(t("blank"))}</span>`))}</div>
         <form class="row" data-answer>
           <input type="text" id="quizAnswer" autocomplete="off" placeholder="${t("Your answer")}" aria-labelledby="qLabel qPrompt" style="flex:1">
           ${raw(mic ? `<button type="button" class="iconbtn" data-say title="${esc(t("Answer out loud (uses your browser's speech service)"))}" aria-label="${esc(t("Answer out loud"))}"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>` : "")}
@@ -127,13 +127,16 @@ export function openQuiz({ notes = [], questions: given = null, title = t("Pract
       <div class="row"><button class="btn ghost small" data-skip>${t("Show answer")}</button>${raw(i === 0 && !shared ? `<button class="btn ghost small" data-share>${t("Share as a link")}</button>` : "")}${raw(q.source && !shared ? html`<span class="note-small">${t("From: {source}", { source: q.source })}</span>` : "")}</div>
       ${raw(i === 0 && !shared ? exportBlock() : "")}`;
     wire();
-    $("#quizAnswer", sheet).focus();
+    // On the shared-test page, the first question doesn't grab focus, so the page's heading and
+    // "your classmate got…" line are read first.
+    if (!(mount && i === 0)) $("#quizAnswer", sheet).focus();
     if (voice) runVoice(q);
   }
 
   function drawEnd() {
     const of = questions.length;
-    const beat = challenge && (score > challenge.got ? t("You beat them.") : score === challenge.got ? t("A tie.") : t("They got {got}. Try again?", { got: challenge.got }));
+    // A score of 0 isn't something to brag about or to beat, so it isn't sent or compared.
+    const beat = challenge?.got > 0 && (score > challenge.got ? t("You beat them.") : score === challenge.got ? t("A tie.") : t("They got {got}. Try again?", { got: challenge.got }));
     const tests = shared ? [] : testsFor(notes);
     const next = tests[0];
     const planned = next && state.events.some((e) => e.type === "review" && e.forEvent === next.id);
@@ -142,7 +145,7 @@ export function openQuiz({ notes = [], questions: given = null, title = t("Pract
       <div class="score" role="status"><b>${score}</b><span>/ ${of}</span></div>
       ${raw(beat ? html`<p class="sub" style="text-align:center">${beat}</p>` : "")}
       <div class="row" style="justify-content:center">
-        <button class="btn" data-challenge>${shared ? t("Send my score back") : t("Challenge a classmate")}</button>
+        ${raw(score > 0 ? html`<button class="btn" data-challenge>${shared ? t("Send my score back") : t("Challenge a classmate")}</button>` : html`<button class="btn" data-share>${t("Share this test")}</button>`)}
         <button class="btn ghost" data-again>${shared ? t("Try again") : t("Try again the other way round")}</button>
         ${raw(isReady(state.settings) && notes.length ? `<button class="btn ghost" data-ai>${t("New questions with AI")}</button>` : "")}
       </div>
@@ -155,7 +158,8 @@ export function openQuiz({ notes = [], questions: given = null, title = t("Pract
       ${raw(shared && onLeave ? `<section class="panel made"><b>${t("Make tests like this from your own classes")}</b><p class="sub">${t("Seekto turns a class recording or your notes into deadlines on your calendar and a practice test. Free, open source, no account.")}</p><div class="row"><button class="btn" data-leave>${t("Make your own")}</button><a class="btn ghost" href="https://github.com/enrjgy-tech/seekto" target="_blank" rel="noopener">${t("See how it works")}</a></div></section>` : "")}`;
     if (voice) speak(t("Done. You got {score} out of {of}.", { score, of }));
     wire();
-    $("[data-challenge]", sheet).focus();
+    ($("[data-challenge]", sheet) || $("[data-share]", sheet)).focus();
+    announce(t("You got {score} of {of}.", { score, of }));
     $("[data-plan]", sheet)?.addEventListener("click", async (e) => {
       e.target.disabled = true;
       const { added, dates } = await planReviews(next);

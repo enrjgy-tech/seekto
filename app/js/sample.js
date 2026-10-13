@@ -84,7 +84,7 @@ export async function loadSample(kind = "learning") {
   const note = {
     id: uid("note"), kind: "recording", sample: true, createdAt, date: toISO(new Date(createdAt)), duration: s.lines.length * 9 + 4,
     title: s.title, subject: s.subject, topic: kind === "work" ? "Beta launch" : detectTopic(s.lines.join(" ")),
-    cues, marks: kind === "work" ? [] : [{ start: 38, label: t("Lost here") }], mine: [], text: s.lines.join(" "),
+    cues, marks: kind === "work" ? [] : [{ start: 41, label: t("Lost here") }], mine: [], text: s.lines.join(" "),
     ...(kind === "work" ? { mode: "work" } : {}),
   };
   const added = await addDates(note, { sample: true });

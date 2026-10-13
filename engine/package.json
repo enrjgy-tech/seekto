@@ -1,7 +1,7 @@
 {
   "name": "seekto-engine",
   "version": "0.1.0",
-  "description": "No-AI extraction for notes: dates and deadlines (English, Spanish), definitions, practice quizzes, meeting decisions and action items, plus sharing, sync and end-to-end encryption helpers.",
+  "description": "Find dates, deadlines, definitions and action items in speech and text, in English, Spanish and Portuguese, with no AI model. Practice tests, .ics calendars, share links and end-to-end encryption helpers.",
   "type": "module",
   "main": "src/index.js",
   "exports": {

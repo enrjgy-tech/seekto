@@ -16,7 +16,10 @@ export const supported = typeof Worker !== "undefined" && typeof WebAssembly !==
  * for WebGPU, or a computer rather than a phone). Otherwise use the browser's live speech service.
  */
 export function defaultTranscriber(canListen) {
-  const strong = typeof navigator !== "undefined" && ("gpu" in navigator || globalThis.matchMedia?.("(pointer: fine)").matches);
+  // Many school Chromebooks have little memory and slow processors; there the live service is
+  // the default unless the device clearly has room (8 GB or more). Private stays one tap away.
+  const lowEndChromebook = typeof navigator !== "undefined" && /CrOS/.test(navigator.userAgent) && !(navigator.deviceMemory >= 8);
+  const strong = typeof navigator !== "undefined" && !lowEndChromebook && ("gpu" in navigator || globalThis.matchMedia?.("(pointer: fine)").matches);
   return supported && (strong || !canListen) ? "device" : "browser";
 }
 

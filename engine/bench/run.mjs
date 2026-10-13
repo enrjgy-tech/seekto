@@ -122,8 +122,10 @@ if (args.has("--check")) {
   const floor = JSON.parse(readFileSync(new URL("./floor.json", import.meta.url), "utf8"));
   const t = result.test;
   const now = { deadlinesRecall: t.deadlines.recall, deadlinesPrecision: t.deadlines.precision, definitionsRecall: t.definitions.recall, definitionsPrecision: t.definitions.precision, actionItemsRecall: t.actionItems.recall, actionItemsPrecision: t.actionItems.precision };
-  const drops = Object.entries(floor).filter(([k, v]) => now[k] + 1e-9 < v);
-  for (const [k, v] of Object.entries(floor)) console.log(`${now[k] + 1e-9 < v ? "DROP" : "ok  "} ${k}: ${(now[k] * 100).toFixed(1)}% (floor ${(v * 100).toFixed(1)}%)`);
+  // One point of slack, so the held-out half isn't used as a target to tune against.
+  const SLACK = 0.01;
+  const drops = Object.entries(floor).filter(([k, v]) => now[k] + SLACK < v);
+  for (const [k, v] of Object.entries(floor)) console.log(`${now[k] + SLACK < v ? "DROP" : "ok  "} ${k}: ${(now[k] * 100).toFixed(1)}% (floor ${(v * 100).toFixed(1)}%, 1 point of slack)`);
   if (drops.length) { console.error("\nHeld-out accuracy dropped. A rule change made the engine worse on sentences it was never tuned on."); process.exit(1); }
 } else if (args.has("--json")) {
   console.log(JSON.stringify(result, null, 2));
@@ -134,7 +136,7 @@ if (args.has("--check")) {
     console.log(`\n${key.toUpperCase()} (${r.items} items, ${r.perfect} fully right)`);
     console.log(`  deadlines     found ${r.deadlines.tp} of ${r.deadlines.tp + r.deadlines.fn} (recall ${pct(r.deadlines.recall)}), ${r.deadlines.fp} false alarms (precision ${pct(r.deadlines.precision)})`);
     console.log(`  definitions   found ${r.definitions.tp} of ${r.definitions.tp + r.definitions.fn} (recall ${pct(r.definitions.recall)}), ${r.definitions.fp} false (precision ${pct(r.definitions.precision)})`);
-    console.log(`  action items  found ${r.actionItems.tp} of ${r.actionItems.tp + r.actionItems.fn} (recall ${pct(r.actionItems.recall)}), ${r.actionItems.fp} extra (precision ${pct(r.actionItems.precision)}), owners right ${pct(r.owners)}, due dates right ${pct(r.dueDates)}`);
+    console.log(`  action items  found ${r.actionItems.tp} of ${r.actionItems.tp + r.actionItems.fn} (recall ${pct(r.actionItems.recall)}), ${r.actionItems.fp} extra, owner right ${pct(r.owners)}, due date right ${pct(r.dueDates)}`);
   }
   if (args.has("--show")) {
     console.log(`\nDev mistakes (${mistakes.length}):`);

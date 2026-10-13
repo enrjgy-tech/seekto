@@ -118,6 +118,7 @@ function messageHtml(m) {
 function runAction(a) {
   if (a.go) return go(a.go);
   if (a.quiz !== undefined) return startQuiz(a.quiz);
+  if (a.quizNote) { const n = state.notes.find((x) => x.id === a.quizNote); if (n) return openQuiz({ notes: [n], title: n.title.replace(/^[^:]+:\s*/, "") }); }
   if (a.sample) return runSample(a.sample);
   if (a.followup) { const n = state.notes.find((x) => x.id === a.followup); if (n) openFollowUp(n); }
   if (a.ask) return send(a.ask);
@@ -188,10 +189,10 @@ async function runSample(kind) {
   }
   return reply({
     text: events.length === 1
-      ? t("I loaded a sample biology class, \"{title}\". While the teacher talked, I wrote the transcript, found {defs} definitions to quiz you on, and put this date on your calendar:", { title: note.title, defs: findDefinitions(note.text).length })
-      : t("I loaded a sample biology class, \"{title}\". While the teacher talked, I wrote the transcript, found {defs} definitions to quiz you on, and put these {n} dates on your calendar:", { title: note.title, defs: findDefinitions(note.text).length, n: events.length }),
+      ? t("That was a scripted sample class, \"{title}\". As each line played, I found {defs} definitions to quiz you on and this date for your calendar:", { title: note.title, defs: findDefinitions(note.text).length })
+      : t("That was a scripted sample class, \"{title}\". As each line played, I found {defs} definitions to quiz you on and these {n} dates for your calendar:", { title: note.title, defs: findDefinitions(note.text).length, n: events.length }),
     items: events,
-    actions: [{ label: t("Quiz me on it"), quiz: note.subject }, { label: t("When is my next test?"), ask: t("When is my next test?") }, { label: t("Open the class notes"), go: `note/${note.id}` }],
+    actions: [{ label: t("Quiz me on it"), quizNote: note.id }, { label: t("When is my next test?"), ask: t("When is my next test?") }, { label: t("Open the class notes"), go: `note/${note.id}` }],
   });
 }
 

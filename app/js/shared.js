@@ -25,7 +25,7 @@ export async function render(main, code) {
     return () => document.body.classList.remove("standalone");
   }
   const n = test.questions.length;
-  const c = test.challenge;
+  const c = test.challenge?.got > 0 ? test.challenge : null;
   main.innerHTML = html`
     <div class="view shared">
       <header class="shared-head">

@@ -11,13 +11,14 @@ Notes, recordings, your calendar, assignments and settings are stored in your br
 | Private transcript (on device, the default on computers) | Nothing. The Whisper model and the Transformers.js library are downloaded once (from Hugging Face and jsDelivr) and cached | Those sites see a download request, not your audio |
 | Live transcript (browser speech service, the default on phones) | Audio, while you record | Your browser maker's speech service: Google in Chrome, Microsoft in Edge, Apple in Safari |
 | Answering a quiz out loud, talk mode, the chat microphone | Audio, while the microphone is on | The same browser speech service. Shared tests don't offer it |
+| Reading answers aloud (talk mode) | The text being read | Your browser's voice. Most voices run on the device, but some (for example Chrome's "Google" voices) are online |
 | AI model (off by default) | The question and the note excerpts it needs | Only the provider you choose; your key stays on the device |
 | Shared practice test | The questions, inside the link (and your score, if you send it back) | Whoever you send the link to. The part after `#` is never sent to a server |
-| Device sync: finding each other | Device names, random ids and connection details, including network addresses | The message service (ntfy.sh, or your own). Topics on ntfy.sh are public: anyone who knows a topic name can read it, which is why nothing private is sent there and why a first connection is checked with a number on both screens |
+| Device sync: finding each other | Device names (like "Windows PC", which you can rename), random ids and connection details, including network addresses | The message service (ntfy.sh, or your own). Topics on ntfy.sh are public: anyone who knows a topic name can read it, which is why nothing private is sent there and why a first connection is checked with a number on both screens. Each device listens on a topic named after its random id, so the service can tell when that device is online and from which address |
 | Device sync: connecting | Your public IP address | Two STUN servers (Google and Cloudflare) that tell each device its own address |
 | Device sync: your data | Notes, recordings, calendar, assignments | Only your other device, directly and encrypted (WebRTC). Networks that block direct connections can stop it |
 | Storage sync (optional) | Encrypted items | Your own Supabase project, which sees only ciphertext |
-| Videos in Research | The video id | YouTube, through its no-cookie player |
+| Videos in Research | The video id; YouTube's player script is loaded from youtube.com | YouTube. The video plays in its no-cookie player, but loading the player itself contacts youtube.com |
 
 ## Connecting devices
 
@@ -46,5 +47,5 @@ Each item is encrypted on the device and bound to its account, item id and versi
 
 - The account key is kept in the browser's storage on each device you add, so anyone who can use that browser profile can read your data. Use your device's lock screen.
 - The live site runs on `enrjgy-tech.github.io`, an address shared with any other GitHub Pages site of that account, so browser storage there is shared with those pages. For the strongest separation, run your own copy on its own address (see [SELF-HOSTING.md](SELF-HOSTING.md)).
-- A cross-site scripting bug in the app could expose data in the browser. The app escapes notes and shared content before showing them, and loads third-party code only when you ask for it: YouTube's player when you add a video, and Transformers.js (pinned version, from jsDelivr) when you turn on on-device transcription.
+- A cross-site scripting bug in the app could expose data in the browser. The app's Content Security Policy only lets scripts load from the app itself, jsDelivr and YouTube, but it allows connections to any address, because you can point Seekto at your own AI, storage and message servers. The app escapes notes and shared content before showing them, and loads third-party code only when you ask for it: YouTube's player when you add a video, and Transformers.js (pinned version, from jsDelivr) when you turn on on-device transcription.
 - This hasn't had an outside security review yet. It is on the launch checklist. Please report issues as described in [SECURITY.md](../SECURITY.md).

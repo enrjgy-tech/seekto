@@ -13,11 +13,13 @@ Seekto finds deadlines, definitions and action items with rules, not an AI model
 
 ## Results on the held-out half
 
-| | Found | Correct when found |
+| | Found | Right when found |
 |---|---|---|
-| Deadlines and tests (155 items) | 88% (98 of 111) | 92% |
-| Definitions (75 items) | 57% (17 of 30) | 71% |
-| Action items (25 meetings) | 82% (18 of 22) | 100% |
+| Deadlines and tests (155 items) | 88% (98 of 111) | 92% have the right date |
+| Definitions (75 items) | 57% (17 of 30) | 71% are real definitions |
+| Action items (25 meetings) | 82% (18 of 22), no extra items | 85% name the right person, 94% the right due date |
+
+The action-item score counts items, then checks owners and due dates; it doesn't yet check that the task wording matches.
 
 Before the rules were rewritten on October 12, 2026, the same held-out half scored 34% found and 52% correct for deadlines, 40% and 75% for definitions, and 41% for action items. On the dev half the rules now score close to 100%, which says more about tuning than about accuracy; that's why only the test half is reported.
 
@@ -28,7 +30,7 @@ npm run bench                         # dev, test and all
 node engine/bench/run.mjs --show      # every dev mistake, to fix rules from
 ```
 
-CI runs `node engine/bench/run.mjs --check`, which fails if a change lowers any held-out score below `floor.json`.
+CI runs `node engine/bench/run.mjs --check`, which fails if a change lowers any held-out score more than one point below `floor.json`.
 
 ## Known weak spots
 
