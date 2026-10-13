@@ -877,8 +877,8 @@ export default {
   Flashcard: "Cartão",
   Flashcards: "Cartões de estudo",
   Keep: "Guardar",
-  "Keep a suggested definition above and it becomes a flashcard in your practice test. Nothing is added on its own: on real lectures only about 1 in 5 suggestions is right.":
-    "Guarde uma definição sugerida acima e ela vira um cartão na sua prova de prática. Nada é adicionado sozinho: em aulas reais só 1 em cada 5 sugestões está certa.",
+  "Keep a suggested definition above and it becomes a flashcard in your practice test. Nothing is added on its own: on real lectures about half of the suggestions are right.":
+    "Guarde uma definição sugerida acima e ela vira um cartão na sua prova de prática. Nada é adicionado sozinho: em aulas reais cerca de metade das sugestões está certa.",
   "Keep as a flashcard": "Guardar como cartão",
   "My own notes": "Minhas próprias anotações",
   No: "Não",

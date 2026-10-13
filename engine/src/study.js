@@ -373,7 +373,7 @@ function matchDefinition(c, next) {
       /^([A-Z][A-Za-z]{1,6}),\s+(?!then\b|so\b|and\b|but\b|[a-z]+ing\b)([^,]{4,60}?),?\s+(?:is|are|means|es|é)\s+(.{6,})$/,
     ))
   )
-    return [m[1], `${m[2]}: ${m[3]}`, true];
+    return [m[1], `${m[2]}: ${m[3]}`, true, "roi"];
   // "Osmosis, and people mix this up..., osmosis is specifically ..."
   if (
     (m = c.match(
@@ -381,14 +381,14 @@ function matchDefinition(c, next) {
     )) &&
     m[1].toLowerCase().replace(/^(the|a|an)\s+/, "") === m[2].toLowerCase().replace(/^(the|a|an)\s+/, "")
   )
-    return [m[1], m[3]];
+    return [m[1], m[3], undefined, "aside-repeat"];
   // "X, X is ...": "a ratio, a ratio is just a comparison ..."
   if (
     (m = c.match(/^([^,]{2,40}),\s*(.{2,40}?)\s+(?:is|are|es|é)\s+(?:basically|just|simply|really)?\s*(.{6,})$/iu)) &&
     m[1].toLowerCase().replace(/^(the|a|an|el|la|un|una|o|a|um|uma)\s+/, "") ===
       m[2].toLowerCase().replace(/^(the|a|an|el|la|un|una|o|a|um|uma)\s+/, "")
   )
-    return [m[1], m[3]];
+    return [m[1], m[3], undefined, "repeat"];
   // A short aside between the term and "is": "Recursion, and everyone groans here, is just a function ..."
   if (
     (m = c.match(
@@ -396,53 +396,55 @@ function matchDefinition(c, next) {
     )) &&
     m[2].split(/\s+/).length <= 6
   )
-    return [m[1], m[3]];
+    return [m[1], m[3], undefined, "aside"];
   // "afterload, think of it as the resistance ..."
   if (
     (m = c.match(
       /^([^,]{2,40}),\s*(?:think of it as|think of (?:this|that) as|picture it as|piensen en (?:él|ella|eso) como|pensem nisso como)\s+(.{6,})$/iu,
     ))
   )
-    return [m[1], m[2]];
+    return [m[1], m[2], undefined, "think-of"];
   // "... we start with elasticity, which is how much ...": the term comes right before ", which is"
   if (
     (m = c.match(
       /(?:^|\s)(?:with|on|about|have an?|have the|need an?|con|sobre|com|de)\s+([\p{L}]+(?: [\p{L}-]+){0,2}),\s*(?:which is|que es|que é|o que é)\s+(.{6,})$/iu,
     ))
   )
-    return [m[1], m[2]];
+    return [m[1], m[2], undefined, "with-which-is"];
   // "Feudalism, the short version is ...", "the Columbian Exchange, that's the transfer of ..."
   if (
     (m = c.match(
       /^([^,]{2,40}),\s*(?:that's|that is|it's|it is|the short version is|which is|es|é|eso es|isso é|o que é|que es|que é|es decir)\s+(.{6,})$/i,
     ))
   )
-    return [m[1], m[2]];
+    return [m[1], m[2], undefined, "thats"];
   // "Se llama inflación al aumento ...", "Chamamos de X o/a ..."
-  if ((m = c.match(/^se llama\s+(.{2,40}?)\s+(?:al|a la|a los|a las|a)\s+(.{6,})$/i))) return [m[1], m[2]];
+  if ((m = c.match(/^se llama\s+(.{2,40}?)\s+(?:al|a la|a los|a las|a)\s+(.{6,})$/i)))
+    return [m[1], m[2], undefined, "se-llama"];
   if ((m = c.match(/^(?:chamamos(?: de)?|a gente chama(?: de)?)\s+(.{2,40}?)\s+(?:o|a|os|as)\s+(.{6,})$/i)))
-    return [m[1], m[2]];
+    return [m[1], m[2], undefined, "chamamos"];
   // "Le llamamos inflación al aumento ...", "A esto le llamamos X: ..."
   if ((m = c.match(/^(?:y\s+)?le\s+llamamos\s+(.{2,40}?)\s+(?:al|a la|a los|a las|a)\s+(.{6,})$/i)))
-    return [m[1], m[2]];
-  if ((m = c.match(/^(?:a esto|a eso)\s+le\s+llamamos\s+(.{2,40}?)[,:]\s*(.{6,})$/i))) return [m[1], m[2]];
+    return [m[1], m[2], undefined, "le-llamamos"];
+  if ((m = c.match(/^(?:a esto|a eso)\s+le\s+llamamos\s+(.{2,40}?)[,:]\s*(.{6,})$/i)))
+    return [m[1], m[2], undefined, "a-esto"];
   // "There's something called sperm competition where she may want ..."
   if (
     (m = c.match(
       /^there(?:'s| is| are)\s+(?:something|a thing|a process|a phenomenon|a concept)\s+called\s+(.{2,40}?)[,]?\s+(?:where|in which|which is|that's)\s+(.{6,})$/i,
     ))
   )
-    return [m[1], m[2]];
+    return [m[1], m[2], undefined, "theres-called"];
   // "We say a function is continuous if ..."
   if ((m = c.match(/^we say (?:that )?(?:a|an)\s+([a-z]+)\s+is\s+([a-z]+)\s+(if|when)\s+(.{6,})$/i)))
-    return [`${m[2]} ${m[1]}`, `a ${m[1]} is ${m[2]} ${m[3]} ${m[4]}`];
+    return [`${m[2]} ${m[1]}`, `a ${m[1]} is ${m[2]} ${m[3]} ${m[4]}`, undefined, "we-say"];
   // "...means what we're going to call maximum surplus, which is the most stuff that gets produced"
   if (
     (m = c.match(
       /\b(?:we(?:'re going to|'ll| will)?|i)\s+call(?:\s+(?:it|this|that))?\s+(?:an?\s+|the\s+)?([^,]{2,40}?),\s*(?:which is|that's|that is|meaning)\s+(.{6,})$/i,
     ))
   )
-    return [m[1], m[2]];
+    return [m[1], m[2], undefined, "we-call-which"];
   // "We call this opportunity cost" / "this is called X" / "known as X": the definition is next door
   if (
     (m = c.match(
@@ -450,20 +452,20 @@ function matchDefinition(c, next) {
     )) &&
     next
   )
-    return [m[1], next];
+    return [m[1], next, undefined, "we-call-next"];
   // "X is/are/was ...", "X means/refers to/stands for ..."
   if (
     (m = c.match(
       /^(.{2,48}?)\s+(?:means|refers to|is defined as|stands for|is called|significa|significan|se refiere a|se define como|quiere decir|quer dizer|se refere a|é definid[oa] como)\s+(.{6,})$/i,
     ))
   )
-    return [m[1], m[2]];
+    return [m[1], m[2], undefined, "means"];
   if (
     (m = c.match(
       /^(.{2,48}?)\s+(tells (?:you|us)|lets (?:you|us)|allows (?:you|us) to|describes|measures)\s+(.{6,})$/i,
     ))
   )
-    return [m[1], `${m[2]} ${m[3]}`];
+    return [m[1], `${m[2]} ${m[3]}`, undefined, "tells"];
   if (
     (m = c.match(
       /^(.{2,48}?)\s+(?:is|are|was|were|es|son|era|fue|é|são|foi|era)\s+(?:basically|just|simply|really|specifically|essentially|actually|kind of|sort of|básicamente|simplemente|basicamente|simplesmente)?\s*(.{6,})$/iu,
@@ -471,12 +473,13 @@ function matchDefinition(c, next) {
   ) {
     // "Where the points meet is the market equilibrium": the clause describes, the short noun phrase is the term
     const named = /^where\b/i.test(m[1]) && m[2].match(/^the\s+(.{3,30})$/i);
-    if (named && named[1].split(/\s+/).length <= 3) return [named[1].replace(/[.!?]+$/, ""), m[1]];
-    return [m[1], m[2]];
+    if (named && named[1].split(/\s+/).length <= 3)
+      return [named[1].replace(/[.!?]+$/, ""), m[1], undefined, "where-is"];
+    return [m[1], m[2], undefined, "is"];
   }
   // "A catalyst speeds up a reaction ..."
   if ((m = c.match(new RegExp(`^(?:a|an)\\s+([a-z][\\w -]{2,30}?)\\s+((?:${VERBS})\\s+.{6,})$`, "i"))))
-    return [m[1], m[2]];
+    return [m[1], m[2], undefined, "a-verb"];
   return null;
 }
 
@@ -521,6 +524,23 @@ function inlineDefinitions(c, next) {
     /^(?:the\s+)?([\p{L}-]+(?: [\p{L}-]+){1,3}) (?:got|was given|received|earned) the name (?:of )?(?:the\s+)?([\p{L}-]+(?: [\p{L}-]+)?)[.!?]*$/iu,
   );
   if (named) out.push([named[2], named[1]]);
+  // "they're called condensation reactions, because as you form that bond, you kick out a molecule of water",
+  // "known as amphipathic because they have a split personality"
+  for (const m of c.matchAll(
+    new RegExp(
+      `\\b(?:called|known as|termed|named)\\s+(?:an?\\s+|the\\s+)?(${TERM_WORDS}),?\\s+(?:because|since|as)\\s+(.{8,}?)(?=[.?!]|$)`,
+      "giu",
+    ),
+  ))
+    out.push([m[1], m[2]]);
+  // "micelles and lipid bilayers, which are the key boundary of cells"
+  for (const m of c.matchAll(
+    new RegExp(
+      `\\b(?:and|or)\\s+(?!(?:[\\p{L}-]+\\s+)*(?:about|of|to|in|on|at|for|with|from|that|this|it|them|you|we|i)\\b)(${TERM_WORDS}),\\s*which (?:is|are)\\s+((?:the|an?|what|where|when|how)\\b.{4,}?)(?=,\\s+(?:and|but|so)\\b|[.?!]|$)`,
+      "giu",
+    ),
+  ))
+    out.push([m[1], m[2]]);
   // "that's what we call a heuristic, a simple way to think about it"
   const callBlock = `\\bwhat\\b[^.?!]{0,60}?\\b(?:call|called|known as)\\b[,\\s"]*(?:an?\\s+|the\\s+)?"?(${TERM_WORDS})"?`;
   let m = c.match(new RegExp(`${callBlock},\\s*((?:an?|the)\\s.{8,})$`, "iu"));
@@ -597,6 +617,26 @@ export function definitionFeatures(term, def, sentence, ctx) {
     defEndsMid: /\b(?:and|or|but|the|a|an|of|to|so|that|because|with)$/i.test(def.replace(/[.!?]+$/, "")) ? 1 : 0,
     defRepeat: /\b(\w{3,})\s+\1\b/i.test(def) ? 1 : 0,
     sentenceLen: Math.log(sentence.split(/\s+/).length),
+    // a concept is said with a determiner elsewhere ("the demand curve", "a monopoly", "this model"): share of mentions
+    termDet: ctx.long ? ctx.detShare(term) : 0.5,
+    // a noun-looking last word (-tion, -ity, -ism, -ment, -ness, -ology, -ics, -ure, -ance)
+    termNounSuffix: /(?:tion|sion|ity|ism|ment|ness|ology|ics|ure|ance|ence|ory|ism|ide|ase|ene|ane|ol)s?$/i.test(head)
+      ? 1
+      : 0,
+    // said in a naming frame somewhere else in the talk ("called X", "X is defined", "the term X")
+    termNamed: ctx.long ? ctx.named(term) : 0,
+    // the meaning is a noun phrase with a relative clause: "a market where ...", "the process by which ..."
+    defNounClause:
+      /^(?:an?|the)\s+(?:\w+\s+){0,3}\w+\s+(?:that|which|where|when|who|whereby|by which|in which)\b/i.test(def)
+        ? 1
+        : 0,
+    defIsFragment: /^(?:\w+\s+){0,2}\w+$/.test(def) ? 1 : 0,
+    markerStrong:
+      /\b(?:called|known as|termed|so[- ]called|the term|the word|defined as|definition|refer to as|referred to as)\b/i.test(
+        sentence,
+      )
+        ? 1
+        : 0,
     termFirst: sentence
       .toLowerCase()
       .replace(/^[^\p{L}]+/u, "")
@@ -605,8 +645,40 @@ export function definitionFeatures(term, def, sentence, ctx) {
       : 0,
   };
 }
+// Rules whose matches need extra evidence in a long transcript (see findDefinitions).
+const WEAK_RULES = new Set(["is", "thats", "fragment", "roi", "tells", "other"]);
 // Fitted by engine/bench/fit-definitions.py on judged definitions from real lectures.
-const DEFINITION_MODEL = { bias: 0, weights: {} };
+const DEFINITION_MODEL = {
+  bias: -3.9278,
+  weights: {
+    marker: 0.4095,
+    termWords: -0.0554,
+    termUncommon: 0.1976,
+    termAllCommon: -0.4581,
+    termCount: 0.4369,
+    termOnce: 0.22,
+    termName: 0.0458,
+    termShort: 0.0,
+    termLen: 0.3437,
+    defWords: 0.2651,
+    defArticle: 0.5888,
+    defWhen: -0.2415,
+    defMathy: -0.0936,
+    defPronounStart: -0.0073,
+    defCommon: -0.1543,
+    defHasTerm: -0.2248,
+    defEndsMid: -0.2467,
+    defRepeat: 0.0,
+    sentenceLen: 0.4501,
+    termDet: 0.0915,
+    termNounSuffix: -0.1801,
+    termNamed: 0.3289,
+    defNounClause: 0.1472,
+    defIsFragment: -0.619,
+    markerStrong: 0.1327,
+    termFirst: -0.3019,
+  },
+};
 function definitionConfidence(term, def, sentence, ctx) {
   const f = definitionFeatures(term, def, sentence, ctx);
   let z = DEFINITION_MODEL.bias;
@@ -639,8 +711,31 @@ export function findDefinitions(text, { minConfidence = 0, features = false } = 
       const t = term.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       return (lower.match(new RegExp(`(?<![\\p{L}])${t}(?:s|es)?(?![\\p{L}])`, "gu")) || []).length;
     },
+    detShare: (term) => {
+      const t = term.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const all = (lower.match(new RegExp(`(?<![\\p{L}])${t}(?:s|es)?(?![\\p{L}])`, "gu")) || []).length;
+      if (!all) return 0;
+      const det = (
+        lower.match(
+          new RegExp(
+            `\\b(?:the|a|an|this|that|these|those|of|called|as|its|their|our|your|my)\\s+${t}(?:s|es)?(?![\\p{L}])`,
+            "gu",
+          ),
+        ) || []
+      ).length;
+      return det / all;
+    },
+    named: (term) => {
+      const t = term.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      return new RegExp(
+        `\\b(?:called|known as|termed|the term|the word|so-called|so called|what we call|refer to as|referred to as|define|defined)\\s+(?:an?\\s+|the\\s+)?"?${t}(?:s|es)?(?![\\p{L}])`,
+        "u",
+      ).test(lower)
+        ? 1
+        : 0;
+    },
   };
-  const push = (term, def, sentence, keepCase) => {
+  const push = (term, def, sentence, keepCase, rule = "other") => {
     const t = goodTerm(term);
     const d = t && goodDefinition(def);
     if (!t || !d) return;
@@ -649,13 +744,26 @@ export function findDefinitions(text, { minConfidence = 0, features = false } = 
     seen.add(key);
     const { confidence, why, features: feat } = definitionConfidence(t, d, sentence, ctx);
     if (confidence < minConfidence) return;
+    // In a whole lecture, a bare "X is Y" is usually talk, not a definition (16% real when judged by hand on
+    // 23 lectures). Keep it only when X is course vocabulary and Y is a noun phrase; the other shapes
+    // ("called X, which is", "what we call X", "X means") stand on their own.
+    if (
+      ctx.long &&
+      WEAK_RULES.has(rule) &&
+      !(
+        (feat.termNamed || (feat.termUncommon >= 0.5 && feat.termCount >= Math.log1p(2))) &&
+        (feat.defArticle || feat.defNounClause || feat.defWhen) &&
+        feat.defMathy < 0.5
+      )
+    )
+      return;
     out.push({
       term: keepCase || /^[A-Z]{2,}/.test(t) ? t : t.charAt(0).toUpperCase() + t.slice(1),
       definition: d,
       sentence,
       confidence,
       why,
-      ...(features ? { features: feat } : {}),
+      ...(features ? { features: feat, rule } : {}),
     });
   };
   for (let i = 0; i < list.length; i++) {
@@ -668,7 +776,7 @@ export function findDefinitions(text, { minConfidence = 0, features = false } = 
       c.match(/^¿?qu[ée] (?:quiero decir|queremos decir|significa)\s+(?:con\s+)?(.{2,40}?)\?$/iu) ||
       c.match(/^o que (?:eu )?quero dizer com\s+(.{2,40}?)\?$/iu);
     if (mean && next && next.split(/\s+/).length >= 4) {
-      push(mean[1], next.replace(/^(?:it's|it is|that's|es|é)\s+/i, ""), `${s} ${list[i + 1]}`);
+      push(mean[1], next.replace(/^(?:it's|it is|that's|es|é)\s+/i, ""), `${s} ${list[i + 1]}`, undefined, "mean");
       i++;
       continue;
     }
@@ -685,7 +793,7 @@ export function findDefinitions(text, { minConfidence = 0, features = false } = 
         /^(?:it's|it is|that's|that is|they're|they are|those are|these are|this is|es|son|é|são|isso é|eso es)\s+(?:basically\s+|básicamente\s+|basicamente\s+)?(.{6,})$/i,
       );
     if ((q || (frag && frag[1].split(/\s+/).length <= 4)) && answer) {
-      push((q || frag)[1], answer[1], `${s} ${list[i + 1]}`);
+      push((q || frag)[1], answer[1], `${s} ${list[i + 1]}`, undefined, q ? "question" : "fragment");
       i++;
       continue;
     }
@@ -704,10 +812,10 @@ export function findDefinitions(text, { minConfidence = 0, features = false } = 
               .replace(new RegExp(`^in (?:an?|the) ${called[1].replace(/[.*+?^${}()|[\]\\]/g, "\\$&")},\\s+`, "i"), ""),
         )
         .find((x) => x && !/\b(?:called|we call|known as)\b/i.test(x));
-      if (follow) push(called[1], follow, s);
+      if (follow) push(called[1], follow, s, undefined, "called-next");
       continue;
     }
-    for (const [t, d] of inlineDefinitions(c, next)) push(t, d, s);
+    for (const [t, d] of inlineDefinitions(c, next)) push(t, d, s, undefined, "inline");
     let m = matchDefinition(c, next);
     // "Dealers are mixing the fentanyl in", "The red protein is marking cells": something happening, not a meaning.
     // (A bare concept can be defined by what it does: "Encryption is scrambling data so only...")
@@ -717,10 +825,10 @@ export function findDefinitions(text, { minConfidence = 0, features = false } = 
       (/^(?:the|these|those|this|that|my|your|our|their)\s/i.test(c) || /\b(?:are|were)\s+[a-z]{3,}ing\b/i.test(c))
     )
       m = null;
-    if (m) push(m[0], m[1], s, m[2]);
+    if (m) push(m[0], m[1], s, m[2], m[3]);
     // "Positive analysis is the study of the way things are, while normative analysis is the study of the way things should be"
     const other = c.match(/,\s*(?:while|whereas)\s+([\p{L}][\p{L} -]{2,30}?)\s+(?:is|are)\s+(.{6,})$/iu);
-    if (m && other) push(other[1], other[2], s);
+    if (m && other) push(other[1], other[2], s, undefined, "while");
   }
   return out;
 }

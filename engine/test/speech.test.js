@@ -381,3 +381,31 @@ test("lecture talk around dates that is not a deadline (from whole MIT lectures)
     "2026-10-16",
   ]);
 });
+
+test("in a whole lecture a bare 'X is Y' needs course vocabulary and a noun-phrase meaning", () => {
+  const filler = "We talked about that for a while and then moved on to the next thing. ".repeat(30);
+  const terms = (t) => findDefinitions(t).map((d) => d.term);
+  // course vocabulary, said more than once, meaning is a noun phrase: kept
+  assert.deepEqual(
+    terms(`${filler}Atropine is a competitive inhibitor of acetylcholine. Atropine binds the receptor and blocks it.`),
+    ["Atropine"],
+  );
+  // talk shaped like a definition: dropped in a long transcript (it would still count in a short note)
+  assert.deepEqual(terms(`${filler}The father went to jail. Imagination is a really interesting thing.`), []);
+  assert.deepEqual(terms(`${filler}Thanks is the most math I'll do in a lecture all year.`), []);
+  // the other shapes stand on their own
+  assert.deepEqual(
+    terms(
+      `${filler}When you do these in the lab, they're called condensation reactions, because as you form that bond, you kick out a molecule of water.`,
+    ),
+    ["Condensation reactions"],
+  );
+  assert.deepEqual(terms(`${filler}Lipids make micelles and lipid bilayers, which are the key boundary of cells.`), [
+    "Lipid bilayers",
+  ]);
+  // every definition carries a confidence and the reasons for it
+  const d = findDefinitions(
+    "Okay so mitosis, basically, it's when the cell splits into two identical daughter cells.",
+  )[0];
+  assert.ok(d.confidence > 0 && d.confidence < 1 && Array.isArray(d.why));
+});

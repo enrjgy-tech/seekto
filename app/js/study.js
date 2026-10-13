@@ -134,7 +134,7 @@ export function studyHtml(note) {
                     `<li class="study-line"><span><mark class="hl kept">${esc(d.term)}</mark>: ${esc(d.definition)}</span><button class="btn ghost small" data-unkeep="${i}" title="${esc(t("Remove flashcard"))}">×</button></li>`,
                 )
                 .join("")}</ul>`
-            : `<p class="note-small">${t("Keep a suggested definition above and it becomes a flashcard in your practice test. Nothing is added on its own: on real lectures only about 1 in 5 suggestions is right.")}</p>`,
+            : `<p class="note-small">${t("Keep a suggested definition above and it becomes a flashcard in your practice test. Nothing is added on its own: on real lectures about half of the suggestions are right.")}</p>`,
         )}
       </div>
     </div>`;
