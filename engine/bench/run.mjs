@@ -17,7 +17,8 @@ const args = new Set(process.argv.slice(2));
 const items = readdirSync(dir).filter((f) => f.endsWith(".jsonl")).sort().flatMap((file) =>
   readFileSync(dir + file, "utf8").split("\n").filter(Boolean).map((line) => ({ file, ...JSON.parse(line) })));
 
-const split = (item) => (Number(item.id.match(/(\d+)$/)[1]) % 2 === 0 ? "test" : "dev");
+// "fresh": written after the rules were finished (October 13, 2026) and scored once; never shown.
+const split = (item) => (/^fresh-/.test(item.file) ? "fresh" : Number(item.id.match(/(\d+)$/)[1]) % 2 === 0 ? "test" : "dev");
 const refDate = (iso) => { const [y, m, d] = iso.split("-").map(Number); return new Date(y, m - 1, d, 12); };
 const normTerm = (t) => String(t).toLowerCase().replace(/^(the|a|an|el|la|los|las|un|una|o|os|as)\s+/, "").replace(/[^\p{L}\d ]/gu, "").trim();
 const sameTerm = (a, b) => { a = normTerm(a); b = normTerm(b); return a === b || (a.length > 3 && b.length > 3 && (a.includes(b) || b.includes(a))); };
@@ -42,7 +43,7 @@ for (const item of items) {
   // Meeting files label calendar events only loosely (writers were told to leave them empty),
   // so meetings are scored on action items and their due dates instead.
   const ev = { tp: 0, fp: 0, fn: 0 };
-  if (!/^meetings/.test(item.file)) {
+  if (!/meetings/.test(item.file)) {
     const gotDates = [...new Set(findEvents(item.text, { ref, locale: item.locale }).map((e) => e.date))];
     const wantDates = [...new Set(item.events.map((e) => e.date))];
     ev.tp = gotDates.filter((d) => wantDates.includes(d)).length;
@@ -53,7 +54,7 @@ for (const item of items) {
 
   // Definitions: only scored in files that label them.
   let df = { tp: 0, fp: 0, fn: 0 };
-  const scoresDefs = /^(defs|es-pt)/.test(item.file);
+  const scoresDefs = /^(defs|es-pt|fresh-(?:lectures|school|espt))/.test(item.file);
   if (scoresDefs) {
     const got = findDefinitions(item.text, { lang: item.lang }).map((d) => d.term);
     const want = item.definitions.map((d) => d.term);
@@ -71,7 +72,7 @@ for (const item of items) {
   let ac = { tp: 0, fp: 0, fn: 0 };
   const owners = { right: 0, total: 0 };
   const dues = { right: 0, total: 0 };
-  if (/^meetings/.test(item.file)) {
+  if (/meetings/.test(item.file)) {
     const got = findActionItems(item.text, { ref });
     const want = item.actions;
     ac.tp = Math.min(got.length, want.length);
@@ -131,8 +132,9 @@ if (args.has("--check")) {
   console.log(JSON.stringify(result, null, 2));
 } else {
   const pct = (x) => `${Math.round(x * 100)}%`;
-  for (const key of ["dev", "test", "all"]) {
+  for (const key of ["dev", "test", "fresh", "all"]) {
     const r = result[key];
+    if (!r) continue;
     console.log(`\n${key.toUpperCase()} (${r.items} items, ${r.perfect} fully right)`);
     console.log(`  deadlines     found ${r.deadlines.tp} of ${r.deadlines.tp + r.deadlines.fn} (recall ${pct(r.deadlines.recall)}), ${r.deadlines.fp} false alarms (precision ${pct(r.deadlines.precision)})`);
     console.log(`  definitions   found ${r.definitions.tp} of ${r.definitions.tp + r.definitions.fn} (recall ${pct(r.definitions.recall)}), ${r.definitions.fp} false (precision ${pct(r.definitions.precision)})`);
