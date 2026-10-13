@@ -147,7 +147,7 @@ audio { width: 100%; }
 .day.other { opacity: 0.4; }
 .day.today { border-color: var(--fg); }
 .day .n { color: var(--muted); font-variant-numeric: tabular-nums; }
-.day .ev { font-size: 11px; border-radius: 4px; padding: 1px 4px; background: var(--raised); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.day .ev { font-size: 11px; line-height: 1.3; border-radius: 4px; padding: 1px 4px; background: var(--raised); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
 .day .ev.test { box-shadow: inset 2px 0 0 var(--rec); }
 .day .ev.assignment { box-shadow: inset 2px 0 0 var(--warn); }
 .agenda { display: grid; gap: 6px; }
