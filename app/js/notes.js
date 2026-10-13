@@ -50,6 +50,7 @@ import { canListen } from "./voice.js";
 import { meetingPanelHtml, openFollowUp } from "./meeting.js";
 import { t, uiLocale } from "./i18n.js";
 import { typeLabel } from "./calendar.js";
+import { drawStudy, studyMarkdown } from "./study.js";
 
 let filter = "All";
 let query = "";
@@ -202,6 +203,7 @@ function finishNote(note) {
   note.topic = detectTopic(text);
 }
 
+let showAll = false;
 export async function renderDetail(main, id) {
   const note = state.notes.find((n) => n.id === id);
   if (!note) {
@@ -227,7 +229,7 @@ export async function renderDetail(main, id) {
       <div class="detail">
         <section class="panel">
           ${raw(note.audioId ? `<audio id="audio" controls preload="metadata"></audio>` : "")}
-          ${raw(typed ? `<textarea id="body" rows="16" placeholder="${esc(t('Write your notes. Dates like "quiz on Friday" are added to your calendar.'))}">${esc(note.text)}</textarea>` : `<span class="label">${t("Transcript and notes")}</span><div class="transcript" id="lines"></div>`)}
+          ${raw(typed ? `<textarea id="body" rows="16" placeholder="${esc(t('Write your notes. Dates like "quiz on Friday" are added to your calendar.'))}">${esc(note.text)}</textarea>` : `<div class="row" style="justify-content:space-between"><div class="seg" role="group" aria-label="${esc(t("Show"))}"><button type="button" data-show="study" aria-pressed="${!showAll}">${t("Study notes")}</button><button type="button" data-show="all" aria-pressed="${showAll}">${t("Everything")}</button></div><span class="note-small">${t("Study notes keep the lines a student would write down. Double-click one to hear it.")}</span></div><div id="study" ${showAll ? "hidden" : ""}></div><div class="transcript" id="lines" ${showAll ? "" : "hidden"}></div>`)}
           ${raw(!typed && !note.cues?.length && note.audioId && canTranscribeHere ? `<div class="field"><span class="label">${t("Transcript")}</span><p class="note-small" id="asrStatus">${transcribing(note.id) || t("Make the transcript on this device: private, works offline after a one-time download, about 100 languages.")}</p><div class="row"><button class="btn small" id="asrGo" ${transcribing(note.id) ? "disabled" : ""}>${t("Transcribe on this device")}</button></div></div>` : "")}
           ${raw(!typed && !note.cues?.length ? `<div class="field"><span class="label">${note.audioId ? t("Or add a transcript") : t("No transcript yet")}</span><p class="note-small">${t("Add a caption file (.vtt or .srt) or paste a transcript with times.")}</p><textarea id="pasteT" rows="4" placeholder="0:00&#10;${esc(t("Today we start chapter 5…"))}"></textarea><div class="row"><button class="btn small" id="useT">${t("Use transcript")}</button><label class="btn ghost small" style="cursor:pointer">${t("Caption file")}<input type="file" id="capFile" accept=".vtt,.srt,.txt" class="sr-only"></label></div></div>` : "")}
         </section>
@@ -340,6 +342,28 @@ export async function renderDetail(main, id) {
   }
   drawLines(note);
   drawEvents(note);
+  const study = $("#study");
+  if (study) {
+    drawStudy(note, study);
+    study.addEventListener("study:goto", (e) => {
+      const cue = (note.cues || [])[Math.min(e.detail, (note.cues || []).length - 1)];
+      if (cue) {
+        showAll = true;
+        $$("[data-show]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.show === "all")));
+        study.hidden = true;
+        $("#lines").hidden = false;
+        seek(cue.start);
+      }
+    });
+    $$("[data-show]").forEach((b) =>
+      b.addEventListener("click", () => {
+        showAll = b.dataset.show === "all";
+        $$("[data-show]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+        study.hidden = showAll;
+        $("#lines").hidden = !showAll;
+      }),
+    );
+  }
 
   const index = buildIndex(
     note.cues?.length ? note.cues : (note.text || "").split(/(?<=[.!?])\s+/).map((t, i) => ({ start: i, text: t })),
@@ -460,6 +484,7 @@ function toMarkdown(note) {
       ? [`## ${t("My notes")}`, ...note.mine.map((m) => `- [${formatTime(m.start)}] ${m.text}`), ""]
       : []),
     ...(note.marks?.length ? [`## ${t("Lost here")}`, ...note.marks.map((m) => `- ${formatTime(m.start)}`), ""] : []),
+    ...(note.cues?.length ? studyMarkdown(note) : []),
     `## ${t("Transcript")}`,
     ...(note.cues?.length ? note.cues.map((c) => `[${formatTime(c.start)}] ${c.text}`) : [note.text || ""]),
   ];

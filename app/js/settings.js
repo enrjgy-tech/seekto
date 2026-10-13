@@ -1,4 +1,5 @@
 // Settings: which AI model to use (or none), voice, and your data.
+import { highlightSettingsHtml, wireHighlightSettings } from "./study.js";
 import { $, html, raw, toast, download, readFile } from "./ui.js";
 import { state, updateSettings, loadAll } from "./state.js";
 import { all, put, clearAll } from "./store.js";
@@ -69,6 +70,7 @@ export function render(main, section) {
         <select id="uiLang" aria-label="${t("Language")}">${raw([["auto", t("Automatic")], ...LANGUAGES].map(([code, name]) => html`<option value="${code}" ${code === (s.uiLang || "auto") ? "selected" : ""}>${name}</option>`).join(""))}</select>
         <p class="note-small">${t("Changes the app's words and the language your browser listens in. Deadlines and definitions are found in English, Spanish and Portuguese whatever you choose.")}</p>
       </section>
+      <section class="panel" id="hlPanel">${raw(highlightSettingsHtml())}</section>
       <section class="panel">
         <h2>${t("Use Seekto for")}</h2>
         <div class="seg" role="group" aria-label="${t("Use Seekto for")}">${raw(["learning", "work"].map((m) => html`<button type="button" data-setmode="${m}" aria-pressed="${m === (s.mode || "learning")}">${m === "learning" ? t("Learning") : t("Work")}</button>`).join(""))}</div>
@@ -210,6 +212,7 @@ export function render(main, section) {
     .forEach((r) => r.addEventListener("change", () => updateSettings({ transcriber: r.value })));
   $("#asrQuality").addEventListener("change", (e) => updateSettings({ asrQuality: e.target.value }));
   $("#asrLanguage").addEventListener("change", (e) => updateSettings({ asrLanguage: e.target.value }));
+  wireHighlightSettings($("#hlPanel"), updateSettings);
   $("#uiLang").addEventListener("change", (e) => {
     updateSettings({ uiLang: e.target.value });
     location.reload();

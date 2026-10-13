@@ -17,6 +17,7 @@ import { openConnect } from "./connect.js";
 import { startCloud, askToShareAccount } from "./account.js";
 import { toast, closeOverlay, clearToast } from "./ui.js";
 import { t, translatePage } from "./i18n.js";
+import { applyHighlights } from "./study.js";
 
 const views = {
   home: home.render,
@@ -120,6 +121,7 @@ window.addEventListener("seekto:synced", async (e) => {
 });
 
 await loadAll();
+applyHighlights();
 translatePage();
 applyChrome();
 render();

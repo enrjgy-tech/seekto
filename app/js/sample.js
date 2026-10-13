@@ -2,7 +2,7 @@
 // transcript instead of the microphone. Samples are marked so they can be removed in one go.
 import { state, saveNote, deleteNote, deleteEvent } from "./state.js";
 import { uid } from "./store.js";
-import { toISO, detectTopic } from "../engine/index.js";
+import { toISO, detectTopic, findDefinitions } from "../engine/index.js";
 import { addDates, meetingParts } from "./capture.js";
 import { lang, t } from "./i18n.js";
 
@@ -96,6 +96,12 @@ export async function loadSample(kind = "learning") {
     marks: kind === "work" ? [] : [{ start: 41, label: t("Lost here") }],
     mine: [],
     text: s.lines.join(" "),
+    // The sample is scripted, so its definitions are kept for it (a real recording asks you first)
+    flashcards: findDefinitions(s.lines.join(" ")).map((d) => ({
+      term: d.term,
+      definition: d.definition,
+      sentence: d.sentence,
+    })),
     ...(kind === "work" ? { mode: "work" } : {}),
   };
   const added = await addDates(note, { sample: true });

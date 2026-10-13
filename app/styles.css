@@ -1616,3 +1616,65 @@ h1[tabindex="-1"]:focus,
 h2[tabindex="-1"]:focus {
   outline: none;
 }
+
+/* Study notes: headings per topic, the lines worth keeping, highlights in the user's colours */
+mark.hl {
+  border-radius: 3px;
+  padding: 0 3px;
+  color: inherit;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+mark.hl.term {
+  background: var(--hl-term, #ffe66d);
+}
+mark.hl.date {
+  background: var(--hl-date, #bfe0ff);
+}
+mark.hl.def {
+  background: var(--hl-def, #c8f2d0);
+  outline: 1px dashed color-mix(in srgb, currentColor 40%, transparent);
+}
+mark.hl.kept {
+  background: var(--hl-def, #c8f2d0);
+  font-weight: 600;
+}
+mark.hl.mine {
+  background: var(--hl-mine, #ffd1e3);
+}
+.study {
+  display: grid;
+  gap: 14px;
+}
+.study-terms {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 13px;
+}
+.study-h {
+  font-size: 15px;
+  margin: 6px 0 2px;
+}
+.study-lines {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 6px;
+}
+.study-line {
+  line-height: 1.45;
+}
+.study-ask {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  margin-left: 8px;
+  white-space: nowrap;
+}
+@media (max-width: 600px) {
+  .study-ask {
+    display: flex;
+    margin: 4px 0 0;
+  }
+}

@@ -49,3 +49,4 @@ export {
 export { findDecisions, findActionItems, followUpEmail } from "./meetings.js";
 export { encodeShare, decodeShare, cleanShared, sharedToText } from "./share.js";
 export { whisperCues, toMono16k } from "./asr.js";
+export { keyTerms, keySentences, scoreSentences, sections, studyNotes } from "./notes.js";

@@ -770,10 +770,12 @@ export function shuffle(list, seed = Date.now()) {
  * choose from, "what does X mean?" and blanks are multiple choice (`choices`, which include the answer).
  * Questions are shuffled; pass a seed to get the same order again.
  */
+/** Practice questions from notes [{ title, topic, text, definitions? }]. */
 export function makeQuiz(notes, { count = 10, flip = false, seed = Date.now() } = {}) {
   const defs = [];
   const usedTerms = new Set();
-  const found = notes.map((note) => findDefinitions(note.text));
+  // A note can bring its own definitions (the ones the student accepted); otherwise they are found in its text
+  const found = notes.map((note) => (Array.isArray(note.definitions) ? note.definitions : findDefinitions(note.text)));
   notes.forEach((note, n) => {
     found[n].forEach((d, i) => {
       usedTerms.add(d.term.toLowerCase());

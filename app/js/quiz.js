@@ -132,7 +132,13 @@ export function openQuiz({
     given
       ? mcFirst(shuffle(given))
       : makeQuiz(
-          notes.map((n) => ({ title: n.title, topic: n.topic, text: noteText(n) })),
+          // A recorded class brings only the definitions the student kept; typed or pasted notes are clean enough to use as found
+          notes.map((n) => ({
+            title: n.title,
+            topic: n.topic,
+            text: noteText(n),
+            ...(n.cues?.length ? { definitions: n.flashcards || [] } : {}),
+          })),
           { count, flip },
         );
   let questions = build();
