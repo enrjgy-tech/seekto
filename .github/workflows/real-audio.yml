@@ -1,0 +1,62 @@
+name: Real audio
+
+# Manual only. Takes a real, openly licensed lecture recording, runs it through Whisper and the
+# engine exactly as the app does, and saves the transcript and what the engine found as a build
+# artifact. Nothing from the recording is committed. See engine/bench/README.md.
+on:
+  workflow_dispatch:
+    inputs:
+      page:
+        description: OCW lecture page to find the recording on
+        default: https://ocw.mit.edu/courses/14-01-principles-of-microeconomics-fall-2018/resources/lec1-intro/
+      audio_url:
+        description: Direct link to the recording (leave empty to find it on the page above)
+        default: ""
+      model:
+        description: Whisper model
+        default: Xenova/whisper-base
+
+permissions:
+  contents: read
+
+jobs:
+  transcribe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Find and download the recording
+        env:
+          PAGE: ${{ inputs.page }}
+          AUDIO_URL: ${{ inputs.audio_url }}
+        run: |
+          url="$AUDIO_URL"
+          if [ -z "$url" ]; then
+            curl -fsSL "$PAGE" -o page.html
+            url=$(grep -oE 'https://[^"\\ ]+\.(mp3|mp4|m4a)' page.html | grep -v -i trailer | head -1 || true)
+            if [ -z "$url" ]; then
+              echo "::error::no mp3/mp4 link on the page; links seen:"
+              grep -oE 'https://[^"\\ ]*(archive|youtube|\.mp[34])[^"\\ ]*' page.html | sort -u | head -20
+              exit 1
+            fi
+          fi
+          echo "::notice::recording: $url"
+          curl -fsSL "$url" -o lecture.src
+          ls -l lecture.src
+      - name: Convert to 16 kHz mono
+        run: |
+          sudo apt-get install -y -qq ffmpeg > /dev/null
+          ffmpeg -loglevel error -i lecture.src -ac 1 -ar 16000 -c:a pcm_s16le lecture.wav
+          ls -l lecture.wav
+      - name: Transcribe and run the engine
+        run: |
+          npm install --no-save --no-package-lock @huggingface/transformers@3.0.2
+          node test/real-audio.mjs lecture.wav out "${{ inputs.model }}" | tee out.log
+          while IFS= read -r line; do echo "::notice::${line//$'\n'/ }"; done < <(grep -E '^(audio|transcribed|DATE|DEF)' out.log | head -60)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: real-audio-result
+          path: out/
