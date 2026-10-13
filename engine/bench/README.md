@@ -9,7 +9,7 @@ Seekto finds deadlines, definitions and action items with rules, not an AI model
 - **Written blind, by AI.** The sentences were written by separate AI model sessions that were never given the code, the rules or the engine's output, and were told to make them sound like real people: fillers, self-corrections, reschedules, cancellations, past mentions, two deadlines in one sentence, day-first dates. For the current fresh set, another separate AI session checked every label before scoring. AI-written sentences can share habits that real speech doesn't have, which is one more reason real class transcripts are the next step.
 - **Not real recordings.** They are written to sound like classes, but they aren't transcripts of real ones. Real (anonymized) class transcripts are welcome: see [CONTRIBUTING.md](../../CONTRIBUTING.md).
 - **Two kinds of unseen data.** The fresh set (below) was written after the rules were finished. And of the first 360 items, half is held out. Items with an even number are the *test* half. Their mistakes are never printed, only counted, and rules are only ever fixed using the *dev* half. The test numbers are the honest ones.
-- **Conventions.** Weeks start on Monday. "Friday" means the next Friday after today; "next Friday" means Friday of next week; "next week" alone means its Monday. Numbers like 10/11 are month first in US and Canadian English and day first everywhere else.
+- **Conventions.** For dates, weeks start on Monday (the calendar screens follow your locale). "Friday" means the next Friday after today; "next Friday" means Friday of next week; "next week" alone means its Monday. Numbers like 10/11 are month first in US and Canadian English and day first everywhere else.
 
 ## Fresh set: scored once
 

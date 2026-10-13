@@ -75,7 +75,7 @@ function comingUpHtml() {
   if (!soon.length && !later) return "";
   return html`<section class="panel coming" aria-labelledby="comingTitle">
     <div class="view-head"><h2 id="comingTitle">${t("Coming up")}</h2><button class="btn small" id="remindAllHome">${t("Remind me about all of them")}</button></div>
-    ${raw(soon.length ? `<div class="agenda">${soon.map((e) => html`<div class="event"><span class="when">${describeDay(e.date, now, { tr: t, locale: uiLocale() })}</span><span>${e.title}</span><span class="row">${raw(e.noteId && state.notes.some((n) => n.id === e.noteId) ? html`<button class="btn ghost small" data-practice="${e.noteId}">${t("Practice")}</button>` : html`<span class="kind ${e.type}">${typeLabel(e.type || "")}</span>`)}</span></div>`).join("")}</div>` : html`<p class="note-small">${t("Nothing in the next 7 days.")}</p>`)}
+    ${raw(soon.length ? `<div class="agenda">${soon.map((e) => html`<div class="event"><span class="when">${describeDay(e.date, now, { tr: t, locale: uiLocale() })}</span><span>${e.title}</span><span class="row">${raw(e.noteId && state.notes.some((n) => n.id === e.noteId) ? html`<button class="btn ghost small" data-practice="${e.noteId}" aria-label="${t("Practice for {title}", { title: e.title })}">${t("Practice")}</button>` : html`<span class="kind ${e.type}">${typeLabel(e.type || "")}</span>`)}</span></div>`).join("")}</div>` : html`<p class="note-small">${t("Nothing in the next 7 days.")}</p>`)}
     ${raw(later ? html`<a href="#calendar" class="note-small">${later === 1 ? t("1 more date later on your calendar") : t("{n} more dates later on your calendar", { n: later })}</a>` : "")}
   </section>`;
 }

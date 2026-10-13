@@ -385,6 +385,10 @@ function matchDefinition(c, next) {
   if ((m = c.match(/^se llama\s+(.{2,40}?)\s+(?:al|a la|a los|a las|a)\s+(.{6,})$/i))) return [m[1], m[2]];
   if ((m = c.match(/^(?:chamamos(?: de)?|a gente chama(?: de)?)\s+(.{2,40}?)\s+(?:o|a|os|as)\s+(.{6,})$/i)))
     return [m[1], m[2]];
+  // "Le llamamos inflación al aumento ...", "A esto le llamamos X: ..."
+  if ((m = c.match(/^(?:y\s+)?le\s+llamamos\s+(.{2,40}?)\s+(?:al|a la|a los|a las|a)\s+(.{6,})$/i)))
+    return [m[1], m[2]];
+  if ((m = c.match(/^(?:a esto|a eso)\s+le\s+llamamos\s+(.{2,40}?)[,:]\s*(.{6,})$/i))) return [m[1], m[2]];
   // "We say a function is continuous if ..."
   if ((m = c.match(/^we say (?:that )?(?:a|an)\s+([a-z]+)\s+is\s+([a-z]+)\s+(if|when)\s+(.{6,})$/i)))
     return [`${m[2]} ${m[1]}`, `a ${m[1]} is ${m[2]} ${m[3]} ${m[4]}`];
@@ -615,7 +619,8 @@ function keySentenceBlanks(notes, found, usedTerms, want, seed) {
       .match(/[\p{L}][\p{L}'-]{4,}/gu) || [])
       counts.set(w, (counts.get(w) || 0) + 1);
     const candidates = [];
-    for (const s of sentences(note.text)) {
+    const list = sentences(note.text);
+    for (const [n, s] of list.entries()) {
       if (s.length < 30 || s.length > 220 || definitionSentences.has(s) || SMALL_TALK.test(s) || /\?$/.test(s))
         continue;
       if (LOGISTICS.test(s) || findDates(s).length) continue;
@@ -666,7 +671,24 @@ function keySentenceBlanks(notes, found, usedTerms, want, seed) {
       const answer = parts[idx].replace(/[^\p{L}\d'-]/gu, "");
       if (answer.length < 3) continue;
       parts[idx] = parts[idx].replace(answer, "_____");
-      candidates.push({ q: { kind: "blank", prompt: parts.join(""), answer, source: note.title }, strength });
+      // A sentence that leans on the one before ("The _____ became the symbol of that period") gets it
+      // as context, so the question can be answered without the notes open
+      const before = list[n - 1];
+      const leans =
+        /^(?:the|this|that|these|those|it|they|he|she|his|her|their|its|then|so|but|and|el|la|los|las|esto|eso|o|a|os|as|isso|ele|ela)\b/i.test(
+          s,
+        );
+      const context =
+        strength < 3 &&
+        leans &&
+        before &&
+        before.length < 200 &&
+        !LOGISTICS.test(before) &&
+        !findDates(before).length &&
+        !before.toLowerCase().includes(answer.toLowerCase())
+          ? `${before} `
+          : "";
+      candidates.push({ q: { kind: "blank", prompt: context + parts.join(""), answer, source: note.title }, strength });
     }
     // Strongest blanks first; weaker ones only fill the test up
     candidates.sort((a, b) => b.strength - a.strength);

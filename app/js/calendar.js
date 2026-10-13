@@ -1,5 +1,5 @@
 // Calendar: dates heard in class, typed in notes, imported from school calendars, or added by hand.
-import { $, $$, html, raw, toast, download, readFile, friendlyDate } from "./ui.js";
+import { $, $$, html, raw, toast, download, readFile, friendlyDate, announce } from "./ui.js";
 import { state, saveEvent, deleteEvent, hasEvent, today } from "./state.js";
 import { uid } from "./store.js";
 import { go } from "./nav.js";
@@ -68,7 +68,7 @@ export function render(main) {
       </section>
       <section class="panel">
         <div class="view-head"><h2>${t("Coming up")}</h2><label class="row note-small"><input type="checkbox" id="past" ${raw(showPast ? "checked" : "")}> ${t("Show past")}</label></div>
-        <div class="agenda" id="agenda"></div>
+        <div class="agenda" id="agenda" tabindex="-1"></div>
       </section>
       <section class="panel">
         <h2>${t("Add a date")}</h2>
@@ -179,19 +179,36 @@ function drawAgenda() {
           (e) => html`<div class="event">
         <span class="when">${e.date >= now ? describeDay(e.date, now, { tr: t, locale: uiLocale() }) : friendlyDate(e.date)}</span>
         <span>${e.title}${raw(e.noteId ? html` <a href="#note/${e.noteId}" class="note-small">${t("from your notes")}</a>` : e.source === "import" ? html` <span class="note-small">${t("imported")}</span>` : "")}</span>
-        <span class="row">${raw(e.type === "review" && e.noteId ? html`<button class="btn small" data-practice="${e.noteId}">${t("Practice")}</button>` : html`<span class="kind ${e.type}">${typeLabel(e.type)}</span>`)}${raw(e.date >= now ? html`<details class="remind"><summary class="btn ghost small" aria-label="${t("Remind me about {title}", { title: e.title })}">${t("Remind me")}</summary><div class="remind-menu"><a class="btn ghost small" href="${googleCalendarLink({ title: e.title, date: e.date })}" target="_blank" rel="noopener">${t("Google Calendar")}</a><button class="btn ghost small" data-ics="${e.id}">${t("Apple or Outlook (.ics)")}</button><p class="note-small">${t("The .ics file reminds you the day before and that morning. Google Calendar uses your usual reminders.")}</p></div></details>` : "")}<button class="btn ghost small" data-del="${e.id}" aria-label="${t("Remove {title}", { title: e.title })}">${t("Remove")}</button></span>
+        <span class="row">${raw(e.type === "review" && e.noteId ? html`<button class="btn small" data-practice="${e.noteId}" aria-label="${t("Practice for {title}", { title: e.title })}">${t("Practice")}</button>` : html`<span class="kind ${e.type}">${typeLabel(e.type)}</span>`)}${raw(e.date >= now ? html`<details class="remind"><summary class="btn ghost small" aria-label="${t("Remind me about {title}", { title: e.title })}">${t("Remind me")}</summary><div class="remind-menu"><a class="btn ghost small" href="${googleCalendarLink({ title: e.title, date: e.date })}" target="_blank" rel="noopener">${t("Google Calendar")}</a><button class="btn ghost small" data-ics="${e.id}">${t("Apple or Outlook (.ics)")}</button><p class="note-small">${t("The .ics file reminds you the day before and that morning. Google Calendar uses your usual reminders.")}</p></div></details>` : "")}<button class="btn ghost small" data-del="${e.id}" aria-label="${t("Remove {title}", { title: e.title })}">${t("Remove")}</button></span>
       </div>`,
         )
         .join("")
     : `<p class="empty">${t("Nothing coming up. Record a class, import your school calendar, or add a date.")}</p>`;
   $$("[data-del]").forEach((b) =>
     b.addEventListener("click", async () => {
+      // Focus moves to the next row's Remove button (or the list), and the removal is announced
+      const rows = $$("[data-del]");
+      const at = rows.indexOf(b);
+      const title = state.events.find((e) => e.id === b.dataset.del)?.title || "";
       await deleteEvent(b.dataset.del);
       drawAgenda();
       drawMonth();
+      const next = $$("[data-del]")[Math.min(at, $$("[data-del]").length - 1)];
+      (next || $("#agenda")).focus();
+      announce(t("Removed {title}.", { title }));
     }),
   );
   $$("[data-practice]").forEach((b) => b.addEventListener("click", () => practiceNote(b.dataset.practice)));
+  // Escape closes an open "Remind me" menu and returns to its button
+  $$(".remind").forEach((d) =>
+    d.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && d.open) {
+        e.stopPropagation();
+        d.open = false;
+        d.querySelector("summary").focus();
+      }
+    }),
+  );
   // One "Remind me" menu open at a time, opening upwards when there's no room below
   $$(".remind").forEach((d) =>
     d.addEventListener("toggle", () => {

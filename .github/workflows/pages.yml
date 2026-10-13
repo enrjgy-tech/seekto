@@ -31,7 +31,11 @@ jobs:
       - name: Copy the speech library into the site
         run: npm run vendor
       - name: Check private transcription works before publishing
-        run: npm i --no-save playwright@1.56.0 && npx playwright install --with-deps chromium && node test/whisper.mjs
+        run: |
+          npm i --no-save playwright@1.56.0 && npx playwright install --with-deps chromium
+          sudo apt-get install -y -qq espeak-ng > /dev/null
+          espeak-ng -s 150 -w /tmp/speech.wav "The chemistry quiz is on Friday."
+          SPEECH_WAV=/tmp/speech.wav node test/whisper.mjs
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

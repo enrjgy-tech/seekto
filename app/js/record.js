@@ -172,6 +172,9 @@ async function start() {
     /* optional */
   }
   window.dispatchEvent(new Event("seekto:render"));
+  // The screen was redrawn: keep focus on the button and say what happened
+  $("#recBtn")?.focus();
+  announce(t("Recording started."));
 }
 
 async function stop() {

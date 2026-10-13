@@ -4,11 +4,11 @@
 
 Free and open source. No account, works without AI, and on computers the transcript is made privately on your own device. In English, Spanish and Portuguese.
 
-![Seekto's first screen: a sample class plays, the quiz date and lab deadline light up and land on a calendar, the practice test fills up, then a multiple-choice practice test, and a classmate opens the shared test on a phone with "Your classmate got 6 of 7"](docs/media/hero.gif)
+![Seekto's first screen: a sample class plays, the quiz date and lab deadline light up and land on a calendar, the practice test fills up, then a multiple-choice practice test, and a classmate opens the shared test on a phone with "Your classmate got all 7 right. Can you match that?"](docs/media/hero.gif)
 
 **[Open Seekto →](https://enrjgy-tech.github.io/seekto/)**: the sample class starts playing right away. No microphone, account or AI key needed. Can't record in class? **Paste your notes or a syllabus** instead.
 
-*For developers:* Whisper running in the browser, a no-AI rules engine you can import in one line ([playground](https://enrjgy-tech.github.io/seekto/playground.html)) with [accuracy measured on sentences it was never tuned on](engine/bench), and end-to-end encrypted sync to a database you own. Plain JavaScript with no runtime dependencies. [How it's built ↓](#how-its-built)
+*For developers:* Whisper running in the browser, a no-AI rules engine you can import in one line ([playground](https://enrjgy-tech.github.io/seekto/playground.html)) with [accuracy measured on sentences it was never tuned on](engine/bench), and end-to-end encrypted sync to a database you own. Plain JavaScript; the engine has no dependencies. [How it's built ↓](#how-its-built)
 
 ## What it does
 
@@ -70,7 +70,7 @@ npm run vendor    # copies the speech library into ./site (for private transcrip
 npm run serve     # serves ./site locally
 ```
 
-No runtime dependencies: the app is plain HTML, CSS and JavaScript modules, and the build only copies files. Node 20 or newer for the tests. To host your own copy (Docker, your own servers, no outside requests), see [docs/SELF-HOSTING.md](docs/SELF-HOSTING.md).
+The app is plain HTML, CSS and JavaScript modules, and the build only copies files. The engine has no dependencies; the app's one is Transformers.js (pinned, copied in by `npm run vendor`), which runs Whisper for private transcripts. Node 20 or newer for the tests. To host your own copy (Docker, your own servers, no outside requests), see [docs/SELF-HOSTING.md](docs/SELF-HOSTING.md).
 
 ## How it's built
 

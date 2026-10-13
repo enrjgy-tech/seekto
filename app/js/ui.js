@@ -39,8 +39,9 @@ let toastTimer;
 /** Hide the current message, for example when the person moves to another screen. */
 // A message shown right before moving ("Saved. Added 2 dates…") stays; older ones go.
 let toastAt = 0;
-export function clearToast() {
-  if (Date.now() - toastAt < 800) return;
+export function clearToast(force = false) {
+  // A toast shown a moment ago (just before a screen change it caused) stays, unless forced
+  if (!force && Date.now() - toastAt < 800) return;
   clearTimeout(toastTimer);
   const el = $("#toast");
   if (el) el.hidden = true;
@@ -88,7 +89,7 @@ const FOCUSABLE =
  */
 let namer = null;
 export function openOverlay(content, onClose = null) {
-  clearToast(); // a message about the screen behind doesn't belong on a new dialog
+  clearToast(true); // a message about the screen behind doesn't belong on a new dialog
   onOverlayClose?.();
   onOverlayClose = onClose;
   if (!document.querySelector(".overlay")) opener = document.activeElement;

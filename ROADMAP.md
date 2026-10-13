@@ -17,10 +17,10 @@ Seekto is built in public. This is the plan, not a promise of dates.
 - [x] Learning and Work modes: meetings with a consent check, decisions, action items with owners and dates, and a follow-up email draft
 - [x] Try a sample class or meeting with one click (no microphone, account or AI)
 - [x] Share a practice test as a link that opens with no install; the questions live in the link, not on a server
-- [x] Private on-device transcription with Whisper (any modern browser, offline after one download, about 100 languages)
+- [x] Private on-device transcription with Whisper (tested in Chrome and Edge; offline after one download; Whisper writes about 100 languages, Seekto reads English, Spanish and Portuguese)
 - [x] Installs as an app and opens offline; fonts served with the app, no third-party requests
 - [x] Your own account with no sign-up: a 24-character key, end-to-end encryption, and storage in a Supabase project you own (Seekto hosts nothing)
-- [x] Connect devices with a 6-letter code: direct encrypted sync of notes, recordings, calendar and assignments, with Allow on first pairing and automatic reconnects
+- [x] Connect devices with a 6-character code and a 6-digit check number: direct encrypted sync of notes, recordings, calendar and assignments, with Allow on first pairing and automatic reconnects
 
 ## Next
 

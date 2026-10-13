@@ -89,6 +89,24 @@ test("end of the month, dates relative to another, long counts, 'now'", () => {
   assert.deepEqual(dates("The museum trip is in 3 days, bring a bag lunch."), ["2026-10-15"]);
 });
 
+test("school words from the UK, India, Mexico and Brazil", () => {
+  const title = (t, locale) => findEvents(t, { ref, locale })[0]?.title;
+  assert.deepEqual(dates("Your assessment is next Wednesday.", { locale: "en-GB" }), ["2026-10-21"]);
+  assert.equal(title("The internal assessment is on 5th November.", "en-IN"), "Internal assessment");
+  assert.deepEqual(dates("CIA 2 is next week Wednesday.", { locale: "en-IN" }), ["2026-10-21"]);
+  assert.equal(title("Submit the lab record by Monday.", "en-IN"), "Lab record");
+  assert.deepEqual(dates("El extraordinario es el 15 de enero.", { locale: "es-MX" }), ["2027-01-15"]);
+  assert.equal(title("Bueno chavos, el primer parcial es el jueves 22.", "es-MX"), "Primer parcial");
+  assert.equal(title("A entrega do relatório do lab é na sexta.", "pt-BR"), "Entrega do relatório do lab");
+  // Cancelled with a promise to reschedule later: nothing goes on the calendar
+  assert.deepEqual(
+    dates("The speaking assessment has been cancelled for Friday, we'll let you know when it's rescheduled.", {
+      locale: "en-GB",
+    }),
+    [],
+  );
+});
+
 test("corrections, reschedules, cancellations and the past", () => {
   assert.deepEqual(dates("The vocab quiz is Wednesday, no, Thursday. Thursday, sorry."), ["2026-10-15"]);
   assert.deepEqual(dates("The test is the 16th. No, wait, the 19th, sorry."), ["2026-10-19"]);
@@ -166,6 +184,7 @@ test("definitions with asides, fillers and a deadline in the same sentence", () 
     "the body's response to an infection damaging its own organs",
   );
   assert.deepEqual(terms("Okay, a metaphor compares two things without using like or as."), ["Metaphor"]);
+  assert.deepEqual(terms("Le llamamos inflación al aumento generalizado de los precios."), ["Inflación"]);
   // Not definitions
   assert.deepEqual(terms("The winter concert was awesome last night, thank you band kids."), []);
   assert.deepEqual(terms("Fall picture day is Thursday, so dress nice."), []);

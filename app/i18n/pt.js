@@ -792,6 +792,9 @@ export default {
   preview: "prévia",
   "questions so far": "perguntas até agora",
   "questions, ready": "perguntas, prontas",
+  "Recording started.": "Gravação iniciada.",
+  "Removed {title}.": "{title} removido.",
+  "Practice for {title}": "Praticar para {title}",
   "Remind me about all of them": "Me lembrar de todas",
   "Nothing coming up yet.": "Ainda não há nada por vir.",
   "Open the file to add 1 date with reminders to your calendar.":

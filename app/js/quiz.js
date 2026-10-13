@@ -122,9 +122,15 @@ export function openQuiz({
   onLeave = null,
 }) {
   let flip = false;
+  // A shared test is shuffled too, but still opens on a multiple-choice question (one tap on a phone)
+  const mcFirst = (list) => {
+    const at = list.findIndex((q) => q.choices);
+    if (at > 0) list.unshift(...list.splice(at, 1));
+    return list;
+  };
   const build = () =>
     given
-      ? shuffle(given)
+      ? mcFirst(shuffle(given))
       : makeQuiz(
           notes.map((n) => ({ title: n.title, topic: n.topic, text: noteText(n) })),
           { count, flip },

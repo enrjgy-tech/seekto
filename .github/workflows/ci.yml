@@ -51,7 +51,10 @@ jobs:
       - name: First screen, practice test, shared link on a phone, paste, Spanish
         run: node test/smoke.mjs
       - name: Private transcription loads from the site alone and runs Whisper
-        run: node test/whisper.mjs
+        run: |
+          sudo apt-get install -y -qq espeak-ng > /dev/null
+          espeak-ng -s 150 -w /tmp/speech.wav "The chemistry quiz is on Friday."
+          SPEECH_WAV=/tmp/speech.wav node test/whisper.mjs
 
   storage-sql:
     runs-on: ubuntu-latest

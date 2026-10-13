@@ -699,6 +699,11 @@ export function sentences(text) {
 // their title from the words after them ("examen de química"), English ones from the words before.
 const EVENT_WORDS = [
   ["midterm", "test"],
+  ["controlled assessment", "test"],
+  ["internal assessment", "test"],
+  ["assessment", "test"],
+  ["cia", "test"],
+  ["lab record", "assignment"],
   ["final exam", "test"],
   ["mock exam", "test"],
   ["fee", "assignment"],
@@ -766,6 +771,8 @@ const EVENT_WORDS = [
   ["photo day", "event"],
   // Spanish
   ["examen parcial", "test", 1],
+  ["examen extraordinario", "test", 1],
+  ["extraordinario", "test", 1],
   ["examen final", "test", 1],
   ["examen", "test", 1],
   ["parcial", "test", 1],
@@ -844,8 +851,10 @@ const EVENT_RES = EVENT_WORDS.map(([word, type, romance]) => [
   !!romance,
 ]);
 
-function eventWord(text) {
-  for (const [re, word, type, romance] of EVENT_RES) {
+// romanceFirst: in Spanish or Portuguese speech, "relatório do lab" is a relatório, not a lab
+function eventWord(text, romanceFirst = false) {
+  const order = romanceFirst ? [...EVENT_RES.filter((e) => e[3]), ...EVENT_RES.filter((e) => !e[3])] : EVENT_RES;
+  for (const [re, word, type, romance] of order) {
     const m = text.match(re);
     if (m) return { word, type, romance, index: m.index, text: m[0] };
   }
@@ -1161,6 +1170,13 @@ const ROMANCE_STOP = new Set([
 function romanceTitle(sentence, hit, subject) {
   const after = sentence.slice(hit.index).split(/\s+/).filter(Boolean);
   const words = [after[0].replace(/[^\p{L}\d'-]/gu, "")];
+  // "el primer parcial" -> "Primer parcial"
+  const ordinal = sentence
+    .slice(0, hit.index)
+    .match(
+      /(?<![\p{L}])(primer|primero|primera|segundo|segunda|tercer|tercero|tercera|cuarto|cuarta|último|última|ultimo|ultima)\s+$/iu,
+    );
+  if (ordinal) words.unshift(ordinal[1]);
   for (let i = 1; i < after.length && words.length < 5; i++) {
     const w = after[i].replace(/[^\p{L}\d'-]/gu, "");
     if (!w || ROMANCE_STOP.has(w.toLowerCase()) || /[.,;:!?]$/.test(after[i - 1]) || /^\d+\/\d+/.test(w)) break;
@@ -1318,7 +1334,7 @@ export function findEvents(text, { ref = new Date(), subject = null, locale } = 
     const all = findDates(sentence, ref, opts);
     const parts = all.length > 1 ? splitDeadlines(sentence, all) : [{ text: sentence, start: 0 }];
     for (const { text: part, start } of parts) {
-      let hit = eventWord(part);
+      let hit = eventWord(part, /^(?:es|pt)/i.test(locale || ""));
       // "el examen práctico es el 26/11, y el teórico el 30/11": the second part borrows the event
       const ell = !hit && parts.length > 1 && lastHit && part.match(/^(?:and|y|e)\s+(?:the|el|la|o|a)\s+([\p{L}]+)/iu);
       if (ell) hit = { ...lastHit, index: ell[0].length - ell[1].length, text: ell[1] };
@@ -1335,7 +1351,9 @@ export function findEvents(text, { ref = new Date(), subject = null, locale } = 
         .filter((d) => d.index >= start && d.end <= start + part.length)
         .map((d) => ({ ...d, index: d.index - start, end: d.end - start }));
       if (!dates.length) continue;
-      if (CANCELLED.test(clauseAt(part, hit.index)) && !RESCHEDULE.test(part)) continue;
+      // Cancelled, unless it was moved to a date said after the move ("cancelled Friday, moved to Monday")
+      const moved = part.match(RESCHEDULE);
+      if (CANCELLED.test(clauseAt(part, hit.index)) && !(moved && dates.some((d) => d.index > moved.index))) continue;
       for (const d of pickDates(part, dates, hit)) {
         const key = `${d.date}|${title.toLowerCase()}`;
         if (seen.has(key)) continue;

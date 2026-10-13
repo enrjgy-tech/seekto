@@ -156,11 +156,13 @@ export function render(main) {
     await ready;
     if (me !== run || !document.contains(main)) return;
     $("#hPulse").remove();
+    const hadFocus = document.activeElement === $("#hPause");
     $("#hPause").remove();
     const total = makeQuiz([{ title: note.title, topic: note.topic, text: note.text }]).length;
     $("#hQn").textContent = total;
     $("#hQl").textContent = total === 1 ? t("question, ready") : t("questions, ready");
     $("#hTest").hidden = false;
+    if (hadFocus) main.querySelector("[data-take]").focus();
     announce(
       total === 1
         ? t("1 question ready. Take the test, or share it with your class.")
