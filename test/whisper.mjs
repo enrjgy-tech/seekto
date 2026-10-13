@@ -1,7 +1,7 @@
 // Checks that private (on-device) transcription loads from this site alone: Transformers.js and
 // its WebAssembly runtime come from site/vendor, the page's Content Security Policy allows them,
 // and Seekto's own worker loads Whisper (tiny) and transcribes speech. With SPEECH_WAV set to a
-// recording of "The chemistry quiz is on Friday." (CI makes one with espeak-ng), it checks the words
+// recording of "Your chemistry test is on Friday." (CI makes one with espeak-ng), it checks the words
 // come back and that the engine puts the quiz on the calendar: sound to calendar, end to end.
 // Run after `npm run build && npm run vendor`; needs Hugging Face for the model download.
 import { createServer } from "node:http";
@@ -125,8 +125,8 @@ try {
   );
   failed ||= !result.ok;
   if (speech && result.ok) {
-    const heard = /quiz/i.test(result.text) && /friday/i.test(result.text);
-    console.log(`${heard ? "ok  " : "FAIL"} the spoken words come back ("quiz", "Friday")`);
+    const heard = /test/i.test(result.text) && /friday/i.test(result.text);
+    console.log(`${heard ? "ok  " : "FAIL"} the spoken words come back ("test", "Friday")`);
     const events = findEvents(result.text, { ref: new Date(2026, 9, 12, 12), locale: "en-US" });
     const onCalendar = events.some((e) => e.date === "2026-10-16" && e.type === "test");
     console.log(

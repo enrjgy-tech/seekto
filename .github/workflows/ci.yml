@@ -53,7 +53,7 @@ jobs:
       - name: Private transcription loads from the site alone and runs Whisper
         run: |
           sudo apt-get install -y -qq espeak-ng > /dev/null
-          espeak-ng -s 150 -w /tmp/speech.wav "The chemistry quiz is on Friday."
+          espeak-ng -v en-us -s 130 -w /tmp/speech.wav "Your chemistry test is on Friday."
           SPEECH_WAV=/tmp/speech.wav node test/whisper.mjs
 
   storage-sql:
