@@ -42,6 +42,18 @@ jobs:
           npm install --no-save --no-package-lock @huggingface/transformers@3.0.2
           node test/real-audio.mjs lecture.wav out "${{ inputs.model }}" | tee out.log
           while IFS= read -r line; do echo "::notice::${line//$'\n'/ }"; done < <(grep -E '^(audio|transcribed|DATE|DEF)' out.log | head -60)
+      - name: Show the transcript in the run summary
+        run: |
+          node -e '
+            const fs = require("fs");
+            const esc = (t) => t.replace(/%/g, "%25").replace(/\r/g, "").replace(/\n/g, "%0A");
+            for (const [file, label] of [["out/transcript.txt", "transcript"], ["out/engine.json", "engine"]]) {
+              const text = fs.readFileSync(file, "utf8");
+              for (let i = 0, n = 1; i < text.length; i += 12000, n++) {
+                console.log("::notice title=" + label + " " + n + "::" + esc(text.slice(i, i + 12000)));
+              }
+            }
+          '
       - uses: actions/upload-artifact@v4
         with:
           name: real-audio-result
