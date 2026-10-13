@@ -159,7 +159,7 @@ for (const item of items) {
     t.items++;
     if (!wrong.length) t.perfect++;
   }
-  if (wrong.length && (s === "dev" || s === "dev2"))
+  if (wrong.length && (s === "dev" || s === "dev2" || s === "realdev"))
     mistakes.push({ id: item.id, locale: item.locale, ref: item.ref, text: item.text, wrong, note: item.note });
 }
 
@@ -179,7 +179,16 @@ for (const [key, t] of Object.entries(totals)) {
 if (args.has("--check")) {
   const floor = JSON.parse(readFileSync(new URL("./floor.json", import.meta.url), "utf8"));
   const t = result.test;
+  const rt = result.realtest;
   const now = {
+    ...(rt
+      ? {
+          realtestDeadlinesRecall: rt.deadlines.recall,
+          realtestDeadlinesPrecision: rt.deadlines.precision,
+          realtestDefinitionsRecall: rt.definitions.recall,
+          realtestDefinitionsPrecision: rt.definitions.precision,
+        }
+      : {}),
     deadlinesRecall: t.deadlines.recall,
     deadlinesPrecision: t.deadlines.precision,
     definitionsRecall: t.definitions.recall,

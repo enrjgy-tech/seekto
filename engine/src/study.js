@@ -389,6 +389,13 @@ function matchDefinition(c, next) {
   if ((m = c.match(/^(?:y\s+)?le\s+llamamos\s+(.{2,40}?)\s+(?:al|a la|a los|a las|a)\s+(.{6,})$/i)))
     return [m[1], m[2]];
   if ((m = c.match(/^(?:a esto|a eso)\s+le\s+llamamos\s+(.{2,40}?)[,:]\s*(.{6,})$/i))) return [m[1], m[2]];
+  // "There's something called sperm competition where she may want ..."
+  if (
+    (m = c.match(
+      /^there(?:'s| is| are)\s+(?:something|a thing|a process|a phenomenon|a concept)\s+called\s+(.{2,40}?)[,]?\s+(?:where|in which|which is|that's)\s+(.{6,})$/i,
+    ))
+  )
+    return [m[1], m[2]];
   // "We say a function is continuous if ..."
   if ((m = c.match(/^we say (?:that )?(?:a|an)\s+([a-z]+)\s+is\s+([a-z]+)\s+(if|when)\s+(.{6,})$/i)))
     return [`${m[2]} ${m[1]}`, `a ${m[1]} is ${m[2]} ${m[3]} ${m[4]}`];

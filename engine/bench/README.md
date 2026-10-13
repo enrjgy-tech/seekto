@@ -27,6 +27,14 @@ Fresh sets are written after the rules are finished, by AI sessions that never s
 
 **Earlier fresh set, now dev2** (`data/r2-*.jsonl`): scored once on October 12, 2026, before any rule was fixed on it: deadlines 78% found (90% right), definitions 35% (70%), action items 33% (57% right person). It was then opened up: its mistakes are printed with `--show`, and the October 13 rule changes (definitions said with fillers and asides, tasks given to someone mid-sentence, "end of the month", dates relative to another date) were fixed on it. That's why its own score is no longer reported, and why a new fresh set was written.
 
+## Real lectures: quoted from real recordings
+
+`data/real-lectures.jsonl` holds 54 sentences quoted verbatim from six real recorded lectures (Open Yale Courses: ECON 159, PSYC 110, GG 140, HIST 119, MCDB 150, BENG 100; each item carries its source URL; transcripts © Yale University, [CC BY-NC-SA](https://oyc.yale.edu/terms), so that one data file carries that license rather than the repo's MIT). The labels were written by hand from the transcripts *before* the engine was run on them, but they were not written blind the way the other sets were, so these numbers are a reality check, not a headline.
+
+**At first contact** (scored once, October 13, 2026, before any fix): deadlines 2 of 5 found with 6 false alarms; definitions 6 of 9 found, 1 false. Real lecture talk is full of traps the written sets missed: "mid-term" with a hyphen, "the first one will go out on Monday but it will be due ten days later", "the labs are on Monday and Tuesday afternoon" (a schedule, not events), "you didn't know when the mid-term was", "something called sperm competition where…".
+
+The odd-numbered half (realdev) is open: its mistakes print with `--show` and rules may be fixed on it (all five traps above were). The even-numbered half (realtest) is only ever counted, and currently stands at: **deadlines 2 of 2 found, 3 false alarms; definitions 4 of 6 found, 1 false.** CI fails if it drops. The next step is whole real recordings through Whisper, not just quoted sentences.
+
 ## Results on the held-out half
 
 | | Found | Right, of what it adds |

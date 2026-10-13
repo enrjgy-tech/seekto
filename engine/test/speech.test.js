@@ -107,6 +107,30 @@ test("school words from the UK, India, Mexico and Brazil", () => {
   );
 });
 
+test("traps from real recorded lectures", () => {
+  assert.deepEqual(dates("The mid-term will be held in class on October 17th; that is also in your syllabus."), [
+    "2026-10-17",
+  ]);
+  assert.deepEqual(dates("The first problem set will go out on Monday but it will be due ten days later."), [
+    "2026-10-29",
+  ]);
+  assert.deepEqual(
+    dates("Please don't anybody tell me late - any time after today you didn't know when the mid-term was."),
+    [],
+  );
+  assert.deepEqual(dates("But I will tell you that the labs are on Monday and Tuesday afternoon."), []);
+  assert.deepEqual(
+    findDefinitions(
+      "There's something called sperm competition where the sperm of several males compete inside one female.",
+    ).map((d) => d.term),
+    ["Sperm competition"],
+  );
+  assert.deepEqual(
+    findDefinitions("There's a whole group of beetles called dung beetles.").map((d) => d.term),
+    [],
+  );
+});
+
 test("corrections, reschedules, cancellations and the past", () => {
   assert.deepEqual(dates("The vocab quiz is Wednesday, no, Thursday. Thursday, sorry."), ["2026-10-15"]);
   assert.deepEqual(dates("The test is the 16th. No, wait, the 19th, sorry."), ["2026-10-19"]);

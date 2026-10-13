@@ -25,7 +25,7 @@ Free and open source. No account, works without AI, and on computers the transcr
 
 The rules are measured on sentences they were never tuned on, written to sound the way teachers, syllabi and meetings really sound (fillers, corrections, reschedules, cancellations, day-first dates), in English, Spanish and Portuguese. Two numbers matter:
 
-The sentences were written by separate AI sessions that never saw the code ([how, and why that matters](engine/bench#the-test-set)); real class recordings are the next step.
+The sentences were written by separate AI sessions that never saw the code ([how, and why that matters](engine/bench#the-test-set)). A third, smaller set is quoted from **real recorded lectures** (Open Yale Courses): at first contact the engine found 2 of 5 deadlines there with 6 false alarms; after fixes on its open half, the held-out half stands at 2 of 2 deadlines found (3 false alarms) and 4 of 6 definitions. Real speech is harder than written sentences, and [engine/bench](engine/bench#real-lectures-quoted-from-real-recordings) says exactly how it fails.
 
 - **Held out:** half of the first 360 sentences, only ever counted, never used to fix the rules.
 - **Fresh:** 190 new sentences in the voices of lecturers and teachers in six countries, Spanish and Portuguese speakers from seven, and meetings in a dozen workplaces, written after the rules were finished, committed before they were scored, and scored once. This is the closest thing to "a class it has never heard".

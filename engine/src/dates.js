@@ -661,13 +661,17 @@ export function findDates(text, ref = new Date(), { locale } = {}) {
   // Dates said relative to the one before: "the 3rd, and the slides are due the day before",
   // "el 4 de diciembre y el coloquio una semana después", "a P2 ... e a substitutiva uma semana depois"
   const RELATIVE = new RegExp(
-    `(?<![${L}])(?:(a|one|two|una|dos|uma|duas)\\s+(weeks?|semanas?)\\s+(?:later|after(?:wards)?|after that|despu[eé]s|m[aá]s tarde|depois)|the day (before|after)|el d[ií]a (anterior|siguiente)|o dia (anterior|seguinte))(?![${L}])`,
+    `(?<![${L}])(?:(a|one|two|three|four|five|six|seven|eight|nine|ten|\\d{1,2}|una|dos|uma|duas)\\s+(days?|weeks?|d[ií]as?|semanas?)\\s+(?:later|after(?:wards)?|after that|despu[eé]s|m[aá]s tarde|depois)|the day (before|after)|el d[ií]a (anterior|siguiente)|o dia (anterior|seguinte))(?![${L}])`,
     "giu",
   );
   for (const m of source.matchAll(RELATIVE)) {
     const prev = [...kept].reverse().find((k) => !k.drop && k.end <= m.index);
     if (!prev || kept.some((k) => m.index < k.end && k.index < m.index + m[0].length)) continue;
-    const delta = m[2] ? (COUNTS[m[1].toLowerCase()] || 1) * 7 : /before|anterior/i.test(m[0]) ? -1 : 1;
+    const delta = m[2]
+      ? (COUNTS[m[1].toLowerCase()] || Number(m[1]) || 1) * (/^w|^s/i.test(m[2]) ? 7 : 1)
+      : /before|anterior/i.test(m[0])
+        ? -1
+        : 1;
     kept.push({ date: addDays(prev.date, delta), index: m.index, end: m.index + m[0].length, match: m[0] });
   }
   kept.sort((a, b) => a.index - b.index);
@@ -698,6 +702,7 @@ export function sentences(text) {
 // Event words, most specific first; the first match decides the type. "romance" words take
 // their title from the words after them ("examen de química"), English ones from the words before.
 const EVENT_WORDS = [
+  ["mid-term", "test"],
   ["midterm", "test"],
   ["controlled assessment", "test"],
   ["internal assessment", "test"],
@@ -884,7 +889,7 @@ const CORRECTION =
   /(?:^|[,.;]\s*|\s)(?:no,|no wait|wait|sorry|i mean|actually|rather|correction|scratch that|perd[oó]n|digo|mejor dicho|desculp[ae]|quer dizer|ou melhor)(?![\p{L}])/giu;
 // Things that come with a date but aren't something to prepare for or hand in.
 const NOT_DUE = new RegExp(
-  `(?<![${L}])(?:grades?(?!\\s+(?:\\d|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|k\\b))|report cards?|marks|results?|resultados?|notas|feedback|comments|come back|comes back|coming back|get (?:them|it|those|these) back|give (?:them|it|you|those) back|hand(?:ing)? (?:them|it|those) back|hand back|return(?:ed|ing)?|distribut(?:e|ing)|discuss(?:ing)?|go over|going over|post(?:ing)? the|grad(?:e|ing) (?:them|it|those)|sai o|saem|discut(?:e|ir|imos)|devuelvo|devolvo|devolver|devolvemos|corrigi|corrijo|corregir|corregimos|corrige|corrigir|corrigimos|office hours)(?![${L}])`,
+  `(?<![${L}])(?:grades?(?!\\s+(?:\\d|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|k\\b))|report cards?|marks|results?|resultados?|notas|feedback|comments|come back|comes back|coming back|get (?:them|it|those|these) back|give (?:them|it|you|those) back|hand(?:ing)? (?:them|it|those) back|hand back|return(?:ed|ing)?|distribut(?:e|ing)|discuss(?:ing)?|go over|going over|go(?:es)? out|will go out|post(?:ing)? the|grad(?:e|ing) (?:them|it|those)|sai o|saem|discut(?:e|ir|imos)|devuelvo|devolvo|devolver|devolvemos|corrigi|corrijo|corregir|corregimos|corrige|corrigir|corrigimos|office hours)(?![${L}])`,
   "iu",
 );
 const GRADES =
@@ -1348,6 +1353,14 @@ export function findEvents(text, { ref = new Date(), subject = null, locale } = 
       lastHit = hit;
       title ||= titleFor(part, hit, subject);
       carried = { hit, title };
+      // "you didn't know when the mid-term was": talk about knowing a date, not the date itself
+      if (
+        /\b(?:know|knew|knows|remember|forget|forgot|ask(?:ed)?|wonder(?:ed)?|not sure|unsure)\s+when\b/i.test(part) &&
+        !DUE_CUE.test(part)
+      )
+        continue;
+      // "the labs are on Monday and Tuesday afternoon": a weekly schedule, not events
+      if (/^labs?$/.test(hit.word) && /\blabs\s+(?:are|run|meet|happen)\b/i.test(part)) continue;
       const own = clauseAt(part, hit.index);
       if (GRADES.test(own) || (NOT_DUE.test(own) && !DUE_CUE.test(part))) continue;
       const dates = all

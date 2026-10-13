@@ -4,5 +4,9 @@
   "definitionsRecall": 0.7,
   "definitionsPrecision": 0.778,
   "actionItemsRecall": 0.818,
-  "actionItemsPrecision": 1
+  "actionItemsPrecision": 1,
+  "realtestDeadlinesRecall": 1.0,
+  "realtestDeadlinesPrecision": 0.4,
+  "realtestDefinitionsRecall": 0.667,
+  "realtestDefinitionsPrecision": 0.8
 }
