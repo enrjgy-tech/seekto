@@ -45,11 +45,17 @@ jobs:
             fi
           fi
           if [ -z "$url" ]; then
-            # OCW lecture videos are mirrored on the Internet Archive
-            for q in 'title:("Principles of Microeconomics") AND (MIT OR "OpenCourseWare")' 'MIT 14.01 Gruber Supply Demand lecture 1' 'title:("Introduction and Supply") AND Demand'; do
-              curl -sSL -A "$UA" -G 'https://archive.org/advancedsearch.php' --data-urlencode "q=$q" --data-urlencode 'fl[]=identifier' --data-urlencode 'fl[]=title' --data-urlencode 'rows=15' --data-urlencode 'output=json' -o ia.json || true
-              echo "::notice::archive.org [$q]: $(grep -oE '"(identifier|title)":"[^"]*"' ia.json | head -30 | tr '\n' ' ')"
-            done
+            # OCW lecture videos are mirrored on the Internet Archive (item MIT14.01F18)
+            curl -sSL -A "$UA" 'https://archive.org/metadata/MIT14.01F18' -o ia.json
+            node -e '
+              const files = JSON.parse(require("fs").readFileSync("ia.json", "utf8")).files || [];
+              const media = files.filter((f) => /\.(mp4|mp3|m4a)$/i.test(f.name));
+              console.log("::notice::files: " + media.map((f) => f.name + " " + f.size).slice(0, 40).join(" | "));
+              const one = media.filter((f) => /(^|[^0-9])0?1([^0-9]|$)/.test(f.name.replace(/MIT14\.01F18/i, "")) || /lec(ture)?[_ -]?0?1\b/i.test(f.name));
+              const pick = one.sort((x, y) => Number(x.size) - Number(y.size))[0];
+              if (pick) require("fs").writeFileSync("pick.txt", "https://archive.org/download/MIT14.01F18/" + encodeURIComponent(pick.name));
+            '
+            [ -f pick.txt ] && url=$(cat pick.txt)
             echo "::error::no recording link found; pass audio_url"
             exit 1
           fi
