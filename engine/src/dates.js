@@ -1,6 +1,6 @@
 // Find dates and deadlines in spoken or written text, such as
-// "the essay is due October 20th" or "quiz on Friday", in English and Spanish
-// ("el examen es el viernes", "el ensayo se entrega el 20 de octubre").
+// "the essay is due October 20th" or "quiz on Friday", in English, Spanish
+// and Portuguese ("el examen es el viernes", "a prova é na sexta").
 // All dates are local calendar days returned as "YYYY-MM-DD".
 
 const MONTHS = {
@@ -18,6 +18,13 @@ const NUMEROS = { un: 1, una: 1, uno: 1, dos: 2, tres: 3, cuatro: 4, cinco: 5, s
 const MES_RE = "(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre)";
 const DIA_RE = "(domingo|lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado)";
 
+// Portuguese
+const MESES_PT = { janeiro: 0, fevereiro: 1, marco: 2, março: 2, abril: 3, maio: 4, junho: 5, julho: 6, agosto: 7, setembro: 8, outubro: 9, novembro: 10, dezembro: 11 };
+const DIAS_PT = { domingo: 0, segunda: 1, terca: 2, terça: 2, quarta: 3, quinta: 4, sexta: 5, sabado: 6, sábado: 6 };
+const NUMEROS_PT = { um: 1, uma: 1, dois: 2, duas: 2, três: 3, tres: 3, quatro: 4, cinco: 5, seis: 6, sete: 7, oito: 8, nove: 9, dez: 10 };
+const MES_PT_RE = "(janeiro|fevereiro|mar[cç]o|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)";
+const DIA_PT_RE = "(domingo|segunda(?:-feira)?|terça(?:-feira)?|terca(?:-feira)?|quarta(?:-feira)?|quinta(?:-feira)?|sexta(?:-feira)?|sábado(?:-feira)?|sabado(?:-feira)?)";
+
 const MONTH_RE = "(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sept?(?:ember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)";
 const DAY_RE = "(\\d{1,2})(?:st|nd|rd|th)?";
 
@@ -33,6 +40,11 @@ const EVENT_WORDS = [
   ["ensayo", "assignment"], ["trabajo", "assignment"], ["proyecto", "assignment"], ["tarea", "assignment"], ["deberes", "assignment"],
   ["informe", "assignment"], ["reporte", "assignment"], ["laboratorio", "assignment"], ["presentación", "assignment"], ["exposición", "assignment"],
   ["lectura", "assignment"], ["entrega", "assignment"], ["fecha límite", "assignment"],
+  // Portuguese
+  ["prova", "test"], ["exame", "test"], ["teste", "test"],
+  ["trabalho", "assignment"], ["tarefa", "assignment"], ["redação", "assignment"], ["redacao", "assignment"],
+  ["ensaio", "assignment"], ["projeto", "assignment"], ["dever", "assignment"], ["atividade", "assignment"],
+  ["entrega", "assignment"], ["prazo", "assignment"],
 ];
 
 export function toISO(date) {
@@ -118,8 +130,40 @@ export function findDates(text, ref = new Date()) {
     if ((m[1] || "").toLowerCase() === "next") diff += 7;
     add(addDays(today, diff), m.index, m[0]);
   }
+  findPortugueseDates(source, today, add);
   findSpanishDates(source, today, add);
   return found.sort((a, b) => a.index - b.index);
+}
+
+function findPortugueseDates(source, today, add) {
+  // "20 de outubro", "para o dia 20 de outubro de 2026"
+  for (const m of source.matchAll(new RegExp(`\\b(?:dia\\s+)?(\\d{1,2})\\s+de\\s+${MES_PT_RE}(?:\\s+de\\s+(\\d{4}))?`, "giu"))) {
+    const month = MESES_PT[m[2].toLowerCase()];
+    const day = Number(m[1]);
+    const date = resolveYear(month, day, m[3] && Number(m[3]), today);
+    if (valid(date, month, day)) add(date, m.index, m[0]);
+  }
+  // hoje, amanhã, depois de amanhã
+  for (const m of source.matchAll(/(^|[^\p{L}])(depois\s+de\s+amanhã|hoje|amanhã)(?![\p{L}])/giu)) {
+    const word = m[2].toLowerCase();
+    const days = word.startsWith("depois") ? 2 : word === "amanhã" ? 1 : 0;
+    add(addDays(today, days), m.index + m[1].length, m[2]);
+  }
+  // "daqui a duas semanas", "em três dias", "dentro de uma semana"
+  for (const m of source.matchAll(/\b(?:daqui\s+a|em|dentro\s+de)\s+(\d{1,2}|um|uma|dois|duas|tr[eê]s|quatro|cinco|seis|sete|oito|nove|dez)\s+(dias?|semanas?)\b/giu)) {
+    const n = NUMEROS_PT[m[1].toLowerCase()] ?? Number(m[1]);
+    add(addDays(today, m[2].toLowerCase().startsWith("semana") ? n * 7 : n), m.index, m[0]);
+  }
+  // "sexta", "na sexta-feira", "próxima terça". A weekday is the next occurrence;
+  // an explicit "da próxima semana" moves it one additional week.
+  for (const m of source.matchAll(new RegExp(`(?:^|[^\\p{L}])((?:(?:na|no|nesta|neste|em|para)\\s+)?(?:pr[oó]xima\\s+)?${DIA_PT_RE}(\\s+(?:da|de)\\s+(?:pr[oó]xima|proxima)\\s+semana)?)(?![\\p{L}])`, "giu"))) {
+    const name = m[2].toLowerCase().replace(/-feira$/, "").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const target = DIAS_PT[name];
+    let diff = (target - today.getDay() + 7) % 7;
+    if (diff === 0) diff = 7;
+    if (m[3]) diff += 7;
+    add(addDays(today, diff), m.index + m[0].indexOf(m[1]), m[1]);
+  }
 }
 
 function findSpanishDates(source, today, add) {
@@ -177,6 +221,7 @@ function eventWord(sentence) {
 }
 
 const SPANISH_EVENTS = new Set(["examen parcial", "examen final", "examen", "parcial", "prueba", "control", "ensayo", "trabajo", "proyecto", "tarea", "deberes", "informe", "reporte", "laboratorio", "presentación", "exposición", "lectura", "entrega", "fecha límite"]);
+const PORTUGUESE_EVENTS = new Set(["prova", "exame", "teste", "trabalho", "tarefa", "redação", "redacao", "ensaio", "projeto", "dever", "atividade", "entrega", "prazo"]);
 const ES_STOP = new Set(["es", "será", "sera", "se", "va", "hay", "para", "el", "la", "los", "las", "este", "esta", "que", "y", "en", "vence", "tiene", "tienen", "hasta", "antes", "lo", "a", "hoy", "mañana", "pasado", "dentro", "lunes", "martes", "miércoles", "miercoles", "jueves", "viernes", "sábado", "sabado", "domingo", "próximo", "proximo"]);
 
 /** Spanish titles name the thing after the event word: "el examen de química es el viernes" -> "Examen de química". */
@@ -195,6 +240,7 @@ function spanishTitle(sentence, hit, subject) {
 
 function titleFor(sentence, hit, subject) {
   if (SPANISH_EVENTS.has(hit.word)) return spanishTitle(sentence, hit, subject);
+  if (PORTUGUESE_EVENTS.has(hit.word)) return portugueseTitle(sentence, hit, subject);
   const due = sentence.toLowerCase().search(/\b(due|deadline)\b/);
   if (due >= 0 && hit.type === "assignment") hit = { ...hit, word: "due", index: due };
   if (hit.word === "due" || hit.word === "deadline") {
@@ -222,6 +268,19 @@ function titleFor(sentence, hit, subject) {
   const core = [...lead, hit.text].join(" ");
   const withSubject = subject && !core.toLowerCase().includes(subject.toLowerCase()) ? `${subject} ${core}` : core;
   return capitalize(withSubject);
+}
+
+function portugueseTitle(sentence, hit, subject) {
+  const before = sentence.slice(0, hit.index).split(/\s+/).filter(Boolean);
+  const lead = [];
+  const stop = new Set(["a", "o", "as", "os", "um", "uma", "uns", "umas", "é", "e", "na", "no", "para", "por", "em", "de", "do", "da", "que", "se", "vai", "será", "sera"]);
+  for (let i = before.length - 1; i >= 0 && lead.length < 3; i--) {
+    const word = before[i].replace(/[^\p{L}\d'-]/gu, "");
+    if (!word || stop.has(word.toLowerCase())) break;
+    lead.unshift(word);
+  }
+  const core = [...lead, hit.text].join(" ");
+  return capitalize(subject && !core.toLowerCase().includes(subject.toLowerCase()) ? `${subject} ${core}` : core);
 }
 
 function capitalize(text) {
@@ -259,3 +318,4 @@ export function findEvents(text, { ref = new Date(), subject = null } = {}) {
   }
   return events;
 }
+
