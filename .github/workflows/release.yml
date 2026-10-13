@@ -1,0 +1,27 @@
+name: Release
+
+# Run from the Actions tab (or `gh workflow run release.yml -f version=v0.1.0`).
+# Notes come from .github/release-notes/<version>.md.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version tag, like v0.1.0
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm test
+      - name: Tag and publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          test -f ".github/release-notes/$VERSION.md"
+          gh release create "$VERSION" --target "$GITHUB_SHA" --title "Seekto ${VERSION#v}" --notes-file ".github/release-notes/$VERSION.md" --prerelease
