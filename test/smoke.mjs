@@ -35,8 +35,13 @@ async function answerAll(page, { miss = 0 } = {}) {
     const prompt = (await page.locator(".qcard .prompt").textContent()).replace(/blank/g, "").trim();
     const term = Object.keys(DEFS).find((d) => prompt.toLowerCase().startsWith(DEFS[d].slice(0, 20).toLowerCase()));
     const answer = k < miss ? "" : term || DEFS[prompt.toLowerCase()] || "";
-    if (answer) { await page.fill("#quizAnswer", answer); await page.click("[data-answer] .btn"); } else await page.click("[data-skip]");
-    await page.click("[data-next]");
+    if (await page.locator(".choice").count()) {
+      const options = await page.locator(".choice").allTextContents();
+      const n = answer ? options.findIndex((o) => o.slice(1).trim().toLowerCase() === answer.toLowerCase()) : -1;
+      if (n >= 0) await page.click(`[data-choice="${n}"]`); else await page.click("[data-skip]");
+    } else if (answer) { await page.fill("#quizAnswer", answer); await page.click("[data-answer] .btn"); } else await page.click("[data-skip]");
+    if (await page.locator("[data-mine]").count()) await page.click(`[data-mine="${answer ? 1 : 0}"]`);
+    else await page.click("[data-next]");
   }
 }
 
@@ -54,6 +59,7 @@ try {
   await p.waitForSelector(".qcard");
   const total = Number((await p.textContent(".overlay .mono [aria-hidden]")).split("/")[1]);
   check(said === total && total > 0, `first screen says ${said} questions and the test has ${total}`);
+  check((await p.locator(".choice").count()) > 0 || (await p.locator("#quizAnswer").count()) > 0, "question shows options or an answer box");
   await answerAll(p, { miss: 1 });
   await p.waitForSelector(".score");
   await p.click("[data-challenge]");

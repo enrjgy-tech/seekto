@@ -75,6 +75,8 @@ function goodTerm(term) {
   const t = (/^a (?:priori|posteriori|fortiori)$/i.test(term.trim()) ? term : term.replace(/^(the|a|an|el|la|los|las|un|una|o|os|as)\s+/i, "")).replace(/[,:;]+$/, "").trim();
   if (t.length < 2 || t.length > 48 || t.includes(",")) return null;
   if (PRONOUN.test(t) || NOT_TERM.test(t) || EVENTISH.test(t) || NUMBERISH.test(t)) return null;
+  // "Others say it", "Some people think": a clause, not a term
+  if (/(?<![\p{L}])(?:it|they|we|you|i|he|she|say|says|said|think|thinks|argue|argues|believe|believes)(?![\p{L}'])/iu.test(t) && t.split(/\s+/).length > 1) return null;
   if (t.split(/\s+/).length > 5 || /\d{3,}/.test(t) || findDates(t).length || /\b(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday|lunes|martes|miércoles|jueves|viernes|segunda|terça|quarta|quinta|sexta)\b/i.test(t)) return null;
   return t;
 }
@@ -183,45 +185,97 @@ export function shuffle(list, seed = Date.now()) {
 /**
  * Make quiz questions from notes ({ title, text }).
  * Each definition gives one question, alternating "which term means..." and "what does X mean?"
- * (flip: true swaps them, for a second round). Other key sentences give fill-in-the-blank questions.
+ * (flip: true swaps them, for a second round). Key sentences give fill-in-the-blank questions, so a
+ * lesson with few explained terms still makes a real test. Where there are enough other answers to
+ * choose from, "what does X mean?" and blanks are multiple choice (`choices`, which include the answer).
  * Questions are shuffled; pass a seed to get the same order again.
  */
 export function makeQuiz(notes, { count = 10, flip = false, seed = Date.now() } = {}) {
   const defs = [];
-  const blanks = [];
   const usedTerms = new Set();
-  for (const note of notes) {
-    const found = findDefinitions(note.text);
-    found.forEach((d, i) => {
+  const found = notes.map((note) => findDefinitions(note.text));
+  notes.forEach((note, n) => {
+    found[n].forEach((d, i) => {
       usedTerms.add(d.term.toLowerCase());
       const asTerm = (i % 2 === 0) !== flip;
       defs.push(asTerm ? { kind: "term", prompt: d.definition, answer: d.term, source: note.title } : { kind: "define", prompt: d.term, answer: d.definition, source: note.title });
     });
+  });
+  const allDefs = found.flat();
+  const blanks = keySentenceBlanks(notes, found, usedTerms, Math.max(count - defs.length, 3), seed);
+  // Multiple choice: the other definitions for "what does X mean?", other blank answers for blanks
+  let k = 0;
+  for (const q of defs) {
+    if (q.kind !== "define") continue;
+    const others = allDefs.filter((d) => d.definition !== q.answer).map((d) => d.definition);
+    if (others.length >= 2) q.choices = shuffle([q.answer, ...shuffle(others, seed + ++k).slice(0, 3)], seed + ++k);
   }
-  for (const note of notes) {
-    const topicWords = new Set(tokens(note.topic || detectTopic(note.text)));
-    const definitionSentences = new Set(findDefinitions(note.text).map((d) => d.sentence));
-    for (const s of sentences(note.text)) {
-      if (s.length < 40 || s.length > 220 || definitionSentences.has(s)) continue;
-      if (/^(okay|ok|so|alright|right|hi|hello|good morning|bueno|hola|então|gente)\b/i.test(s) || /\?$/.test(s)) continue;
-      // Class logistics ("the quiz is on Friday") make poor questions.
-      if (/\b(due|quiz|test|exam|homework|deadline|examen|tarea|entrega|prova|trabalho)\b/i.test(s) || findDates(s).length) continue;
-      const parts = s.split(/(\s+)/);
-      // Blank out a defined term if the sentence uses one, else a topic word.
-      let idx = parts.findIndex((p) => usedTerms.has(p.replace(/[^\p{L}'-]/gu, "").toLowerCase()));
-      if (idx < 0) idx = parts.findIndex((p) => {
-        const w = p.trim().replace(/[^\p{L}'-]/gu, "").toLowerCase();
-        return w.length >= 4 && !BLANK_SKIP.has(w) && topicWords.has(tokens(p)[0]);
-      });
-      if (idx < 0) continue;
-      const answer = parts[idx].replace(/[^\p{L}\d'-]/gu, "");
-      parts[idx] = parts[idx].replace(answer, "_____");
-      blanks.push({ kind: "blank", prompt: parts.join(""), answer, source: note.title });
-    }
+  // Words are shown as the lesson writes them ("Robespierre", "mitosis"), so case doesn't give the answer away
+  const text = notes.map((n) => n.text).join(" ");
+  const shown = (w) => {
+    const proper = new RegExp(`[^.!?]\\s${w.charAt(0).toUpperCase()}${w.slice(1).toLowerCase()}(?![\\p{L}])`, "u").test(text);
+    const lower = new RegExp(`(?<![\\p{L}])${w.toLowerCase()}(?![\\p{L}])`, "u").test(text);
+    return proper && !lower ? w.charAt(0).toUpperCase() + w.slice(1).toLowerCase() : w.toLowerCase();
+  };
+  const stem = (w) => w.toLowerCase().replace(/e?s$/, "").replace(/e$/, "");
+  const words = [...new Set([...blanks.map((b) => b.answer), ...allDefs.filter((d) => !/\s/.test(d.term)).map((d) => d.term)].map(shown))];
+  for (const q of blanks) {
+    q.answer = shown(q.answer);
+    const others = words.filter((w) => stem(w) !== stem(q.answer) && !q.prompt.toLowerCase().includes(w.toLowerCase()));
+    const unique = others.filter((w, i) => others.findIndex((x) => stem(x) === stem(w)) === i);
+    if (unique.length >= 2) q.choices = shuffle([q.answer, ...shuffle(unique, seed + ++k).slice(0, 3)], seed + ++k);
   }
   // Definitions first in priority, then blanks; shuffle what's kept so the order isn't predictable.
   const picked = [...shuffle(defs, seed), ...shuffle(blanks, seed + 1)].slice(0, count);
   return shuffle(picked, seed + 2);
+}
+
+// Sentences about class logistics ("the quiz is on Friday") make poor questions.
+const LOGISTICS = /(?<![\p{L}])(?:due|quiz|test|exam|homework|deadline|syllabus|office hours|examen|tarea|entrega|prova|trabalho|lição de casa)(?![\p{L}])/iu;
+const SMALL_TALK = /^(?:okay|ok|so|alright|right|hi|hello|good morning|bueno|hola|então|gente|pessoal|thanks|thank you)\b/i;
+
+/** Fill-in-the-blank questions from a lesson's key sentences: blank a defined term, a topic word,
+ * or failing those the sentence's most telling word (a long word the lesson repeats). */
+function keySentenceBlanks(notes, found, usedTerms, want, seed) {
+  const out = [];
+  notes.forEach((note, n) => {
+    const topicWords = new Set(tokens(note.topic || detectTopic(note.text)));
+    const definitionSentences = new Set(found[n].map((d) => d.sentence));
+    const counts = new Map();
+    for (const w of String(note.text).toLowerCase().match(/[\p{L}][\p{L}'-]{4,}/gu) || []) counts.set(w, (counts.get(w) || 0) + 1);
+    const candidates = [];
+    for (const s of sentences(note.text)) {
+      if (s.length < 30 || s.length > 220 || definitionSentences.has(s) || SMALL_TALK.test(s) || /\?$/.test(s)) continue;
+      if (LOGISTICS.test(s) || findDates(s).length) continue;
+      const parts = s.split(/(\s+)/);
+      const word = (p) => p.trim().replace(/[^\p{L}'-]/gu, "").toLowerCase();
+      const content = (p, i) => i > 0 && word(p).length >= 4 && !BLANK_SKIP.has(word(p)) && !STOP.has(word(p));
+      let idx = parts.findIndex((p, i) => usedTerms.has(word(p)) && i > 0);
+      let strength = 3;
+      if (idx < 0) { idx = parts.findIndex((p, i) => content(p, i) && topicWords.has(tokens(p)[0])); strength = 2; }
+      if (idx < 0) {
+        // The most telling word: repeated in the lesson and long, not the first word of the sentence
+        let best = -1;
+        let score = 0;
+        parts.forEach((p, i) => {
+          if (!content(p, i) || word(p).length < 6) return;
+          const sc = (counts.get(word(p)) || 1) * 2 + word(p).length / 4;
+          if (sc > score) { score = sc; best = i; }
+        });
+        idx = best;
+        strength = 1;
+      }
+      if (idx < 0) continue;
+      const answer = parts[idx].replace(/[^\p{L}\d'-]/gu, "");
+      if (answer.length < 3) continue;
+      parts[idx] = parts[idx].replace(answer, "_____");
+      candidates.push({ q: { kind: "blank", prompt: parts.join(""), answer, source: note.title }, strength });
+    }
+    // Strongest blanks first; weaker ones only fill the test up
+    candidates.sort((a, b) => b.strength - a.strength);
+    for (const c of candidates) if (c.strength >= 2 || out.length < want) out.push(c.q);
+  });
+  return shuffle(out, seed + 5);
 }
 
 /**
@@ -281,7 +335,11 @@ export function exportQuiz(questions, format) {
     case "csv":
       return ["question,answer", ...questions.map((q) => `"${clean(q.prompt).replace(/"/g, '""')}","${clean(q.answer).replace(/"/g, '""')}"`)].join("\n");
     case "gift":
-      return questions.map((q, i) => `::Q${i + 1}:: ${clean(q.prompt).replace(/([~=#{}:])/g, "\\$1")} {=${clean(q.answer).replace(/([~=#{}:])/g, "\\$1")}}`).join("\n\n");
+      return questions.map((q, i) => {
+        const esc = (x) => clean(x).replace(/([~=#{}:])/g, "\\$1");
+        const body = q.choices?.length ? q.choices.map((c) => `${c === q.answer ? "=" : "~"}${esc(c)}`).join(" ") : `=${esc(q.answer)}`;
+        return `::Q${i + 1}:: ${esc(q.prompt)} {${body}}`;
+      }).join("\n\n");
     default:
       return questions.map((q, i) => `${i + 1}. ${clean(q.prompt)}\n   Answer: ${clean(q.answer)}`).join("\n\n");
   }

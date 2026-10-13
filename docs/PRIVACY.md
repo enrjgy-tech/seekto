@@ -19,6 +19,7 @@ Notes, recordings, your calendar, assignments and settings are stored in your br
 | Device sync: your data | Notes, recordings, calendar, assignments | Only your other device, directly and encrypted (WebRTC). Networks that block direct connections can stop it |
 | Storage sync (optional) | Encrypted items | Your own Supabase project, which sees only ciphertext |
 | Videos in Research | The video id; YouTube's player script is loaded from youtube.com | YouTube. The video plays in its no-cookie player, but loading the player itself contacts youtube.com |
+| "Remind me" → Google Calendar | That event's title and date, in the link you open | Google, only when you click it. "Apple or Outlook (.ics)" makes a file on your device instead |
 
 ## Connecting devices
 

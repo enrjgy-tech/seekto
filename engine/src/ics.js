@@ -28,8 +28,12 @@ function parseStamp(value, isDate) {
 export function parseICS(text) {
   const events = [];
   let current = null;
+  let nested = 0; // inside a VALARM (or other block) within the event: its fields aren't the event's
   for (const line of unfold(text).split("\n")) {
-    if (line === "BEGIN:VEVENT") { current = {}; continue; }
+    if (line === "BEGIN:VEVENT") { current = {}; nested = 0; continue; }
+    if (current && /^BEGIN:/i.test(line)) { nested++; continue; }
+    if (current && nested && /^END:/i.test(line)) { nested--; continue; }
+    if (nested) continue;
     if (line === "END:VEVENT") {
       if (current && current.date) events.push(current);
       current = null;
@@ -61,20 +65,43 @@ function escape(value) {
   return String(value).replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/([,;])/g, "\\$1");
 }
 
-/** Write events ({ id, title, date, description }) as an .ics file other calendars can import. */
-export function toICS(events, { name = "Seekto" } = {}) {
-  const lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Seekto//EN", `X-WR-CALNAME:${escape(name)}`];
+/**
+ * Write events ({ id, title, date, description, type }) as an .ics file other calendars can import.
+ * Each event carries reminders, so the phone's calendar app does the reminding: 9 in the morning
+ * the day before and 8 in the morning on the day (reviews only on the day). `reminders: false` leaves them out.
+ */
+export function toICS(events, { name = "Seekto", reminders = true, now = new Date(), labels = { tomorrow: "Tomorrow", today: "Today" } } = {}) {
+  const stamp = now.toISOString().replace(/[-:]/g, "").replace(/\.\d+/, "");
+  const lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Seekto//EN", "CALSCALE:GREGORIAN", `X-WR-CALNAME:${escape(name)}`];
   for (const e of events) {
     const day = e.date.replace(/-/g, "");
+    const [y, m, d] = e.date.split("-").map(Number);
+    const next = new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10).replace(/-/g, "");
+    const alarm = (trigger, text) => ["BEGIN:VALARM", "ACTION:DISPLAY", `DESCRIPTION:${escape(text)}`, `TRIGGER:${trigger}`, "END:VALARM"];
     lines.push(
       "BEGIN:VEVENT",
       `UID:${escape(e.id || `${day}-${e.title}`)}@seekto`,
+      `DTSTAMP:${stamp}`,
       `DTSTART;VALUE=DATE:${day}`,
+      `DTEND;VALUE=DATE:${next}`,
       `SUMMARY:${escape(e.title)}`,
       ...(e.description ? [`DESCRIPTION:${escape(e.description)}`] : []),
+      // All-day events start at midnight: -PT15H is 9:00 the day before, PT8H is 8:00 on the day
+      ...(reminders && e.type !== "review" ? alarm("-PT15H", `${labels.tomorrow}: ${e.title}`) : []),
+      ...(reminders ? alarm("PT8H", `${labels.today}: ${e.title}`) : []),
       "END:VEVENT"
     );
   }
   lines.push("END:VCALENDAR");
   return lines.join("\r\n") + "\r\n";
+}
+
+/** A link that opens Google Calendar's "new event" page filled in with this all-day event. */
+export function googleCalendarLink({ title, date, description = "" }) {
+  const [y, m, d] = date.split("-").map(Number);
+  const start = date.replace(/-/g, "");
+  const end = new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10).replace(/-/g, "");
+  const params = new URLSearchParams({ action: "TEMPLATE", text: title, dates: `${start}/${end}` });
+  if (description) params.set("details", description);
+  return `https://calendar.google.com/calendar/render?${params}`;
 }

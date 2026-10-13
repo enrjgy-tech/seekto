@@ -17,6 +17,7 @@ const formats = () => [
 ];
 
 function promptFor(q) {
+  if (q.choices && q.kind === "blank") return { label: t("Pick the missing word"), text: q.prompt };
   if (q.kind === "term") return { label: t("Which term means…"), text: q.prompt };
   if (q.kind === "define") return { label: t("What does this mean?"), text: q.prompt };
   if (q.kind === "blank") return { label: t("Fill in the blank"), text: q.prompt };
@@ -24,6 +25,7 @@ function promptFor(q) {
 }
 
 function spokenPrompt(q) {
+  if (q.choices) return `${spokenPrompt({ ...q, choices: null })} ${t("Is it: {options}?", { options: q.choices.join(t(", or ")) })}`;
   if (q.kind === "term") return t("Which term means: {prompt}?", { prompt: q.prompt });
   if (q.kind === "define") return t("What does {term} mean?", { term: q.prompt });
   if (q.kind === "blank") return t("Fill in the blank. {prompt}", { prompt: q.prompt.replace(/_{3,}/g, t("blank")) });
@@ -117,11 +119,11 @@ export function openQuiz({ notes = [], questions: given = null, title = t("Pract
       <div class="qcard">
         <span class="label" id="qLabel">${p.label}</span>
         <div class="prompt" id="qPrompt">${raw(esc(p.text).replace(/_{3,}/g, `<span aria-hidden="true">_____</span><span class="sr-only">${esc(t("blank"))}</span>`))}</div>
-        <form class="row" data-answer>
+        ${raw(q.choices ? html`<div class="choices" role="group" aria-labelledby="qLabel qPrompt">${raw(q.choices.map((c, n) => html`<button type="button" class="choice" data-choice="${n}"><span class="key" aria-hidden="true">${String.fromCharCode(65 + n)}</span><span>${c}</span></button>`).join(""))}</div>` : html`<form class="row" data-answer>
           <input type="text" id="quizAnswer" autocomplete="off" placeholder="${t("Your answer")}" aria-labelledby="qLabel qPrompt" style="flex:1">
           ${raw(mic ? `<button type="button" class="iconbtn" data-say title="${esc(t("Answer out loud (uses your browser's speech service)"))}" aria-label="${esc(t("Answer out loud"))}"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>` : "")}
           <button class="btn">${t("Check")}</button>
-        </form>
+        </form>`)}
         <div class="result" id="quizResult" role="status" aria-live="polite"></div>
       </div>
       <div class="row"><button class="btn ghost small" data-skip>${t("Show answer")}</button>${raw(i === 0 && !shared ? `<button class="btn ghost small" data-share>${t("Share as a link")}</button>` : "")}${raw(q.source && !shared ? html`<span class="note-small">${t("From: {source}", { source: q.source })}</span>` : "")}</div>
@@ -129,7 +131,14 @@ export function openQuiz({ notes = [], questions: given = null, title = t("Pract
     wire();
     // On the shared-test page, the first question doesn't grab focus, so the page's heading and
     // "your classmate got…" line are read first.
-    if (!(mount && i === 0)) $("#quizAnswer", sheet).focus();
+    if (!(mount && i === 0)) ($("#quizAnswer", sheet) || $(".choice", sheet)).focus();
+    // Letters pick an option: A, B, C, D
+    sheet.onkeydown = (e) => {
+      if (answered || e.ctrlKey || e.metaKey || e.altKey || /input|textarea/i.test(e.target.tagName)) return;
+      const n = "abcde".indexOf(e.key.toLowerCase());
+      const b = n >= 0 && sheet.querySelector(`[data-choice="${n}"]`);
+      if (b) { e.preventDefault(); b.click(); }
+    };
     if (voice) runVoice(q);
   }
 
@@ -173,18 +182,37 @@ export function openQuiz({ notes = [], questions: given = null, title = t("Pract
       <p class="note-small" style="margin-top:8px">${t("Import the file into Quizlet, Anki, Google Forms, Kahoot or Moodle.")}</p></details>`;
   }
 
-  function grade(given) {
+  // given: what was typed or said ("" = show the answer); picked: the chosen option's number
+  function grade(given, picked = null) {
     if (answered) return;
     answered = true;
     const q = questions[i];
-    const ok = given !== "" && checkAnswer(given, q.answer);
+    const ok = picked !== null ? q.choices[picked] === q.answer : given !== "" && checkAnswer(given, q.answer);
     if (ok) score++;
+    if (q.choices) {
+      sheet.querySelectorAll(".choice").forEach((b, n) => {
+        b.disabled = true;
+        if (q.choices[n] === q.answer) b.classList.add("right");
+        else if (n === picked) b.classList.add("wrong");
+      });
+    }
+    // Long answers typed from memory rarely match word for word, so the student can mark them
+    const selfMark = !ok && !q.choices && q.kind !== "blank" && q.answer.split(/\s+/).length > 3;
+    const next = i + 1 < questions.length ? t("Next") : t("See my score");
     const box = $("#quizResult", sheet);
-    box.className = `result ${ok ? "ok" : "no"}`;
-    box.innerHTML = html`<b>${ok ? t("Correct.") : given === "" ? t("Here's the answer:") : t("Not quite.")}</b> ${ok ? "" : raw(html`<b>${q.answer}</b>`)} <button class="btn small" data-next style="margin-left:8px">${i + 1 < questions.length ? t("Next") : t("See my score")}</button>`;
-    $("[data-next]", sheet).addEventListener("click", () => { i++; draw(); });
-    $("[data-next]", sheet).focus();
-    $("#quizAnswer", sheet).readOnly = true;
+    box.className = `result ${ok ? "ok" : selfMark ? "" : "no"}`;
+    box.innerHTML = selfMark
+      ? html`<b>${given === "" ? t("Here's the answer:") : t("Compare with the answer:")}</b> <b>${q.answer}</b><span class="row selfmark"><button class="btn small" data-mine="1">${t("I got it")}</button><button class="btn ghost small" data-mine="0">${t("I missed it")}</button></span>`
+      : html`<b>${ok ? t("Correct.") : given === "" && picked === null ? (q.choices ? t("The right answer is marked.") : t("Here's the answer:")) : q.choices ? t("Not quite. The right answer is marked.") : t("Not quite.")}</b> ${ok || q.choices ? "" : raw(html`<b>${q.answer}</b>`)} <button class="btn small" data-next style="margin-left:8px">${next}</button>`;
+    const go = () => { i++; draw(); };
+    $("[data-next]", sheet)?.addEventListener("click", go);
+    sheet.querySelectorAll("[data-mine]").forEach((b) => b.addEventListener("click", () => {
+      if (b.dataset.mine === "1") score++;
+      go();
+    }));
+    ($("[data-next]", sheet) || $("[data-mine]", sheet)).focus();
+    if ($("#quizAnswer", sheet)) $("#quizAnswer", sheet).readOnly = true;
+    if (selfMark) return null;
     return ok;
   }
 
@@ -194,8 +222,15 @@ export function openQuiz({ notes = [], questions: given = null, title = t("Pract
     try {
       const heard = await listenOnce();
       if (!document.contains(sheet) || answered) return;
-      $("#quizAnswer", sheet).value = heard;
-      const ok = grade(heard);
+      let ok;
+      if (q.choices) {
+        const n = q.choices.findIndex((c) => checkAnswer(heard, c));
+        ok = grade(heard, n >= 0 ? n : -1);
+      } else {
+        $("#quizAnswer", sheet).value = heard;
+        ok = grade(heard);
+      }
+      if (ok === null) return; // the student marks long answers on screen
       await speak(ok ? t("Correct.") : t("Not quite. The answer is {answer}.", { answer: q.answer }));
       if (document.contains(sheet)) { i++; draw(); }
     } catch (err) {
@@ -207,6 +242,7 @@ export function openQuiz({ notes = [], questions: given = null, title = t("Pract
     sheet.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeOverlay));
     sheet.querySelector("[data-answer]")?.addEventListener("submit", (e) => { e.preventDefault(); grade($("#quizAnswer", sheet).value.trim()); });
     sheet.querySelector("[data-skip]")?.addEventListener("click", () => grade(""));
+    sheet.querySelectorAll("[data-choice]").forEach((b) => b.addEventListener("click", () => grade(b.textContent, Number(b.dataset.choice))));
     sheet.querySelector("[data-again]")?.addEventListener("click", () => { flip = !flip; questions = build(); i = 0; score = 0; draw(); });
     sheet.querySelector("[data-leave]")?.addEventListener("click", () => onLeave?.());
     sheet.querySelectorAll("[data-share]").forEach((b) => b.addEventListener("click", () => shareLink(title, questions)));

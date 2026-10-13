@@ -4,7 +4,7 @@ import { state, saveEvent, deleteEvent, hasEvent, today } from "./state.js";
 import { uid } from "./store.js";
 import { go } from "./nav.js";
 import { practiceNote } from "./quiz.js";
-import { parseICS, toICS, toISO, fromISO, describeDay } from "../engine/index.js";
+import { parseICS, toICS, googleCalendarLink, toISO, fromISO, describeDay } from "../engine/index.js";
 import { t, uiLocale } from "./i18n.js";
 
 let month = null;
@@ -19,6 +19,9 @@ export function typeLabel(type) {
 function typeFor(title) {
   return /test|exam|quiz|midterm|final/i.test(title) ? "test" : /due|essay|paper|project|homework|assignment|lab|report|reading|presentation/i.test(title) ? "assignment" : "event";
 }
+
+// Exported events carry reminders (the day before and the morning of), in the interface language
+const icsFor = (events) => toICS(events, { labels: { tomorrow: t("Tomorrow"), today: t("Today") } });
 
 export function render(main) {
   if (!month) { const d = new Date(); month = new Date(d.getFullYear(), d.getMonth(), 1); }
@@ -76,7 +79,7 @@ export function render(main) {
     toast(events.length ? imported : t("No events found in that file"));
     render(main);
   });
-  $("#exportIcs").addEventListener("click", () => download("seekto-calendar.ics", toICS(state.events), "text/calendar"));
+  $("#exportIcs").addEventListener("click", () => download("seekto-calendar.ics", icsFor(state.events), "text/calendar"));
   $("#addForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     const title = $("#evTitle").value.trim();
@@ -113,11 +116,15 @@ function drawAgenda() {
     ? list.map((e) => html`<div class="event">
         <span class="when">${e.date >= now ? describeDay(e.date, now, { tr: t, locale: uiLocale() }) : friendlyDate(e.date)}</span>
         <span>${e.title}${raw(e.noteId ? html` <a href="#note/${e.noteId}" class="note-small">${t("from your notes")}</a>` : e.source === "import" ? html` <span class="note-small">${t("imported")}</span>` : "")}</span>
-        <span class="row">${raw(e.type === "review" && e.noteId ? html`<button class="btn small" data-practice="${e.noteId}">${t("Practice")}</button>` : html`<span class="kind ${e.type}">${typeLabel(e.type)}</span>`)}<button class="btn ghost small" data-del="${e.id}" aria-label="${t("Remove {title}", { title: e.title })}">${t("Remove")}</button></span>
+        <span class="row">${raw(e.type === "review" && e.noteId ? html`<button class="btn small" data-practice="${e.noteId}">${t("Practice")}</button>` : html`<span class="kind ${e.type}">${typeLabel(e.type)}</span>`)}${raw(e.date >= now ? html`<details class="remind"><summary class="btn ghost small" aria-label="${t("Remind me about {title}", { title: e.title })}">${t("Remind me")}</summary><div class="remind-menu"><a class="btn ghost small" href="${googleCalendarLink({ title: e.title, date: e.date })}" target="_blank" rel="noopener">${t("Google Calendar")}</a><button class="btn ghost small" data-ics="${e.id}">${t("Apple or Outlook (.ics)")}</button><p class="note-small">${t("The .ics file reminds you the day before and that morning. Google Calendar uses your usual reminders.")}</p></div></details>` : "")}<button class="btn ghost small" data-del="${e.id}" aria-label="${t("Remove {title}", { title: e.title })}">${t("Remove")}</button></span>
       </div>`).join("")
     : `<p class="empty">${t("Nothing coming up. Record a class, import your school calendar, or add a date.")}</p>`;
   $$("[data-del]").forEach((b) => b.addEventListener("click", async () => { await deleteEvent(b.dataset.del); drawAgenda(); drawMonth(); }));
   $$("[data-practice]").forEach((b) => b.addEventListener("click", () => practiceNote(b.dataset.practice)));
+  $$("[data-ics]").forEach((b) => b.addEventListener("click", () => {
+    const e = state.events.find((x) => x.id === b.dataset.ics);
+    if (e) download(`${e.title.replace(/[^\p{L}\d]+/gu, "-").replace(/^-|-$/g, "").slice(0, 40) || "event"}.ics`, icsFor([e]), "text/calendar");
+  }));
 }
 
 export { go, fromISO };

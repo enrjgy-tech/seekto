@@ -10,7 +10,17 @@ test("a practice test survives the round trip through a link", async () => {
   assert.match(code, /^[A-Za-z0-9_-]+$/);
   const back = await decodeShare(code);
   assert.equal(back.title, "Bio quiz");
-  assert.deepEqual(back.questions.map((q) => [q.kind, q.prompt, q.answer]), questions.map((q) => [q.kind, q.prompt, q.answer]));
+  assert.deepEqual(back.questions.map((q) => [q.kind, q.prompt, q.answer, q.choices]), questions.map((q) => [q.kind, q.prompt, q.answer, q.choices]));
+});
+
+test("multiple-choice options travel with the link, and bad ones are dropped", async () => {
+  const questions = [
+    { kind: "define", prompt: "Gene", answer: "A section of DNA", choices: ["A section of DNA", "A kind of sugar", "A cell wall"] },
+    { kind: "blank", prompt: "The _____ splits.", answer: "cell", choices: ["atom", "planet"] },
+  ];
+  const back = await decodeShare(await encodeShare({ title: "MC", questions }));
+  assert.deepEqual(back.questions[0].choices, ["A section of DNA", "A kind of sugar", "A cell wall"]);
+  assert.equal(back.questions[1].choices, undefined); // the answer isn't among them
 });
 
 test("links stay short", async () => {

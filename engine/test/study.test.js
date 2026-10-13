@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import {
-  reviewPlan, findDates, findEvents, parseICS, toICS, detectSubject, detectTopic, findDefinitions,
+  reviewPlan, findDates, findEvents, parseICS, toICS, googleCalendarLink, detectSubject, detectTopic, findDefinitions,
   makeQuiz, checkAnswer, exportQuiz, parseCaptions,
 } from "../src/index.js";
 
@@ -70,6 +70,12 @@ test("parses a Canvas-style .ics feed and writes one back", () => {
   assert.deepEqual(events[0], { uid: "event-assignment-1", title: "Persuasive Essay [ENG 101]", date: "2026-10-20", time: null, description: "Use the rubric, 1500 words", url: null });
   assert.equal(events[1].title, "Chapter 5 Quiz(Math)");
   assert.equal(events[1].time, "15:00");
+  // Exports carry reminders: 9:00 the day before and 8:00 on the day; they don't leak into a re-import
+  const withAlarms = toICS([{ id: "q", title: "Bio quiz", date: "2026-10-31", type: "test" }]);
+  assert.match(withAlarms, /DTEND;VALUE=DATE:20261101/);
+  assert.match(withAlarms, /TRIGGER:-PT15H[\s\S]*TRIGGER:PT8H/);
+  assert.equal(parseICS(withAlarms)[0].description, "");
+  assert.doesNotMatch(toICS([{ id: "q", title: "Bio quiz", date: "2026-10-31" }], { reminders: false }), /VALARM/);
   const back = parseICS(toICS([{ id: "a", title: "Math test; ch. 5", date: "2026-10-16" }]));
   assert.deepEqual(back.map((e) => [e.title, e.date]), [["Math test; ch. 5", "2026-10-16"]]);
 });
@@ -109,6 +115,35 @@ test("makes a mixed quiz and checks answers", () => {
   const blanks = makeQuiz([{ title: "CS", text: lecture }], { count: 5 });
   assert.equal(blanks.length, 5);
   assert.ok(blanks.every((q) => q.prompt.includes("_____") || q.kind !== "blank"));
+});
+
+test("a lesson becomes a fuller test: multiple choice and key-sentence blanks", () => {
+  const lesson = [
+    "Mitosis means one cell dividing into two identical daughter cells.",
+    "Before a cell divides, it copies its DNA, so each new cell gets a full set of chromosomes.",
+    "A chromosome is a long strand of DNA wrapped around proteins.",
+    "The centromere is the point where the two copies of a chromosome are held together.",
+    "Meiosis is the kind of division that makes sperm and egg cells, with half the chromosomes.",
+    "Cytokinesis is the final step, when the cytoplasm splits into two cells.",
+  ].join(" ");
+  const quiz = makeQuiz([{ title: "Cells", text: lesson }], { seed: 4 });
+  assert.ok(quiz.length >= 6);
+  for (const q of quiz.filter((x) => x.choices)) {
+    assert.ok(q.choices.includes(q.answer));
+    assert.equal(new Set(q.choices.map((c) => c.toLowerCase())).size, q.choices.length);
+  }
+  assert.ok(quiz.some((q) => q.kind === "define" && q.choices?.length >= 3));
+  // A lecture with no "X is Y" sentences still gives a test, from its key sentences
+  const history = "Robespierre and the Committee of Public Safety ran France for about a year. They executed thousands of people they considered enemies of the revolution. The guillotine became the symbol of that whole period. A lot of historians argue the terror was a response to foreign invasion and civil war. By 1794 even his allies turned on him and he was executed too.";
+  const blanks = makeQuiz([{ title: "History", text: history }], { seed: 2 });
+  assert.ok(blanks.length >= 4, `only ${blanks.length} questions`);
+  assert.ok(blanks.every((q) => q.kind === "blank" && q.prompt.includes("_____")));
+  // Moodle gets the options too
+  assert.match(exportQuiz([{ prompt: "Gene", answer: "DNA", choices: ["RNA", "DNA"] }], "gift"), /\{~RNA =DNA\}/);
+});
+
+test("a Google Calendar link for one all-day event", () => {
+  assert.equal(googleCalendarLink({ title: "Bio quiz", date: "2026-12-31" }), "https://calendar.google.com/calendar/render?action=TEMPLATE&text=Bio+quiz&dates=20261231%2F20270101");
 });
 
 test("exports quizzes for Anki, Quizlet, CSV and Moodle", () => {
