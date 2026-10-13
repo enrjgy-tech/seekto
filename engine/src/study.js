@@ -554,14 +554,72 @@ function inlineDefinitions(c, next) {
   return out;
 }
 
+// How sure we are that a term and its definition really belong together (0 to 1), from evidence that can
+// be checked, not guessed: how the speaker introduced it (a marker such as "called", "known as", "means"),
+// whether the term is a noun phrase that gets used again, and whether the meaning reads like a meaning.
+// Each reason is returned so a wrong answer can be explained.
+const MARKER =
+  /\b(?:called|call|known as|termed|named|means|mean by|refers? to|defined as|definition|stands? for|we say|so[- ]called|se llama|llamamos|significa|chamamos|quer dizer)\b/i;
+function definitionConfidence(term, def, sentence, ctx) {
+  const why = [];
+  let c = 0.5;
+  const add = (n, reason) => {
+    c += n;
+    why.push(`${n > 0 ? "+" : ""}${n} ${reason}`);
+  };
+  const marked = MARKER.test(sentence);
+  if (marked) add(0.25, "introduced with a marker (called / known as / means ...)");
+  const words = term.trim().split(/\s+/);
+  if (words.length > 3) add(-0.08, "long term");
+  if (words.length === 1 && term.length <= 3 && !/^[A-Z]{2,}$/.test(term)) add(-0.1, "very short word");
+  // a person's name is rarely a term: "JJ Thompson", "Rudd referred"
+  if (
+    words.length >= 2 &&
+    words.every((w) => /^[A-Z]/.test(w)) &&
+    !/\b(?:law|theory|model|effect|principle|rule|equation|constant)\b/i.test(term)
+  )
+    add(-0.15, "reads like a name");
+  if (ctx.long) {
+    const n = ctx.count(term);
+    if (n >= 3) add(0.15, `term comes up ${n} times`);
+    else if (n === 2) add(0.08, "term comes up twice");
+    else add(-0.08, "term is said only once");
+  }
+  const dw = def.trim().split(/\s+/);
+  if (dw.length < 4) add(-0.15, "very short meaning");
+  if (dw.length > 30) add(-0.1, "very long meaning");
+  if (
+    /^(?:an?|the|when|where|how|what|whatever|whoever|something|someone|anything|one|those|that|these|it is|it's|used|a type|a kind)\b/i.test(
+      def,
+    )
+  )
+    add(0.1, "meaning opens like a meaning (a / the / when / where ...)");
+  if (/^(?:i|we|you|they)\s/i.test(def)) add(-0.1, "meaning is a statement about us");
+  if (/\b(?:and|or|but|the|a|an|of|to|so|that|because|with)$/i.test(def.replace(/[.!?]+$/, "")))
+    add(-0.15, "meaning ends mid-thought");
+  if (/\b(\w{3,})\s+\1\b/i.test(def)) add(-0.1, "repeated word (a recording glitch)");
+  const head = words.at(-1).toLowerCase();
+  if (head.length > 3 && new RegExp(`\\b${head.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(def) && !marked)
+    add(-0.08, "meaning repeats the term");
+  return { confidence: Math.max(0, Math.min(1, +c.toFixed(2))), why };
+}
+
 /** Find definitions in notes or a transcript: [{ term, definition, sentence }]. Works on how people talk,
  * not only on "X is a Y": "so mitosis, basically, it's when ...", "we call this opportunity cost", "what is an API? It's ...".
  */
-export function findDefinitions(text) {
+export function findDefinitions(text, { minConfidence = 0 } = {}) {
   const out = [];
   const seen = new Set();
   // a closing quote ends a sentence too: '... "attentional resources." We can pay ...'
   const list = sentences(text).flatMap((x) => x.split(/(?<=[.?!]["”])\s+(?=[A-Z])/));
+  const lower = text.toLowerCase();
+  const ctx = {
+    long: list.length >= 25,
+    count: (term) => {
+      const t = term.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      return (lower.match(new RegExp(`(?<![\\p{L}])${t}(?:s|es)?(?![\\p{L}])`, "gu")) || []).length;
+    },
+  };
   const push = (term, def, sentence, keepCase) => {
     const t = goodTerm(term);
     const d = t && goodDefinition(def);
@@ -569,10 +627,14 @@ export function findDefinitions(text) {
     const key = t.toLowerCase();
     if (seen.has(key)) return;
     seen.add(key);
+    const { confidence, why } = definitionConfidence(t, d, sentence, ctx);
+    if (confidence < minConfidence) return;
     out.push({
       term: keepCase || /^[A-Z]{2,}/.test(t) ? t : t.charAt(0).toUpperCase() + t.slice(1),
       definition: d,
       sentence,
+      confidence,
+      why,
     });
   };
   for (let i = 0; i < list.length; i++) {
