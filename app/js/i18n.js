@@ -33,8 +33,10 @@ export function t(text, vars) {
 
 /** The locale for dates and numbers in the interface, like "es-MX" or "pt-BR". */
 export function uiLocale() {
-  const nav = navigator.languages?.[0] || navigator.language || "en-US";
-  if (nav.toLowerCase().startsWith(lang)) return nav;
+  const nav = String(navigator.languages?.[0] || navigator.language || "en-US").split(/[@.]/)[0].replace("_", "-");
+  let valid = nav;
+  try { [valid] = Intl.getCanonicalLocales(nav); } catch { valid = ""; }
+  if (valid && valid.toLowerCase().startsWith(lang)) return valid;
   return { en: "en-US", es: "es", pt: "pt-BR" }[lang];
 }
 
@@ -51,4 +53,9 @@ export function translatePage(root = document) {
     target.textContent = t(el.dataset.en.trim());
   }
   for (const el of root.querySelectorAll("[data-i18n-label]")) el.setAttribute("aria-label", t(el.dataset.i18nLabel));
+}
+
+/** A line for AI prompts, so the model answers in the interface language. */
+export function replyIn() {
+  return { en: "", es: " Reply in Spanish.", pt: " Reply in Brazilian Portuguese." }[lang] || "";
 }

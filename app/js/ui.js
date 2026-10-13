@@ -1,4 +1,5 @@
 // Small helpers shared by every view.
+import { t, uiLocale } from "./i18n.js";
 
 export const $ = (sel, root = document) => root.querySelector(sel);
 export const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
@@ -40,12 +41,12 @@ export function download(filename, text, type = "text/plain") {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-export async function copy(text, ok = "Copied") {
+export async function copy(text, ok = t("Copied")) {
   try {
     await navigator.clipboard.writeText(text);
     toast(ok);
   } catch {
-    toast("Couldn't copy. Select the text and copy it yourself.");
+    toast(t("Couldn't copy. Select the text and copy it yourself."));
   }
 }
 
@@ -106,7 +107,7 @@ export function closeOverlay() {
 
 export function friendlyDate(iso) {
   const [y, m, d] = iso.slice(0, 10).split("-").map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+  return new Date(y, m - 1, d).toLocaleDateString(uiLocale(), { weekday: "short", month: "short", day: "numeric" });
 }
 
 export function readFile(file) {

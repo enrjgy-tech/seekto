@@ -5,6 +5,7 @@
 // the same rule devices use with each other, so the two kinds of sync never fight.
 import { state, saveNote, saveEvent, saveProject, deleteNote, deleteEvent, deleteProject } from "./state.js";
 import { all, put, get, audioIds } from "./store.js";
+import { t, uiLocale } from "./i18n.js";
 import {
   deriveAccount, itemId, sealItem, openItem, sealBytes, openBytes, makeAccountKey, isValidAccountKey, formatAccountKey, incoming, STORES,
 } from "../engine/index.js";
@@ -36,7 +37,7 @@ export function supabase(url, apiKey) {
     try {
       res = await fetch(`${base}${path}`, { ...init, headers });
     } catch {
-      throw new Error("Couldn't reach your Supabase project. Check the project URL and your internet connection.");
+      throw new Error(t("Couldn't reach your Supabase project. Check the project URL and your internet connection."));
     }
     const text = await res.text();
     let data = text;
@@ -48,11 +49,11 @@ export function supabase(url, apiKey) {
     if (res.ok) return data;
     const code = data?.code || "";
     const message = data?.message || "";
-    if (code === "PGRST202" || res.status === 404) throw new Error("Seekto's setup script hasn't been run in this project yet. Run it in the SQL Editor, then try again.");
-    if (res.status === 401 && !message.includes("seekto")) throw new Error("Supabase didn't accept that API key. Use the project's publishable (or anon) key.");
-    if (message.includes("seekto: wrong account or token")) { const e = new Error("This account isn't on your storage any more. It may have been deleted, or its key changed on another device."); e.gone = true; throw e; }
-    if (message.includes("seekto: this storage already has the most accounts")) throw new Error("This storage already has the most accounts it allows (10). To add more, change seekto_max_accounts in the setup script and run it again.");
-    throw new Error(message || `Supabase returned an error (${res.status}).`);
+    if (code === "PGRST202" || res.status === 404) throw new Error(t("Seekto's setup script hasn't been run in this project yet. Run it in the SQL Editor, then try again."));
+    if (res.status === 401 && !message.includes("seekto")) throw new Error(t("Supabase didn't accept that API key. Use the project's publishable (or anon) key."));
+    if (message.includes("seekto: wrong account or token")) { const e = new Error(t("This account isn't on your storage any more. It may have been deleted, or its key changed on another device.")); e.gone = true; throw e; }
+    if (message.includes("seekto: this storage already has the most accounts")) throw new Error(t("This storage already has the most accounts it allows (10). To add more, change seekto_max_accounts in the setup script and run it again."));
+    throw new Error(message || t("Supabase returned an error ({status}).", { status: res.status }));
   }
   return {
     label: base.replace(/^https?:\/\//, ""),
@@ -73,14 +74,14 @@ export function supabase(url, apiKey) {
 /** Check a project before using it. Returns a list of { ok, text } lines; throws on hard failures. */
 export async function testStorage(url, apiKey) {
   // https for hosted projects; plain http only for a Supabase running on this computer
-  if (!/^(https:\/\/.+|http:\/\/(localhost|127\.0\.0\.1)(:\d+)?\/?$)/.test(String(url).trim())) throw new Error("The project URL starts with https://, like https://abcd1234.supabase.co");
+  if (!/^(https:\/\/.+|http:\/\/(localhost|127\.0\.0\.1)(:\d+)?\/?$)/.test(String(url).trim())) throw new Error(t("The project URL starts with https://, like https://abcd1234.supabase.co"));
   const s = supabase(url, apiKey);
   const info = await s.info();
-  if (info?.app !== "seekto") throw new Error("This project answered, but not like Seekto storage. Run the setup script again.");
-  const lines = [{ ok: true, text: `Seekto storage found (version ${info.schema})` }];
+  if (info?.app !== "seekto") throw new Error(t("This project answered, but not like Seekto storage. Run the setup script again."));
+  const lines = [{ ok: true, text: t("Seekto storage found (version {version})", { version: info.schema }) }];
   lines.push((await s.locked())
-    ? { ok: true, text: "Tables are closed to direct access" }
-    : { ok: false, text: "Tables are open to direct access. Run the setup script again to close them." });
+    ? { ok: true, text: t("Tables are closed to direct access") }
+    : { ok: false, text: t("Tables are open to direct access. Run the setup script again to close them.") });
   return lines;
 }
 
@@ -240,7 +241,7 @@ async function pull() {
   }
   saveAccount({ cursor });
   const count = plan.put.length + plan.remove.length;
-  if (count || gotAudio) window.dispatchEvent(new CustomEvent("seekto:synced", { detail: { from: "your storage", count, audio: gotAudio > 0 } }));
+  if (count || gotAudio) window.dispatchEvent(new CustomEvent("seekto:synced", { detail: { from: t("your storage"), count, audio: gotAudio > 0 } }));
 }
 
 /** Push local changes, then pull new ones. Safe to call any time. */
@@ -330,18 +331,21 @@ export async function changeKey() {
 
 /** Text for a recovery kit file. */
 export function recoveryKit(a = account()) {
+  const labels = [t("Account key:"), t("Storage:"), t("API key:")];
+  const width = Math.max(14, ...labels.map((l) => l.length)) + 1;
+  const [keyLabel, storageLabel, apiLabel] = labels.map((l) => l.padEnd(width));
   return [
-    "SEEKTO RECOVERY KIT",
+    t("SEEKTO RECOVERY KIT"),
     "",
-    "Keep this somewhere safe and private. Anyone with this key can read your Seekto notes, recordings and calendar.",
-    "Nobody, including Seekto, can recover your data if you lose this key and all your devices.",
+    t("Keep this somewhere safe and private. Anyone with this key can read your Seekto notes, recordings and calendar."),
+    t("Nobody, including Seekto, can recover your data if you lose this key and all your devices."),
     "",
-    `Account key:   ${a.key}`,
-    `Storage:       ${a.url}`,
-    `API key:       ${a.apiKey}`,
+    `${keyLabel}${a.key}`,
+    `${storageLabel}${a.url}`,
+    `${apiLabel}${a.apiKey}`,
     "",
-    "To use it on a new device: open Seekto, go to Settings > Account and storage > I have an account key.",
-    `Made: ${new Date().toLocaleString()}`,
+    t("To use it on a new device: open Seekto, go to Settings > Account and storage > I have an account key."),
+    t("Made: {date}", { date: new Date().toLocaleString(uiLocale()) }),
     "",
   ].join("\n");
 }

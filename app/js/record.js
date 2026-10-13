@@ -9,6 +9,7 @@ import { go } from "./nav.js";
 import { formatTime, detectSubject, detectTopic, toISO } from "../engine/index.js";
 import { transcribe, canListen } from "./voice.js";
 import { defaultTranscriber } from "./ondevice.js";
+import { t, speechLang } from "./i18n.js";
 
 const SUBJECTS = ["Auto-detect", "Math", "English", "Biology", "Chemistry", "Physics", "History", "Computer Science", "Economics", "Psychology", "Other"];
 
@@ -26,28 +27,28 @@ export function render(main) {
       <div class="view-head"><h1>${words().recordTitle}</h1></div>
       <section class="panel recorder">
         <div class="row" style="justify-content:center">
-          ${raw(mode() === "work" ? "" : html`<label class="field" style="min-width:220px"><span class="label">Subject</span>
-            <select id="recSubject">${raw(SUBJECTS.map((s) => html`<option ${s === rec.subject ? "selected" : ""}>${s}</option>`).join(""))}</select></label>`)}
-          <label class="field" style="min-width:220px"><span class="label">Title (optional)</span>
-            <input type="text" id="recTitle" placeholder="Seekto names it for you" value="${rec.title}"></label>
+          ${raw(mode() === "work" ? "" : html`<label class="field" style="min-width:220px"><span class="label">${t("Subject")}</span>
+            <select id="recSubject">${raw(SUBJECTS.map((s) => html`<option value="${s}" ${s === rec.subject ? "selected" : ""}>${s === "Auto-detect" ? t("Auto-detect") : s}</option>`).join(""))}</select></label>`)}
+          <label class="field" style="min-width:220px"><span class="label">${t("Title (optional)")}</span>
+            <input type="text" id="recTitle" placeholder="${t("Seekto names it for you")}" value="${rec.title}"></label>
         </div>
         <div class="timer mono" id="recTimer">${formatTime(elapsed())}</div>
         ${raw(!rec.active ? html`<label class="row note-small" style="justify-content:center;gap:8px"><input type="checkbox" id="consent" style="width:auto"> ${words().consentCheck}</label>` : "")}
-        <button class="recbtn ${rec.active ? "on" : ""}" id="recBtn" aria-pressed="${rec.active}" ${raw(!rec.active ? "disabled" : "")}>${rec.active ? "Stop" : "Record"}</button>
+        <button class="recbtn ${rec.active ? "on" : ""}" id="recBtn" aria-pressed="${rec.active}" ${raw(!rec.active ? "disabled" : "")}>${rec.active ? t("Stop") : t("Record")}</button>
         <div class="row" id="recTools" ${raw(rec.active ? "" : "hidden")} style="justify-content:center">
-          <button class="btn ghost" id="markBtn">Lost here</button>
-          <form id="mineForm" class="row"><input type="text" id="mineInput" placeholder="Type a note, press Enter" style="min-width:240px"></form>
+          <button class="btn ghost" id="markBtn">${t("Lost here")}</button>
+          <form id="mineForm" class="row"><input type="text" id="mineInput" placeholder="${t("Type a note, press Enter")}" style="min-width:240px"></form>
         </div>
-        <p class="note-small" id="recHelp">${onDevice() ? "Private: the recording and its transcript stay on this device. Seekto transcribes it here when you stop (the speech model downloads once)." : "The recording is saved on this device, but the live transcript sends audio to your browser's speech service (Google in Chrome, Microsoft in Edge). For a private transcript, choose On this device in Settings."} ${words().consent}</p>
+        <p class="note-small" id="recHelp">${onDevice() ? t("Private: the recording and its transcript stay on this device. Seekto transcribes it here when you stop (the speech model downloads once).") : t("The recording is saved on this device, but the live transcript sends audio to your browser's speech service (Google in Chrome, Microsoft in Edge). For a private transcript, choose On this device in Settings.")} ${words().consent}</p>
       </section>
       <section class="panel" id="livePanel" ${raw(rec.active || rec.cues.length ? "" : "hidden")}>
-        <span class="label">Live transcript</span>
+        <span class="label">${t("Live transcript")}</span>
         <div class="live" id="live"></div>
       </section>
     </div>`;
 
   $("#recBtn").addEventListener("click", () => (rec.active ? stop() : start()));
-  $("#markBtn").addEventListener("click", () => { rec.marks.push({ start: elapsed(), label: "Lost here" }); drawLive(); toast("Marked"); });
+  $("#markBtn").addEventListener("click", () => { rec.marks.push({ start: elapsed(), label: t("Lost here") }); drawLive(); toast(t("Marked")); });
   $("#mineForm").addEventListener("submit", (e) => {
     e.preventDefault();
     const v = $("#mineInput").value.trim();
@@ -82,7 +83,7 @@ async function start() {
   try {
     rec.stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
   } catch {
-    return toast("Microphone access was blocked. Allow it in your browser's site settings.");
+    return toast(t("Microphone access was blocked. Allow it in your browser's site settings."));
   }
   Object.assign(rec, { active: true, startedAt: Date.now(), cues: [], marks: [], mine: [], interim: "", chunks: [] });
   const type = ["audio/webm;codecs=opus", "audio/mp4", "audio/webm"].find((t) => window.MediaRecorder?.isTypeSupported?.(t));
@@ -91,6 +92,7 @@ async function start() {
   rec.recorder.start(5000);
   let lineStart = 0;
   rec.speech = onDevice() ? null : transcribe({
+    lang: speechLang(),
     onLine: ({ text, final }) => {
       if (!rec.interim) lineStart = Math.max(0, elapsed() - 2);
       if (final) {
@@ -131,11 +133,11 @@ async function stop() {
   };
   if (work && !rec.title.trim()) note.title = `Meeting: ${topic}`;
   const later = onDevice() && !rec.cues.length;
-  if (later) { note.pendingTranscript = true; if (!rec.title.trim()) note.title = work ? "Meeting: Recording" : "Recording"; }
+  if (later) { note.pendingTranscript = true; if (!rec.title.trim()) { note.autoTitle = true; note.title = work ? t("Meeting: Recording") : t("Recording"); } }
   const added = await addDates(note);
   await saveNote(note);
   Object.assign(rec, { title: "", cues: [], marks: [], mine: [], interim: "", chunks: [] });
-  toast(later ? "Saved. Transcribing on this device…" : added ? `Saved. Added ${added} date${added > 1 ? "s" : ""} to your calendar.` : "Saved to your notes.");
+  toast(later ? t("Saved. Transcribing on this device…") : added ? (added > 1 ? t("Saved. Added {n} dates to your calendar.", { n: added }) : t("Saved. Added 1 date to your calendar.")) : t("Saved to your notes."));
   go(`note/${note.id}`);
   if (later) transcribeNote(note.id);
 }

@@ -11,6 +11,7 @@
 import { state, saveNote, saveEvent, saveProject, deleteNote, deleteEvent, deleteProject } from "./state.js";
 import { all, put, get, audioIds } from "./store.js";
 import { account } from "./cloud.js";
+import { t } from "./i18n.js";
 import {
   makeCode, normalizeCode, isValidCode, randomId, manifest, outgoing, incoming, frames, makeAssembler, deviceName, proof, channelBinding, matchCode, sasCommit, sasCode, STORES,
 } from "../engine/index.js";
@@ -71,14 +72,14 @@ class Topic {
         if (msg.from === me().id) return;
         onMessage(msg);
       };
-      this.es.onerror = () => onError?.(new Error("Couldn't reach the connection server. Check your internet connection."));
+      this.es.onerror = () => onError?.(new Error(t("Couldn't reach the connection server. Check your internet connection.")));
       setTimeout(resolve, 4000);
     });
   }
   static async send(topic, msg) {
     for (const body of frames(JSON.stringify({ ...msg, from: me().id }), randomId(6))) {
       const res = await fetch(`${server()}/${topic}`, { method: "POST", body });
-      if (!res.ok) throw new Error(res.status === 429 ? "The connection server is busy. Wait a minute and try again." : "Couldn't reach the connection server.");
+      if (!res.ok) throw new Error(res.status === 429 ? t("The connection server is busy. Wait a minute and try again.") : t("Couldn't reach the connection server."));
     }
   }
   close() { this.es?.close(); }
@@ -109,7 +110,7 @@ class Link {
     this.pc.onconnectionstatechange = () => {
       if (["failed", "closed", "disconnected"].includes(this.pc.connectionState)) this.close();
     };
-    this.timer = setTimeout(() => { if (!this.open) { this.rejectOpen(new Error("The devices couldn't reach each other. Try both on the same Wi-Fi.")); this.close(); } }, 30000);
+    this.timer = setTimeout(() => { if (!this.open) { this.rejectOpen(new Error(t("The devices couldn't reach each other. Try both on the same Wi-Fi."))); this.close(); } }, 30000);
   }
   async offer() {
     await this.pc.setLocalDescription(await this.pc.createOffer());
@@ -185,7 +186,7 @@ class Link {
     try { this.dc?.close(); } catch { /* ignore */ }
     try { this.pc.close(); } catch { /* ignore */ }
     if (links.get(this.peer.id) === this) links.delete(this.peer.id);
-    this.rejectOpen?.(new Error("Connection closed."));
+    this.rejectOpen?.(new Error(t("Connection closed.")));
     emit();
   }
 }
@@ -230,13 +231,13 @@ function startSync(link) {
   });
   link.on("account-request", async () => {
     const a = account();
-    if (!a?.key) return link.send({ type: "account-deny", reason: `${me().name} doesn't have an account set up.` });
+    if (!a?.key) return link.send({ type: "account-deny", reason: t("{name} doesn't have an account set up.", { name: me().name }) });
     const code = await linkCode(link);
     let answered = false;
     const respond = (ok) => {
       if (answered) return;
       answered = true;
-      link.send(ok ? { type: "account-grant", account: { key: a.key, url: a.url, apiKey: a.apiKey } } : { type: "account-deny", reason: `${me().name} said no.` });
+      link.send(ok ? { type: "account-grant", account: { key: a.key, url: a.url, apiKey: a.apiKey } } : { type: "account-deny", reason: t("{name} said no.", { name: me().name }) });
     };
     window.dispatchEvent(new CustomEvent("seekto:account-request", { detail: { name: link.peer.name, code, respond } }));
   });
@@ -267,12 +268,12 @@ function linkCode(link) {
  */
 export async function requestAccount(peerId) {
   const link = links.get(peerId);
-  if (!link?.open || !link.authed) throw new Error("That device isn't connected right now. Open Seekto on it and try again.");
+  if (!link?.open || !link.authed) throw new Error(t("That device isn't connected right now. Open Seekto on it and try again."));
   const code = await linkCode(link);
   const result = new Promise((resolve, reject) => {
     link.on("account-grant", (m) => resolve(m.account));
-    link.on("account-deny", (m) => reject(new Error(m.reason || "The other device said no.")));
-    setTimeout(() => reject(new Error("No answer from the other device.")), 120000);
+    link.on("account-deny", (m) => reject(new Error(m.reason || t("The other device said no."))));
+    setTimeout(() => reject(new Error(t("No answer from the other device."))), 120000);
   });
   link.send({ type: "account-request" });
   return { code, result };
@@ -302,7 +303,7 @@ function register(link) {
 function next(link, type, ms = 20000) {
   return new Promise((resolve, reject) => {
     link.on(type, resolve);
-    setTimeout(() => reject(new Error("The other device stopped answering. Try again.")), ms);
+    setTimeout(() => reject(new Error(t("The other device stopped answering. Try again."))), ms);
   });
 }
 const bindingOf = (link) => channelBinding(link.pc.localDescription?.sdp, link.pc.remoteDescription?.sdp);
@@ -333,7 +334,7 @@ export function hostPairing(ui) {
         const mine = randomId(16);
         current.send({ type: "sas-host", random: mine });
         const reveal = await next(current, "sas-reveal");
-        if (!reveal.random || (await sasCommit(reveal.random)) !== commit.value) throw new Error("The other device's check didn't add up, so it wasn't connected.");
+        if (!reveal.random || (await sasCommit(reveal.random)) !== commit.value) throw new Error(t("The other device's check didn't add up, so it wasn't connected."));
         const check = await sasCode(reveal.random, mine, bindingOf(current));
         const ok = await ui.onRequest({ name: peer.name, check });
         if (done || link !== current) return;
@@ -359,7 +360,7 @@ export function hostPairing(ui) {
     }
   }, (err) => ui.onError(err));
   topic.ready.then(() => ui.onCode(code));
-  const expiry = setTimeout(() => { if (!done) { topic.close(); ui.onError(new Error("The code expired. Make a new one.")); } }, 10 * 60 * 1000);
+  const expiry = setTimeout(() => { if (!done) { topic.close(); ui.onError(new Error(t("The code expired. Make a new one."))); } }, 10 * 60 * 1000);
   return () => { done = true; clearTimeout(expiry); topic.close(); if (link && !link.authed) link.close(); };
 }
 
@@ -369,19 +370,19 @@ export function hostPairing(ui) {
  */
 export function joinPairing(input, ui) {
   const code = normalizeCode(input);
-  if (!isValidCode(code)) { ui.onError(new Error("Codes are 6 letters and numbers, like K7M2P9.")); return () => {}; }
+  if (!isValidCode(code)) { ui.onError(new Error(t("Codes are 6 letters and numbers, like K7M2P9."))); return () => {}; }
   const topicName = `seekto-pair-${code}`;
   let link = null;
   let done = false;
   let helloTimer = null;
   const topic = new Topic(topicName, async (msg) => {
     if (done || msg.to !== me().id) return;
-    if (msg.type === "denied") { done = true; topic.close(); clearInterval(helloTimer); ui.onError(new Error("The other device said no.")); }
+    if (msg.type === "denied") { done = true; topic.close(); clearInterval(helloTimer); ui.onError(new Error(t("The other device said no."))); }
     if (msg.type === "welcome" && !link) {
       clearInterval(helloTimer);
       const peer = { id: msg.from, name: msg.name };
       link = new Link({ peer, initiator: true, sendSignal: (m) => Topic.send(topicName, { ...m, to: peer.id }) });
-      link.on("denied", () => { done = true; topic.close(); ui.onError(new Error("The other device said no.")); link.close(); });
+      link.on("denied", () => { done = true; topic.close(); ui.onError(new Error(t("The other device said no."))); link.close(); });
       link.on("pair", (m) => {
         done = true;
         savePaired([...paired().filter((p) => p.id !== peer.id), { ...peer, name: m.name, secret: m.secret, lastSync: null }]);
@@ -408,7 +409,7 @@ export function joinPairing(input, ui) {
     hello();
     helloTimer = setInterval(hello, 4000);
     ui.onWaiting?.();
-    setTimeout(() => { if (!link && !done) { clearInterval(helloTimer); topic.close(); ui.onError(new Error("No device answered. Check the code and that the other device is showing it.")); } }, 90000);
+    setTimeout(() => { if (!link && !done) { clearInterval(helloTimer); topic.close(); ui.onError(new Error(t("No device answered. Check the code and that the other device is showing it."))); } }, 90000);
   });
   return () => { done = true; clearInterval(helloTimer); topic.close(); if (link && !link.authed) link.close(); };
 }
@@ -430,16 +431,16 @@ function authenticate(link, secret) {
     const finish = () => { if (theirsOk && mineSent) resolve(); };
     const fail = (message) => { reject(new Error(message)); link.close(); };
     link.on("challenge", async (m) => {
-      if (!m.nonce || m.nonce === nonce) return fail("That device couldn't prove it's paired.");
+      if (!m.nonce || m.nonce === nonce) return fail(t("That device couldn't prove it's paired."));
       link.send({ type: "proof", value: await proof(secret, m.nonce, crypto, { channel, prover: me().id }) });
       mineSent = true;
       finish();
     });
     link.on("proof", async (m) => {
-      if (m.value === (await proof(secret, nonce, crypto, { channel, prover: link.peer.id }))) { theirsOk = true; finish(); } else fail("That device couldn't prove it's paired.");
+      if (m.value === (await proof(secret, nonce, crypto, { channel, prover: link.peer.id }))) { theirsOk = true; finish(); } else fail(t("That device couldn't prove it's paired."));
     });
     link.send({ type: "challenge", nonce });
-    setTimeout(() => reject(new Error("Pairing check timed out.")), 15000);
+    setTimeout(() => reject(new Error(t("Pairing check timed out."))), 15000);
   });
 }
 

@@ -1,5 +1,6 @@
 // Speech in and out, using what the browser provides.
 // Note: in Chrome and Edge, speech recognition is processed by the browser maker's servers.
+import { t, speechLang } from "./i18n.js";
 
 const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 export const canListen = Boolean(Recognition);
@@ -19,9 +20,9 @@ export function speak(text) {
 }
 
 /** Listen for one phrase. Resolves with the text, or "" if nothing was heard. */
-export function listenOnce({ lang = "en-US" } = {}) {
+export function listenOnce({ lang = speechLang() } = {}) {
   return new Promise((resolve, reject) => {
-    if (!canListen) return reject(new Error("This browser can't listen. Try Chrome, Edge or Safari."));
+    if (!canListen) return reject(new Error(t("This browser can't listen. Try Chrome, Edge or Safari.")));
     const r = new Recognition();
     r.lang = lang;
     r.interimResults = false;
@@ -35,16 +36,16 @@ export function listenOnce({ lang = "en-US" } = {}) {
 }
 
 function micMessage(code) {
-  if (code === "not-allowed" || code === "service-not-allowed") return "Microphone access was blocked. Allow it in your browser's site settings.";
-  if (code === "network") return "Speech recognition needs an internet connection in this browser.";
-  return `Speech recognition stopped (${code}).`;
+  if (code === "not-allowed" || code === "service-not-allowed") return t("Microphone access was blocked. Allow it in your browser's site settings.");
+  if (code === "network") return t("Speech recognition needs an internet connection in this browser.");
+  return t("Speech recognition stopped ({code}).", { code });
 }
 
 /**
  * Continuous transcription for recording a class. Calls onLine({ text, final }) as words arrive.
  * Browsers stop recognition after silence, so it restarts itself until stop() is called.
  */
-export function transcribe({ onLine, onError, lang = "en-US" }) {
+export function transcribe({ onLine, onError, lang = speechLang() }) {
   if (!canListen) return null;
   let active = true;
   const r = new Recognition();

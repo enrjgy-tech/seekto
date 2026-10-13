@@ -8,7 +8,8 @@
     "bench": "node engine/bench/run.mjs",
     "check:packs": "node pipeline/check-packs.mjs",
     "build": "node pipeline/build-site.mjs",
-    "serve": "npx --yes serve@14.2.4 site"
+    "serve": "npx --yes serve@14.2.4 site",
+    "i18n": "node pipeline/i18n.mjs"
   },
   "engines": {
     "node": ">=20"

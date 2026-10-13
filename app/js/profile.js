@@ -1,38 +1,39 @@
 // Learning and Work: the same app with the words, home screen and a few tools changed.
 import { state, updateSettings } from "./state.js";
+import { t } from "./i18n.js";
 
 export const MODES = {
   learning: {
-    name: "Learning",
-    record: "Record a class",
-    recordTitle: "Record a class",
-    intro: "I keep your class notes, your calendar and your assignments in one place, and I help you study.",
+    name: t("Learning"),
+    record: t("Record a class"),
+    recordTitle: t("Record a class"),
+    intro: t("I keep your class notes, your calendar and your assignments in one place, and I help you study."),
     steps: [
-      ["sample", "Try a sample class", "See a recorded lesson turn into notes, calendar dates and a quiz."],
-      ["record", "Record a class", "Notes, marks and dates are saved by themselves."],
-      ["calendar", "Add your school calendar", "Import from Canvas, Google Classroom or any .ics file."],
-      ["settings", "Choose an AI model (optional)", "On your computer, free cloud or paid cloud."],
+      ["sample", t("Try a sample class"), t("See a recorded lesson turn into notes, calendar dates and a quiz.")],
+      ["record", t("Record a class"), t("Notes, marks and dates are saved by themselves.")],
+      ["calendar", t("Add your school calendar"), t("Import from Canvas, Google Classroom or any .ics file.")],
+      ["settings", t("Choose an AI model (optional)"), t("On your computer, free cloud or paid cloud.")],
     ],
-    suggestions: ["What's due this week?", "When is my next test?", "Quiz me", "Start recording"],
-    placeholder: "Ask about your classes, deadlines or notes",
-    consent: "Follow your school's rules and ask your teacher before recording.",
-    consentCheck: "My teacher allowed this recording",
+    suggestions: [t("What's due this week?"), t("When is my next test?"), t("Quiz me"), t("Start recording")],
+    placeholder: t("Ask about your classes, deadlines or notes"),
+    consent: t("Follow your school's rules and ask your teacher before recording."),
+    consentCheck: t("My teacher allowed this recording"),
   },
   work: {
-    name: "Work",
-    record: "Record a meeting",
-    recordTitle: "Record a meeting",
-    intro: "I turn your meetings and talks into notes, decisions and action items with owners and dates, and I keep your deadlines in one place.",
+    name: t("Work"),
+    record: t("Record a meeting"),
+    recordTitle: t("Record a meeting"),
+    intro: t("I turn your meetings and talks into notes, decisions and action items with owners and dates, and I keep your deadlines in one place."),
     steps: [
-      ["sample", "Try a sample meeting", "See a meeting turn into decisions, action items and a follow-up email."],
-      ["record", "Record a meeting", "Decisions, action items and dates are saved by themselves."],
-      ["calendar", "Add your calendar", "Import any .ics file from Google, Outlook or your team tools."],
-      ["settings", "Choose an AI model (optional)", "On your computer, free cloud or paid cloud."],
+      ["sample", t("Try a sample meeting"), t("See a meeting turn into decisions, action items and a follow-up email.")],
+      ["record", t("Record a meeting"), t("Decisions, action items and dates are saved by themselves.")],
+      ["calendar", t("Add your calendar"), t("Import any .ics file from Google, Outlook or your team tools.")],
+      ["settings", t("Choose an AI model (optional)"), t("On your computer, free cloud or paid cloud.")],
     ],
-    suggestions: ["What are my action items?", "What's due this week?", "Draft a follow-up email", "Start recording"],
-    placeholder: "Ask about your meetings, action items or deadlines",
-    consent: "Everyone in the meeting must know it's being recorded. Some places require everyone's consent.",
-    consentCheck: "Everyone in this meeting knows it's being recorded",
+    suggestions: [t("What are my action items?"), t("What's due this week?"), t("Draft a follow-up email"), t("Start recording")],
+    placeholder: t("Ask about your meetings, action items or deadlines"),
+    consent: t("Everyone in the meeting must know it's being recorded. Some places require everyone's consent."),
+    consentCheck: t("Everyone in this meeting knows it's being recorded"),
   },
 };
 

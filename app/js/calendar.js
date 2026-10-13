@@ -5,9 +5,16 @@ import { uid } from "./store.js";
 import { go } from "./nav.js";
 import { practiceNote } from "./quiz.js";
 import { parseICS, toICS, toISO, fromISO, describeDay } from "../engine/index.js";
+import { t, uiLocale } from "./i18n.js";
 
 let month = null;
 let showPast = false;
+
+/** The event type as shown to the user; the English type stays the CSS class. */
+export function typeLabel(type) {
+  const labels = { test: t("test"), assignment: t("assignment"), review: t("review"), task: t("task"), event: t("event") };
+  return labels[type] || type;
+}
 
 function typeFor(title) {
   return /test|exam|quiz|midterm|final/i.test(title) ? "test" : /due|essay|paper|project|homework|assignment|lab|report|reading|presentation/i.test(title) ? "assignment" : "event";
@@ -18,34 +25,34 @@ export function render(main) {
   main.innerHTML = html`
     <div class="view">
       <div class="view-head">
-        <h1>Calendar</h1>
+        <h1>${t("Calendar")}</h1>
         <div class="row">
-          <label class="btn ghost" style="cursor:pointer">Import calendar (.ics)<input type="file" id="ics" accept=".ics,text/calendar" hidden></label>
-          <button class="btn ghost" id="exportIcs">Export</button>
+          <label class="btn ghost" style="cursor:pointer">${t("Import calendar (.ics)")}<input type="file" id="ics" accept=".ics,text/calendar" hidden></label>
+          <button class="btn ghost" id="exportIcs">${t("Export")}</button>
         </div>
       </div>
       <section class="panel">
-        <div class="view-head"><button class="btn ghost small" id="prev" aria-label="Previous month">←</button><h2 id="monthLabel"></h2><button class="btn ghost small" id="next" aria-label="Next month">→</button></div>
+        <div class="view-head"><button class="btn ghost small" id="prev" aria-label="${t("Previous month")}">←</button><h2 id="monthLabel"></h2><button class="btn ghost small" id="next" aria-label="${t("Next month")}">→</button></div>
         <div class="month" id="grid"></div>
       </section>
       <section class="panel">
-        <div class="view-head"><h2>Coming up</h2><label class="row note-small"><input type="checkbox" id="past" ${raw(showPast ? "checked" : "")}> Show past</label></div>
+        <div class="view-head"><h2>${t("Coming up")}</h2><label class="row note-small"><input type="checkbox" id="past" ${raw(showPast ? "checked" : "")}> ${t("Show past")}</label></div>
         <div class="agenda" id="agenda"></div>
       </section>
       <section class="panel">
-        <h2>Add a date</h2>
+        <h2>${t("Add a date")}</h2>
         <form class="row" id="addForm">
-          <input type="text" id="evTitle" placeholder="Math chapter 5 quiz" required style="flex:2;min-width:180px">
+          <input type="text" id="evTitle" placeholder="${t("Math chapter 5 quiz")}" required style="flex:2;min-width:180px">
           <input type="date" id="evDate" required value="${today()}" style="flex:1;min-width:150px">
-          <button class="btn">Add</button>
+          <button class="btn">${t("Add")}</button>
         </form>
       </section>
       <section class="panel">
-        <h2>Connect your school calendar</h2>
-        <p class="sub"><b>Canvas:</b> open Calendar, click <i>Calendar Feed</i>, open the link to download the .ics file, then use <i>Import calendar</i> above.</p>
-        <p class="sub"><b>Google Classroom:</b> class deadlines appear in Google Calendar. In Google Calendar's settings, export the class calendar and import the .ics here.</p>
-        <p class="sub"><b>Other school sites:</b> most (Moodle, Blackboard, Schoology) have an export or iCal link. Import the file the same way.</p>
-        <p class="note-small">Seekto also adds dates it hears when you record a class, and dates you type in notes. Live syncing with school sites is on the roadmap.</p>
+        <h2>${t("Connect your school calendar")}</h2>
+        <p class="sub">${raw(t("<b>Canvas:</b> open Calendar, click <i>Calendar Feed</i>, open the link to download the .ics file, then use <i>Import calendar</i> above."))}</p>
+        <p class="sub">${raw(t("<b>Google Classroom:</b> class deadlines appear in Google Calendar. In Google Calendar's settings, export the class calendar and import the .ics here."))}</p>
+        <p class="sub">${raw(t("<b>Other school sites:</b> most (Moodle, Blackboard, Schoology) have an export or iCal link. Import the file the same way."))}</p>
+        <p class="note-small">${t("Seekto also adds dates it hears when you record a class, and dates you type in notes. Live syncing with school sites is on the roadmap.")}</p>
       </section>
     </div>`;
   $("#prev").addEventListener("click", () => { month = new Date(month.getFullYear(), month.getMonth() - 1, 1); drawMonth(); });
@@ -62,7 +69,11 @@ export function render(main) {
       await saveEvent(item);
       added++;
     }
-    toast(events.length ? `Imported ${added} event${added === 1 ? "" : "s"}${events.length > added ? ` (${events.length - added} already here)` : ""}` : "No events found in that file");
+    const skipped = events.length - added;
+    const imported = skipped
+      ? (added === 1 ? t("Imported 1 event ({skipped} already here)", { skipped }) : t("Imported {n} events ({skipped} already here)", { n: added, skipped }))
+      : (added === 1 ? t("Imported 1 event") : t("Imported {n} events", { n: added }));
+    toast(events.length ? imported : t("No events found in that file"));
     render(main);
   });
   $("#exportIcs").addEventListener("click", () => download("seekto-calendar.ics", toICS(state.events), "text/calendar"));
@@ -70,7 +81,7 @@ export function render(main) {
     e.preventDefault();
     const title = $("#evTitle").value.trim();
     await saveEvent({ id: uid("event"), title, date: $("#evDate").value, type: typeFor(title), source: "manual" });
-    toast("Added");
+    toast(t("Added"));
     render(main);
   });
   drawMonth();
@@ -78,16 +89,16 @@ export function render(main) {
 }
 
 function drawMonth() {
-  $("#monthLabel").textContent = month.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+  $("#monthLabel").textContent = month.toLocaleDateString(uiLocale(), { month: "long", year: "numeric" });
   const start = new Date(month);
   start.setDate(1 - month.getDay());
-  const cells = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => `<div class="dow" aria-hidden="true">${d}</div>`);
+  const cells = Array.from({ length: 7 }, (_, i) => new Date(2026, 0, 4 + i).toLocaleDateString(uiLocale(), { weekday: "short" })).map((d) => `<div class="dow" aria-hidden="true">${d}</div>`);
   for (let i = 0; i < 42; i++) {
     const day = new Date(start);
     day.setDate(start.getDate() + i);
     const iso = toISO(day);
     const evs = state.events.filter((e) => e.date === iso);
-    const label = `${day.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}${evs.length ? `: ${evs.map((e) => e.title).join(", ")}` : ""}`;
+    const label = `${day.toLocaleDateString(uiLocale(), { weekday: "long", month: "long", day: "numeric" })}${evs.length ? `: ${evs.map((e) => e.title).join(", ")}` : ""}`;
     cells.push(html`<div class="day ${day.getMonth() !== month.getMonth() ? "other" : ""} ${iso === today() ? "today" : ""} ${evs.length ? "has" : ""}" role="listitem" aria-label="${label}" ${raw(iso === today() ? 'aria-current="date"' : "")} title="${evs.map((e) => e.title).join(", ")}">
       <span class="n" aria-hidden="true">${day.getDate()}</span>${raw(evs.slice(0, 3).map((e) => html`<span class="ev ${e.type}" aria-hidden="true">${e.title}</span>`).join(""))}</div>`);
   }
@@ -100,11 +111,11 @@ function drawAgenda() {
   const list = state.events.filter((e) => showPast || e.date >= now);
   $("#agenda").innerHTML = list.length
     ? list.map((e) => html`<div class="event">
-        <span class="when">${e.date >= now ? describeDay(e.date, now) : friendlyDate(e.date)}</span>
-        <span>${e.title}${raw(e.noteId ? html` <a href="#note/${e.noteId}" class="note-small">from your notes</a>` : e.source === "import" ? ' <span class="note-small">imported</span>' : "")}</span>
-        <span class="row">${raw(e.type === "review" && e.noteId ? html`<button class="btn small" data-practice="${e.noteId}">Practice</button>` : html`<span class="kind ${e.type}">${e.type}</span>`)}<button class="btn ghost small" data-del="${e.id}" aria-label="Remove ${e.title}">Remove</button></span>
+        <span class="when">${e.date >= now ? describeDay(e.date, now, { tr: t, locale: uiLocale() }) : friendlyDate(e.date)}</span>
+        <span>${e.title}${raw(e.noteId ? html` <a href="#note/${e.noteId}" class="note-small">${t("from your notes")}</a>` : e.source === "import" ? html` <span class="note-small">${t("imported")}</span>` : "")}</span>
+        <span class="row">${raw(e.type === "review" && e.noteId ? html`<button class="btn small" data-practice="${e.noteId}">${t("Practice")}</button>` : html`<span class="kind ${e.type}">${typeLabel(e.type)}</span>`)}<button class="btn ghost small" data-del="${e.id}" aria-label="${t("Remove {title}", { title: e.title })}">${t("Remove")}</button></span>
       </div>`).join("")
-    : `<p class="empty">Nothing coming up. Record a class, import your school calendar, or add a date.</p>`;
+    : `<p class="empty">${t("Nothing coming up. Record a class, import your school calendar, or add a date.")}</p>`;
   $$("[data-del]").forEach((b) => b.addEventListener("click", async () => { await deleteEvent(b.dataset.del); drawAgenda(); drawMonth(); }));
   $$("[data-practice]").forEach((b) => b.addEventListener("click", () => practiceNote(b.dataset.practice)));
 }

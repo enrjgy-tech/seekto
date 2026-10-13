@@ -17,6 +17,8 @@ jobs:
         with:
           node-version: 20
       - run: npm test
+      - name: Every interface string is translated
+        run: node pipeline/i18n.mjs
       - name: Accuracy on held-out sentences
         run: node engine/bench/run.mjs --check
       - run: npm run check:packs

@@ -1,11 +1,12 @@
 // On-device transcription: Whisper in the browser. Works in any modern browser, offline after the
 // first download, in about 100 languages. Audio is decoded here and handed to a background thread.
 import { whisperCues, toMono16k } from "../engine/index.js";
+import { t } from "./i18n.js";
 
 export const MODELS = {
-  fast: { id: "Xenova/whisper-tiny", label: "Fast (about 40 MB)" },
-  better: { id: "Xenova/whisper-base", label: "Better (about 80 MB)" },
-  best: { id: "Xenova/whisper-small", label: "Best, for fast computers (about 250 MB)" },
+  fast: { id: "Xenova/whisper-tiny", label: t("Fast (about 40 MB)") },
+  better: { id: "Xenova/whisper-base", label: t("Better (about 80 MB)") },
+  best: { id: "Xenova/whisper-small", label: t("Best, for fast computers (about 250 MB)") },
 };
 
 export const supported = typeof Worker !== "undefined" && typeof WebAssembly !== "undefined" && typeof (globalThis.AudioContext || globalThis.webkitAudioContext) !== "undefined";
@@ -53,9 +54,9 @@ function run(message, onProgress) {
 }
 
 function friendly(message) {
-  if (/fetch|network|Failed to load|import/i.test(message)) return "Couldn't download the transcription model. Check your connection; after the first download it works offline.";
-  if (/memory|OOM|allocation/i.test(message)) return "This device ran out of memory. Try the Fast model or a shorter recording.";
-  return `On-device transcription failed: ${message}`;
+  if (/fetch|network|Failed to load|import/i.test(message)) return t("Couldn't download the transcription model. Check your connection; after the first download it works offline.");
+  if (/memory|OOM|allocation/i.test(message)) return t("This device ran out of memory. Try the Fast model or a shorter recording.");
+  return t("On-device transcription failed: {message}", { message });
 }
 
 /** Download the model ahead of time. */
@@ -67,16 +68,16 @@ export function prepare(quality = "fast", onProgress) {
 export async function transcribeOnDevice(blob, { quality = "fast", language = null, onProgress } = {}) {
   onProgress?.({ status: "decoding" });
   const audio = await decode(blob);
-  if (!audio.length) throw new Error("This recording is empty.");
+  if (!audio.length) throw new Error(t("This recording is empty."));
   const output = await run({ type: "run", model: MODELS[quality]?.id || MODELS.fast.id, audio, language }, onProgress);
   return whisperCues(output);
 }
 
 /** "Downloading model… 42%" style text for progress events. */
 export function progressText(p) {
-  if (p.status === "decoding") return "Reading the recording…";
-  if (p.status === "progress" && p.total) return `Downloading the model (first time only)… ${Math.round(p.progress || 0)}%`;
-  if (p.status === "ready") return "Transcribing on this device…";
-  if (p.status === "initiate" || p.status === "download") return "Downloading the model (first time only)…";
-  return "Transcribing on this device…";
+  if (p.status === "decoding") return t("Reading the recording…");
+  if (p.status === "progress" && p.total) return t("Downloading the model (first time only)… {pct}%", { pct: Math.round(p.progress || 0) });
+  if (p.status === "ready") return t("Transcribing on this device…");
+  if (p.status === "initiate" || p.status === "download") return t("Downloading the model (first time only)…");
+  return t("Transcribing on this device…");
 }

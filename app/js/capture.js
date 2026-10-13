@@ -3,6 +3,7 @@
 import { state, saveEvent, hasEvent, noteText, locale } from "./state.js";
 import { uid } from "./store.js";
 import { findEvents, findActionItems, findDecisions } from "../engine/index.js";
+import { t } from "./i18n.js";
 
 export function isMeeting(note) {
   return note.mode === "work";
@@ -49,11 +50,11 @@ export async function transcribeNote(id) {
   const { saveNote } = await import("./state.js");
   const { detectSubject, detectTopic } = await import("../engine/index.js");
   const tell = (text) => { running.set(id, text); window.dispatchEvent(new CustomEvent("seekto:asr", { detail: { id, text } })); };
-  tell("Starting…");
+  tell(t("Starting…"));
   try {
     const note = state.notes.find((n) => n.id === id);
     const rec = note?.audioId && (await get("audio", note.audioId));
-    if (!rec?.blob) throw new Error("The recording isn't on this device.");
+    if (!rec?.blob) throw new Error(t("The recording isn't on this device."));
     const cues = await transcribeOnDevice(rec.blob, {
       quality: state.settings.asrQuality || "fast",
       language: state.settings.asrLanguage || null,
@@ -64,8 +65,9 @@ export async function transcribeNote(id) {
     fresh.text = cues.map((c) => c.text).join(" ");
     if (!fresh.subject || fresh.subject === "General") fresh.subject = fresh.mode === "work" ? "Meeting" : detectSubject(fresh.text) || "General";
     fresh.topic = detectTopic(fresh.text) || fresh.topic;
-    if (/^(Recording|Meeting: Recording|General: Recording)$/.test(fresh.title)) fresh.title = `${fresh.mode === "work" ? "Meeting" : fresh.subject}: ${fresh.topic}`;
+    if (fresh.autoTitle || /^(Recording|Meeting: Recording|General: Recording)$/.test(fresh.title)) fresh.title = `${fresh.mode === "work" ? "Meeting" : fresh.subject}: ${fresh.topic}`;
     delete fresh.pendingTranscript;
+    delete fresh.autoTitle;
     const added = await addDates(fresh);
     await saveNote(fresh);
     running.delete(id);

@@ -14,7 +14,8 @@ import { applyChrome } from "./profile.js";
 import { initDevices, onStatus, connected, paired } from "./devices.js";
 import { openConnect } from "./connect.js";
 import { startCloud, askToShareAccount } from "./account.js";
-import { toast } from "./ui.js";
+import { toast, closeOverlay } from "./ui.js";
+import { t, translatePage } from "./i18n.js";
 
 const views = {
   chat: chat.render,
@@ -38,6 +39,7 @@ function route() {
 
 function render() {
   const [name, param] = route();
+  if (document.querySelector("#overlay .overlay")) closeOverlay();
   const view = views[name] ? name : "chat";
   const top = { note: "notes", project: "settings", research: "settings" }[view] || view;
   for (const b of $$("[data-go]")) {
@@ -55,7 +57,7 @@ function render() {
 
 function updateModelPill() {
   const s = state.settings;
-  $("#modelPill").textContent = isReady(s) ? `AI: ${PROVIDERS[s.provider].label}` : "AI: off (works offline)";
+  $("#modelPill").textContent = isReady(s) ? t("AI: {name}", { name: PROVIDERS[s.provider].label }) : t("AI: off (works offline)");
 }
 
 for (const b of $$("[data-go]")) b.addEventListener("click", () => go(b.dataset.go));
@@ -66,7 +68,7 @@ window.addEventListener("seekto:model", updateModelPill);
 function updateDevicePill() {
   const n = connected().length;
   const total = paired().length;
-  $("#devicePill").textContent = total ? `${n ? `${n} device${n > 1 ? "s" : ""} connected` : "Devices offline"}` : "";
+  $("#devicePill").textContent = total ? (n ? (n > 1 ? t("{n} devices connected", { n }) : t("1 device connected")) : t("Devices offline")) : "";
 }
 
 $("#connectBtn").addEventListener("click", () => openConnect());
@@ -79,13 +81,14 @@ let syncToast = null;
 window.addEventListener("seekto:synced", async (e) => {
   await loadAll();
   clearTimeout(syncToast);
-  syncToast = setTimeout(() => toast(`Synced with ${e.detail.from}`), 400);
+  syncToast = setTimeout(() => toast(t("Synced with {name}", { name: e.detail.from })), 400);
   const name = (location.hash.slice(1) || "chat").split("/")[0];
   const typing = document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName);
   if (["notes", "calendar", "research"].includes(name) && !typing && !document.querySelector(".overlay")) render();
 });
 
 await loadAll();
+translatePage();
 applyChrome();
 render();
 initDevices();
