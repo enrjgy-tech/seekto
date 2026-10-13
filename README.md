@@ -1,34 +1,37 @@
 # Seekto
 
-**Turn what you hear into notes, deadlines and practice. For classes and meetings. Private, no account, works without AI.**
+**Your teacher says "the quiz is on Friday." Seekto puts it on your calendar and turns the lesson into a practice test you can share with your class.**
 
-![Seekto turning a sample class into calendar dates and a quiz, then a sample meeting into decisions, action items and a follow-up email](docs/media/demo.gif)
+Free and open source. Private: no account, works without AI, and transcripts can be made on your own device.
 
-**[Open Seekto →](https://enrjgy-tech.github.io/seekto/)** and press **Try a sample**. No microphone, account or AI key needed.
+![A class recording turning into calendar dates and a practice test, which a classmate opens from a link on their phone](docs/media/hero.gif)
 
-## What makes it different
+**[Open Seekto →](https://enrjgy-tech.github.io/seekto/)** and press **Try a sample class**. No microphone, account or AI key needed.
 
-- **It listens for what you need to do.** When a teacher says "the quiz is on Friday", it's on your calendar. When someone says "Maria will send the deck by Friday", it's an action item with an owner and a date. This works without any AI model, from tested rules in [`engine/`](engine/src).
-- **Private transcripts in any language.** Turn on on-device transcription and Whisper runs in your browser: no audio leaves your device, it works offline after a one-time download, in about 100 languages and any modern browser.
-- **Your data stays yours.** Everything is stored in your browser. Connect your phone and laptop with a 6-letter code and they sync directly, encrypted. Optional storage goes to a Supabase project *you* own, end-to-end encrypted with a key only you hold. Seekto has no server and no accounts to hack.
-- **Any AI, or none.** Use it as is, or add Ollama on your own computer, free models on OpenRouter, or OpenAI or Anthropic with your own key.
+## What it does
 
-## For learning
+- **Record a class.** Seekto writes the transcript, live or privately on your device, with "lost here" marks and quick notes stamped to the second. Audio stays on your device.
+- **Deadlines find themselves.** "The essay is due October 20th" or "el examen es el viernes" goes straight on your calendar. Import Canvas, Google Classroom, Moodle or Blackboard calendars too.
+- **Practice tests from your own notes,** both ways (term to meaning, meaning to term), graded whether you type or say the answer. Export to Quizlet, Anki, Google Forms, Kahoot or Moodle.
+- **Share a test with your class.** One link opens it on any phone, with nothing to install. The questions travel inside the link, so they're never stored on a server.
+- **Ask about it.** "When is my math test?", "What's due this week?", "What is mitosis?" Type, or use talk mode.
+- **Assignments.** Paste the rubric to get a checklist and a schedule back from the due date, with your related notes and YouTube sources beside it.
 
-- **Record a class.** A live transcript, or a private one made on your device. "Lost here" marks and quick notes are stamped to the second. Audio stays on your device.
-- **Ask about it.** "When is my math test?", "What's due this week?", "What is mitosis?" Type or talk.
-- **Practice.** Seekto makes practice tests from your notes, both ways (term to meaning, meaning to term), and grades typed or spoken answers. Export to Quizlet, Anki, Google Forms, Kahoot or Moodle.
-- **Share a test with your class.** One link opens the test for anyone, with nothing to install. The questions travel inside the link itself, so they're never stored on a server.
-- **Assignments.** Paste the rubric to get a checklist and a schedule back from the due date, with your related notes and YouTube sources beside it. Import your Canvas, Google Classroom, Moodle or Blackboard calendar.
+## Why it's different
 
-## For work
+- **No AI needed.** Dates, deadlines, definitions and quizzes come from tested rules in [`engine/`](engine/src), in English and Spanish. Add an AI model only if you want one: Ollama on your computer, free models on OpenRouter, or OpenAI or Anthropic with your own key.
+- **Private transcripts in any language.** Whisper can run in your browser: no audio leaves your device, it works offline after a one-time download, in about 100 languages and any modern browser.
+- **Your notes stay yours.** Everything lives in your browser. Connect your phone and laptop with a 6-letter code and they sync directly, encrypted. Optional storage goes to a Supabase project *you* own, end-to-end encrypted with a key only you hold. Seekto has no server and no accounts to hack.
 
-- **Record a meeting.** A consent check comes first, every time.
-- **Decisions and action items.** Who does what, by when, pulled out as people talk. Dated items go on your calendar.
-- **Follow-up email.** A recap with decisions and action items, ready to check and send from your own email app. Seekto never sends anything for you.
-- **Ask about it.** "What are my action items?", "Draft a follow-up email."
+## Also for meetings
 
-Switch between Learning and Work at any time. Notes, search, talk mode, device sync and AI choice are shared.
+Switch to **Work** and the same app records meetings, after a consent check every time. It pulls out decisions and action items (who does what, by when), puts dated ones on your calendar and drafts a follow-up email for you to check and send yourself.
+
+<details><summary>See the full tour: a class, a shared test and a meeting</summary>
+
+![A sample class playing live, a classmate opening the shared test on a phone, and a sample meeting turning into decisions, action items and a follow-up email](docs/media/demo.gif)
+
+</details>
 
 ## Privacy, in short
 

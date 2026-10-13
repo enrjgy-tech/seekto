@@ -151,8 +151,9 @@ async function playSample(kind) {
     saved.lines.push({ t: i * 9 + 2, text, chips: found });
     const chips = found.map(([cls, label]) => html`<span class="chip ${cls}">${label}</span>`);
     if (chips.length) { const c = document.createElement("div"); c.className = "chips"; c.innerHTML = chips.join(""); row.appendChild(c); }
+    lines.scrollTop = lines.scrollHeight;
     if (scroll) scroll.scrollTop = scroll.scrollHeight;
-    await new Promise((r) => setTimeout(r, chips.length ? 900 : 420));
+    await new Promise((r) => setTimeout(r, (chips.length ? 900 : 420) * (window.seektoDemoPace || 1)));
   }
   history.push({ role: "bot", live: saved, text: "" });
   saveHistory();

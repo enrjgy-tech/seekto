@@ -1,7 +1,7 @@
 {
   "name": "Seekto",
   "short_name": "Seekto",
-  "description": "Turn classes and meetings into notes, deadlines, action items and practice tests. Private, no account, works without AI.",
+  "description": "Record your class: deadlines go on your calendar and the lesson becomes a practice test you can share. Private, no account, works without AI.",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#0a0a0b",

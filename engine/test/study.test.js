@@ -111,3 +111,18 @@ test("exports quizzes for Anki, Quizlet, CSV and Moodle", () => {
   assert.equal(exportQuiz(qs, "csv").split("\n")[2], '"Say ""hi"", then: x=1","Greeting"');
   assert.ok(exportQuiz(qs, "gift").includes("::Q2:: Say \"hi\", then\\: x\\=1 {=Greeting}"));
 });
+
+test("Spanish: dates, deadlines and definitions", () => {
+  const ref = new Date(2026, 9, 12); // Monday, October 12, 2026
+  const ev = (t) => findEvents(t, { ref }).map((e) => [e.date, e.type, e.title]);
+  assert.deepEqual(ev("El examen de química es el viernes."), [["2026-10-16", "test", "Examen de química"]]);
+  assert.deepEqual(ev("La tarea de historia se entrega el 20 de octubre."), [["2026-10-20", "assignment", "Tarea de historia"]]);
+  assert.deepEqual(ev("Tenemos prueba mañana."), [["2026-10-13", "test", "Prueba"]]);
+  assert.deepEqual(ev("El proyecto vence en dos semanas."), [["2026-10-26", "assignment", "Proyecto"]]);
+  assert.deepEqual(ev("El parcial es el jueves de la próxima semana."), [["2026-10-22", "test", "Parcial"]]);
+  assert.deepEqual(ev("El ensayo es para el próximo martes."), [["2026-10-13", "assignment", "Ensayo"]]);
+  // "esta mañana" is "this morning", not tomorrow
+  assert.deepEqual(findDates("Esta mañana hablamos de células.", ref), []);
+  const defs = findDefinitions("Bueno, la mitosis es la división de una célula en dos células idénticas. La fotosíntesis significa convertir luz en azúcar. Esto es muy importante para el examen.");
+  assert.deepEqual(defs.map((d) => d.term), ["Mitosis", "Fotosíntesis"]);
+});

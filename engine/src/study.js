@@ -56,19 +56,21 @@ export function detectTopic(text) {
   return bestWord ? titleCase(bestWord[0]) : "Untitled";
 }
 
-const PRONOUN = /^(it|this|that|these|those|there|here|he|she|they|we|you|i|which|what|who|so|and|but|then|now|well)\b/i;
+const PRONOUN = /^(it|this|that|these|those|there|here|he|she|they|we|you|i|which|what|who|so|and|but|then|now|well|esto|eso|esta|este|ese|esa|él|ella|ellos|ellas|nosotros|ustedes|usted|que|qué|y|pero|entonces|bueno|hoy|aquí|ahí)(?![\p{L}])/iu;
 
-/** Find definition sentences: "X is a Y", "X means Y", "X refers to Y". */
+/** Find definition sentences: "X is a Y", "X means Y", "X refers to Y", and in Spanish "X es un Y", "X significa Y". */
 export function findDefinitions(text) {
   const out = [];
   const seen = new Set();
   for (const s of sentences(text)) {
-    const clean = s.replace(/^(so|and|okay|now|remember|basically),?\s+/i, "");
+    const clean = s.replace(/^(so|and|okay|now|remember|basically|entonces|bueno|recuerden|recuerda|o sea|básicamente),?\s+/i, "");
     const m =
       clean.match(/^(.{2,48}?)\s+(?:is|are)\s+((?:a|an|the|when|how|what)\b.{8,})$/i) ||
-      clean.match(/^(.{2,48}?)\s+(?:means|refers to|is defined as|is called)\s+(.{8,})$/i);
+      clean.match(/^(.{2,48}?)\s+(?:means|refers to|is defined as|is called)\s+(.{8,})$/i) ||
+      clean.match(/^(.{2,48}?)\s+(?:es|son)\s+((?:un|una|unos|unas|el|la|los|las|cuando|como|lo que)(?![\p{L}]).{8,})$/iu) ||
+      clean.match(/^(.{2,48}?)\s+(?:significa|significan|se refiere a|se define como|quiere decir|se llama)\s+(.{8,})$/iu);
     if (!m) continue;
-    const term = m[1].replace(/^(the|a|an)\s+/i, "").trim();
+    const term = m[1].replace(/^(the|a|an|el|la|los|las|un|una)\s+/i, "").trim();
     const definition = m[2].replace(/[.!?]+$/, "").trim();
     if (PRONOUN.test(term) || term.split(/\s+/).length > 5 || /\d{3,}/.test(term)) continue;
     const key = term.toLowerCase();
