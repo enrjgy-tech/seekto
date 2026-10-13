@@ -126,3 +126,11 @@ test("Spanish: dates, deadlines and definitions", () => {
   const defs = findDefinitions("Bueno, la mitosis es la división de una célula en dos células idénticas. La fotosíntesis significa convertir luz en azúcar. Esto es muy importante para el examen.");
   assert.deepEqual(defs.map((d) => d.term), ["Mitosis", "Fotosíntesis"]);
 });
+
+test("one sentence with two deadlines gives two events", () => {
+  const ref = new Date(2026, 9, 12);
+  const ev = (t) => findEvents(t, { ref }).map((e) => [e.date, e.title]);
+  assert.deepEqual(ev("Your lab report is due next Wednesday, and the essay is due October 30th."), [["2026-10-21", "Lab report due"], ["2026-10-30", "Essay due"]]);
+  assert.deepEqual(ev("La tarea de química se entrega el 20 de octubre, y el proyecto vence en dos semanas."), [["2026-10-20", "Tarea de química"], ["2026-10-26", "Proyecto"]]);
+  assert.deepEqual(ev("The quiz is Friday and the essay is due Monday."), [["2026-10-16", "Quiz"], ["2026-10-19", "Essay due"]]);
+});

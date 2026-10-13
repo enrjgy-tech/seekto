@@ -1,6 +1,6 @@
 // Organize notes and turn them into study material, without any AI model:
 // subject and topic detection, definitions, quizzes, answer checking and exports.
-import { sentences } from "./dates.js";
+import { sentences, findDates } from "./dates.js";
 import { tokens, STOP } from "./search.js";
 
 const SUBJECTS = [
@@ -81,6 +81,9 @@ export function findDefinitions(text) {
   return out;
 }
 
+// Words that make poor fill-in-the-blank answers: classroom talk, not course content.
+const BLANK_SKIP = new Set("chapter chapters today tomorrow everyone class lesson lecture week weeks review quiz test exam homework page pages section unit tema clase examen semana hoy".split(" "));
+
 /**
  * Make quiz questions from notes ({ title, text }).
  * Definitions give two-way questions; other key sentences give fill-in-the-blank questions.
@@ -99,7 +102,13 @@ export function makeQuiz(notes, { count = 10 } = {}) {
       for (const s of sentences(note.text)) {
         if (s.length < 40 || s.length > 220) continue;
         const parts = s.split(/(\s+)/);
-        const idx = parts.findIndex((p) => p.trim() && topicWords.has(tokens(p)[0]));
+        if (/^(okay|ok|so|alright|right|hi|hello|good morning|bueno|hola)\b/i.test(s) || /\?$/.test(s)) continue;
+        // Class logistics ("the quiz is on Friday") make poor questions.
+        if (/\b(due|quiz|test|exam|homework|deadline|examen|tarea|entrega)\b/i.test(s) || findDates(s).length) continue;
+        const idx = parts.findIndex((p) => {
+          const w = p.trim().replace(/[^\p{L}'-]/gu, "").toLowerCase();
+          return w.length >= 4 && !BLANK_SKIP.has(w) && topicWords.has(tokens(p)[0]);
+        });
         if (idx < 0) continue;
         const answer = parts[idx].replace(/[^\w'-]/g, "");
         parts[idx] = parts[idx].replace(answer, "_____");

@@ -235,7 +235,16 @@ function capitalize(text) {
 export function findEvents(text, { ref = new Date(), subject = null } = {}) {
   const events = [];
   const seen = new Set();
-  for (const sentence of sentences(text)) {
+  // A sentence can hold several deadlines ("the lab is due Wednesday, and the essay is due the 30th"),
+  // so sentences with more than one date are split into clauses first.
+  const parts = [];
+  for (const s of sentences(text)) {
+    if (findDates(s, ref).length < 2) { parts.push(s); continue; }
+    const clauses = s.split(/\s*(?:[,;]\s*(?:and|but|while|plus|y|pero|mientras)?|\s(?:and|but|y|pero)\s)\s*/i).filter((c) => c && c.trim().length > 3);
+    if (clauses.length > 1 && clauses.filter((c) => eventWord(c) && findDates(c, ref).length).length > 1) parts.push(...clauses);
+    else parts.push(s);
+  }
+  for (const sentence of parts) {
     const hit = eventWord(sentence);
     if (!hit) continue;
     const dates = findDates(sentence, ref);

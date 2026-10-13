@@ -1,24 +1,29 @@
 {
-  "name": "seekto",
+  "name": "seekto-engine",
   "version": "0.1.0",
-  "description": "On-device lecture search: parse captions, rank transcript lines, and seek to the exact second.",
+  "description": "No-AI extraction for notes: dates and deadlines (English, Spanish), definitions, practice quizzes, meeting decisions and action items, plus sharing, sync and end-to-end encryption helpers.",
   "type": "module",
   "main": "src/index.js",
   "exports": {
     ".": "./src/index.js"
   },
   "files": [
-    "src"
+    "src",
+    "README.md"
   ],
   "keywords": [
-    "lecture",
+    "dates",
+    "deadlines",
+    "nlp",
+    "rules",
+    "quiz",
+    "flashcards",
+    "meetings",
+    "action-items",
     "transcript",
-    "captions",
-    "vtt",
-    "srt",
-    "search",
-    "bm25",
-    "education"
+    "whisper",
+    "education",
+    "no-ai"
   ],
   "license": "MIT",
   "engines": {

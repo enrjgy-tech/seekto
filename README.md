@@ -8,6 +8,8 @@ Free and open source. Private: no account, works without AI, and transcripts can
 
 **[Open Seekto →](https://enrjgy-tech.github.io/seekto/)** and press **Try a sample class**. No microphone, account or AI key needed.
 
+*For developers:* Whisper running in the browser, a no-AI rules engine you can import in one line ([playground](https://enrjgy-tech.github.io/seekto/playground.html)), and end-to-end encrypted sync to a database you own. Plain JavaScript, no build step, no dependencies. [How it's built ↓](#how-its-built)
+
 ## What it does
 
 - **Record a class.** Seekto writes the transcript, live or privately on your device, with "lost here" marks and quick notes stamped to the second. Audio stays on your device.
@@ -54,7 +56,7 @@ No dependencies and no build step for the app. Node 20 or newer for the tests.
 ## How it's built
 
 - **`app/`**: the web app in plain HTML, CSS and JavaScript modules. It installs as an app and opens offline after the first visit.
-- **`engine/`**: the tested logic, usable on its own:
+- **`engine/`**: the tested logic, usable on its own ([docs](engine/README.md), [playground](https://enrjgy-tech.github.io/seekto/playground.html)):
   - dates and deadlines in speech and text;
   - decisions and action items in meetings;
   - definitions, quizzes and answer checking;

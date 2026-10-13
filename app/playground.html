@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seekto engine playground</title>
+<meta name="description" content="Try Seekto's no-AI engine: dates, deadlines, definitions, practice questions, decisions and action items from any text, in your browser.">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="styles.css">
+<style>
+  body { overflow: auto; }
+  .pg { max-width: 1100px; margin: 0 auto; padding: 28px 16px 60px; display: grid; gap: 18px; }
+  .pg header { display: grid; gap: 6px; }
+  .pg h1 { margin: 0; font-size: 28px; }
+  .pg .cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+  @media (max-width: 820px) { .pg .cols { grid-template-columns: 1fr; } }
+  .pg textarea { min-height: 300px; font: 15px/1.5 var(--font); }
+  .pg pre { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; overflow-x: auto; font: 13px/1.5 var(--mono); margin: 0; }
+  .pg .out { display: grid; gap: 14px; align-content: start; }
+  .pg .out section { display: grid; gap: 6px; }
+  .pg .out ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+  .pg .tag { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+  .pg .samples { display: flex; flex-wrap: wrap; gap: 8px; }
+  .pg .meta { color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<main class="pg">
+  <header>
+    <a href="./" class="note-small">← Seekto</a>
+    <h1>Engine playground</h1>
+    <p class="sub">Seekto's engine finds dates, deadlines, definitions, practice questions, decisions and action items in plain text, with no AI model and no server. Type or paste below; everything runs in this page.</p>
+    <div class="samples">
+      <button class="btn ghost small" data-sample="class">A class (English)</button>
+      <button class="btn ghost small" data-sample="clase">Una clase (español)</button>
+      <button class="btn ghost small" data-sample="meeting">A meeting</button>
+    </div>
+  </header>
+  <div class="cols">
+    <div style="display:grid;gap:8px;align-content:start">
+      <label class="field"><span class="label">Said on</span><input type="date" id="ref"></label>
+      <textarea id="text" aria-label="Text to analyze"></textarea>
+      <p class="meta" id="timing"></p>
+    </div>
+    <div class="out" id="out" aria-live="polite"></div>
+  </div>
+  <section class="panel" style="display:grid;gap:10px">
+    <h2 style="margin:0">Use it in your own project</h2>
+    <p class="sub" style="margin:0">The engine is plain JavaScript modules with no dependencies. Import it straight from the live site or a CDN, or copy <code>engine/src</code>.</p>
+    <pre>import { findEvents, findDefinitions, makeQuiz, findActionItems } from
+  "https://cdn.jsdelivr.net/gh/enrjgy-tech/seekto@main/engine/src/index.js";
+
+findEvents("The chapter 5 quiz is on Friday.", { ref: new Date() });
+// [{ date: "2026-10-16", type: "test", title: "Chapter 5 quiz", sentence: "…" }]</pre>
+    <p class="note-small" style="margin:0">Missing a phrase or a language? Each one is a test and a rule. See <a href="https://github.com/enrjgy-tech/seekto/blob/main/CONTRIBUTING.md">CONTRIBUTING.md</a>.</p>
+  </section>
+</main>
+<script type="module">
+import { findEvents, findDates, findDefinitions, makeQuiz, findDecisions, findActionItems, toISO } from "./engine/index.js";
+
+const SAMPLES = {
+  class: "Okay everyone, today we're starting chapter five. Mitosis means one cell dividing into two identical daughter cells. A chromosome is a long strand of DNA wrapped around proteins. The chapter five quiz is on Friday, so review the phases. Your lab report is due next Wednesday, and the essay is due October 30th.",
+  clase: "Bueno, hoy empezamos el tema cinco. La mitosis es la división de una célula en dos células idénticas. La fotosíntesis significa convertir la luz en azúcar. El examen de biología es el viernes. La tarea de química se entrega el 20 de octubre, y el proyecto vence en dos semanas.",
+  meeting: "Okay, let's get started. We decided to launch the beta on November 2nd. Maria will send the updated deck to the client by Friday. Sam to book the room for the workshop. I'll write up the survey results tomorrow. Can you send the budget spreadsheet to finance? We agreed that support hours stay the same.",
+};
+
+const $ = (s) => document.querySelector(s);
+const esc = (v) => String(v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const nice = (iso) => { const [y, m, d] = iso.split("-").map(Number); return new Date(y, m - 1, d).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" }); };
+const list = (items, fmt) => items.length ? `<ul>${items.map((x) => `<li>${fmt(x)}</li>`).join("")}</ul>` : `<p class="note-small">None found.</p>`;
+
+function run() {
+  const text = $("#text").value;
+  const ref = $("#ref").value ? new Date(`${$("#ref").value}T12:00:00`) : new Date();
+  const t0 = performance.now();
+  const events = findEvents(text, { ref });
+  const dates = findDates(text, ref);
+  const defs = findDefinitions(text);
+  const quiz = makeQuiz([{ title: "Notes", text }], { count: 6 });
+  const decisions = findDecisions(text);
+  const actions = findActionItems(text, { ref });
+  const ms = performance.now() - t0;
+  $("#timing").textContent = `Analyzed ${text.length.toLocaleString()} characters in ${ms.toFixed(1)} ms, on this device.`;
+  $("#out").innerHTML = `
+    <section><span class="tag">Deadlines and tests (findEvents)</span>${list(events, (e) => `<b>${esc(nice(e.date))}</b> · ${esc(e.title)} <span class="note-small">(${esc(e.type)})</span>`)}</section>
+    <section><span class="tag">All dates (findDates)</span>${list(dates, (d) => `“${esc(d.match)}” → ${esc(nice(d.date))}`)}</section>
+    <section><span class="tag">Definitions (findDefinitions)</span>${list(defs, (d) => `<b>${esc(d.term)}</b>: ${esc(d.definition)}`)}</section>
+    <section><span class="tag">Practice questions (makeQuiz)</span>${list(quiz, (q) => `${esc(q.prompt)} <span class="note-small">→ ${esc(q.answer)}</span>`)}</section>
+    <section><span class="tag">Decisions (findDecisions)</span>${list(decisions, (d) => esc(d.text))}</section>
+    <section><span class="tag">Action items (findActionItems)</span>${list(actions, (a) => `<b>${esc(a.owner || "Unassigned")}</b>: ${esc(a.task)}${a.due ? ` <span class="note-small">· ${esc(nice(a.due))}</span>` : ""}`)}</section>`;
+}
+
+$("#ref").value = toISO(new Date());
+$("#text").value = SAMPLES.class;
+$("#text").addEventListener("input", run);
+$("#ref").addEventListener("change", run);
+document.querySelectorAll("[data-sample]").forEach((b) => b.addEventListener("click", () => { $("#text").value = SAMPLES[b.dataset.sample]; run(); }));
+run();
+</script>
+</body>
+</html>
