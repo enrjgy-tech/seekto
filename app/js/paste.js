@@ -5,7 +5,7 @@ import { state, saveNote, today } from "./state.js";
 import { uid } from "./store.js";
 import { go } from "./nav.js";
 import { addDates } from "./capture.js";
-import { detectSubject, detectTopic, findDefinitions, fromISO } from "../engine/index.js";
+import { detectSubject, detectTopic, makeQuiz, fromISO } from "../engine/index.js";
 import { openQuiz } from "./quiz.js";
 import { typeLabel } from "./calendar.js";
 import { t } from "./i18n.js";
@@ -35,10 +35,10 @@ export function openPaste() {
     await addDates(note);
     await saveNote(note);
     const events = state.events.filter((e) => e.noteId === note.id);
-    const defs = findDefinitions(text);
+    const asks = makeQuiz([{ title: note.title, topic, text }]).length;
     $("#pasteOut", sheet).innerHTML = html`
       <section class="panel" style="gap:10px">
-        <b>${events.length === 1 ? t("1 date added to your calendar") : t("{n} dates added to your calendar", { n: events.length })}${defs.length ? ` · ${defs.length === 1 ? t("1 term for your practice test") : t("{n} terms for your practice test", { n: defs.length })}` : ""}</b>
+        <b>${events.length === 1 ? t("1 date added to your calendar") : t("{n} dates added to your calendar", { n: events.length })}${asks ? ` · ${asks === 1 ? t("1 question for your practice test") : t("{n} questions for your practice test", { n: asks })}` : ""}</b>
         ${raw(events.length ? `<div class="agenda">${events.map((e) => html`<div class="event"><span class="when">${friendlyDate(e.date)}</span><span>${e.title}</span><span class="kind ${e.type}">${typeLabel(e.type)}</span></div>`).join("")}</div>` : html`<p class="note-small">${t("No dates found. Seekto looks for things like \"the quiz is on Friday\" or \"due October 20\".")}</p>`)}
         <div class="row">
           <button class="btn" data-quiz>${t("Take the practice test")}</button>
