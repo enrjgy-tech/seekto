@@ -6,14 +6,14 @@ Seekto finds deadlines, definitions and action items with rules, not an AI model
 
 `data/*.jsonl` holds 360 labelled items: class talk from US teachers, UK and Indian classes, US syllabus text, Spanish and Brazilian Portuguese classes, lecture definitions, and work meetings. Each item says when it was said, what it says, and what a careful person would put on the calendar.
 
-- **Written blind.** The sentences were written by writers who were not allowed to open the code, and were told to make them sound like real people: fillers, self-corrections, reschedules, cancellations, past mentions, two deadlines in one sentence, day-first dates.
+- **Written blind, by AI.** The sentences were written by separate AI model sessions that were never given the code, the rules or the engine's output, and were told to make them sound like real people: fillers, self-corrections, reschedules, cancellations, past mentions, two deadlines in one sentence, day-first dates. For the current fresh set, another separate AI session checked every label before scoring. AI-written sentences can share habits that real speech doesn't have, which is one more reason real class transcripts are the next step.
 - **Not real recordings.** They are written to sound like classes, but they aren't transcripts of real ones. Real (anonymized) class transcripts are welcome: see [CONTRIBUTING.md](../../CONTRIBUTING.md).
 - **Two kinds of unseen data.** The fresh set (below) was written after the rules were finished. And of the first 360 items, half is held out. Items with an even number are the *test* half. Their mistakes are never printed, only counted, and rules are only ever fixed using the *dev* half. The test numbers are the honest ones.
 - **Conventions.** Weeks start on Monday. "Friday" means the next Friday after today; "next Friday" means Friday of next week; "next week" alone means its Monday. Numbers like 10/11 are month first in US and Canadian English and day first everywhere else.
 
 ## Fresh set: scored once
 
-Fresh sets are written after the rules are finished, by writers who never see the code, committed before they're scored, and scored once. Their mistakes aren't printed and rules must not be tuned on them.
+Fresh sets are written after the rules are finished, by AI sessions that never see the code, committed before they're scored, and scored once. Their mistakes aren't printed and rules must not be tuned on them.
 
 **Current fresh set** (`data/fresh-*.jsonl`, 190 items, scored once on October 13, 2026): college lecturers in the US, UK, India and Australia; school teachers in the US, UK, Canada, Australia and India; Spanish from Spain, Argentina, Chile, Colombia and Mexico and Portuguese from Brazil and Portugal; meetings in a dozen kinds of workplace. A second reviewer checked the labels before scoring.
 
