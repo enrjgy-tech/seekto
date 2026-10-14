@@ -3,6 +3,10 @@
 // "term" and "meaning" are the two named groups every row must have (the order in the sentence can be either).
 import { COMMON_WORDS } from "./common-words.js";
 const T = "(?:(?:an?|the)\\s+)?(?<term>[\\p{L}][\\p{L}0-9'’-]*(?:\\s+[\\p{L}0-9'’-]+){0,3}?)";
+const SYM =
+  "(?<term>[A-Za-z]|[A-Z][a-z]?\\d|alpha|beta|gamma|delta|epsilon|theta|lambda|mu|sigma|rho|omega|pi|tau|phi|psi|eta|kappa|[α-ωΑ-Ω])";
+const MEASURE =
+  "(?:rate|constant|amount|force|energy|price|quantity|quotient|coefficient|charge|mass|velocity|temperature|pressure|volume|concentration|radius|angle|distance|time|length|width|height|speed|probability|variance|mean|total|cost|demand|supply|elasticity|income|wage|interest|growth|frequency|wavelength|momentum|acceleration|current|voltage|resistance|capacity|density|weight|work|power|entropy|enthalpy|elasticity|slope|intercept|variable|parameter|function|number of)";
 const D = "(?<meaning>.{6,})";
 const END = "[.!?]*$";
 const AS_BEFORE = "(?:so |and |okay,? |well,? |now,? |right,? )?";
@@ -139,6 +143,33 @@ const ROWS = [
   [
     "that-means",
     `\\b(?:know|knew|knowing|say|said|remember|recall|learned|noted?|see|seen) that\\s+${T}\\s+means\\s+(?<meaning>.+?)(?=\\s+and\\s+[\\p{L}]+\\s+means|[.!?]*$)`,
+  ],
+  // symbols: one letter (or a Greek name) standing for a quantity
+  [
+    "sym-stands-for",
+    `^(?:(?:and|so|just|remember|remember that|note that|recall that|keep in mind that) )*(?:the )?(?:(?:capital|lowercase|little|big|small|upper case|lower case) |letter |symbol )?${SYM}\\s+(?:stands for|is short for|represents|denotes|is shorthand for|is the symbol for|is the letter for)\\s+${D}${END}`,
+  ],
+  [
+    "sym-is-quantity",
+    `^(?:(?:and|so|here|now|recall|remember) )*(?:the )?(?:(?:capital|lowercase|little|big|small) |letter |symbol )?${SYM}\\s+(?:is|are|means)\\s+(?<meaning>(?:the|our|your|a|an)\\s+(?:\\S+\\s+){0,3}?${MEASURE}\\b.*)${END}`,
+  ],
+  ["sym-let", `^let ${SYM}\\s+(?:be|denote|represent|stand for|equal)\\s+${D}${END}`],
+  [
+    "sym-where",
+    `^(?:where|here|and|with|and here|and where|and with)\\s+${SYM}\\s+(?:is|are|represents|denotes|stands for)\\s+(?!\\d)${D}${END}`,
+  ],
+  // implied facts: "The president is elected for four years" says what a president is, by one property
+  [
+    "fact-passive",
+    `^${T}\\s+(?:is|are)\\s+(?<meaning>(?:elected|appointed|chosen|selected|paid|taxed|required|limited|capped|renewed|held|measured)\\s+(?:for|every|each|once|to|by|at|within|up to)\\s+.{3,})${END}`,
+  ],
+  [
+    "fact-lasts",
+    `^${T}\\s+(?<meaning>(?:lasts?|runs? for|spans?|takes?|covers?)\\s+(?:about |around |roughly |exactly |up to |at least |at most |only )?(?:\\d+|one|two|three|four|five|six|seven|eight|nine|ten|twelve|twenty|thirty|a hundred)\\s+(?:years?|months?|days?|weeks?|hours?|minutes?|seconds?|terms?|cycles?|generations?|semesters?))${END}`,
+  ],
+  [
+    "fact-has-count",
+    `^${T}\\s+(?:has|have|consists of|contains|is made up of|is composed of)\\s+(?<meaning>(?:exactly |only )?(?:\\d+|two|three|four|five|six|seven|eight|nine|ten|twelve|twenty|thirty|a hundred)\\s+(?:[\\p{L}-]+\\s+){0,2}[\\p{L}-]+)${END}`,
   ],
   [
     "it-means-youre",

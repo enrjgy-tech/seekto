@@ -111,3 +111,13 @@ Misses fixed afterwards (so these now count as tuned, not blind): "is what we ca
 set/rate/measure-type meanings; a wider strip made "Your parents are rich" and "Our instructor is" false hits).
 Still missed: "S stands for Svedberg" (one-letter term), "also often called the main group elements" (meaning
 only in earlier sentences), "we call setters the two after that", the dash-restart "what we call discount rates--".
+
+### Implied definitions (symbols and stated facts)
+
+New rows in `engine/src/shapes.js`: `sym-stands-for` ("S stands for Svedberg"), `sym-is-quantity` ("Q is the reaction
+quotient", only when the meaning names a quantity like rate/mass/price), `sym-let`, `sym-where` ("where R is the gas
+constant"), `fact-passive` ("The president is elected for four years"), `fact-lasts` ("A term lasts six years") and
+`fact-has-count` ("The Senate has 100 members", term of at most two words). They skip the usual term/definition length
+checks and get a confidence floor (0.6 symbols, 0.45 facts) because the word-level model was never trained on them.
+On the 50 judged lectures they fire 8 times; about 7 looked right on reading (one-letter term examples: S, R, V).
+This is a read of lectures I had already seen, not a blind score.

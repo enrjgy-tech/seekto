@@ -407,6 +407,16 @@ function matchDefinitionCore(c, next) {
   const shaped = shapeDefinition(c);
   // (a shape that finds nothing usable falls through to the older rules, which also read the next sentence)
   if (shaped && goodTerm(shaped[0]) && goodDefinition(shaped[1])) return shaped;
+  // a symbol ("S stands for Svedberg") or an implied fact ("The president is elected for four years")
+  if (shaped?.[3] === "let-denote" && shaped[0].trim().length <= 2) shaped[3] = "sym-let";
+  if (
+    shaped &&
+    /^sym-/.test(shaped[3]) &&
+    shaped[1].trim().split(/\s+/).length >= (shaped[3] === "sym-stands-for" ? 1 : 2) &&
+    !BAD_DEFINITION.test(shaped[1])
+  )
+    return shaped;
+  if (shaped && /^fact-/.test(shaped[3]) && goodTerm(shaped[0])) return shaped;
   // "ROI, return on investment, is ..."
   if (
     (m = c.match(
@@ -926,12 +936,17 @@ export function findDefinitions(text, { minConfidence = 0, features = false, gat
     },
   };
   const push = (term, def, sentence, keepCase, rule = "other") => {
-    const t = goodTerm(term);
-    const d = t && goodDefinition(def);
+    const implied = /^(?:sym|fact)-/.test(rule);
+    const t = implied && rule.startsWith("sym-") ? term.trim() : goodTerm(term);
+    const d = implied ? t && def.replace(/[.!?]+$/, "").trim() : t && goodDefinition(def);
     if (!t || !d) return;
+    if (rule === "fact-has-count" && t.split(/\s+/).length > 2) return;
     const key = t.toLowerCase();
     if (seen.has(key)) return;
-    const { confidence, why, features: feat } = definitionConfidence(t, d, sentence, ctx);
+    const scored = definitionConfidence(t, d, sentence, ctx);
+    const { why, features: feat } = scored;
+    // (a symbol or a stated fact is explicit by its shape; the word-level model was not trained on them)
+    const confidence = implied ? Math.max(scored.confidence, rule.startsWith("sym-") ? 0.6 : 0.45) : scored.confidence;
     if (confidence < minConfidence) return;
     // In a whole lecture, a bare "X is Y" is usually talk, not a definition (16% real when judged by hand on
     // 23 lectures). Keep it only when X is course vocabulary and Y is a noun phrase; the other shapes
@@ -950,7 +965,7 @@ export function findDefinitions(text, { minConfidence = 0, features = false, gat
     // (marked only once it is kept: a weak guess the gate drops must not block a better reading of the same term)
     seen.add(key);
     out.push({
-      term: keepCase || /^[A-Z]{2,}/.test(t) ? t : t.charAt(0).toUpperCase() + t.slice(1),
+      term: keepCase || rule.startsWith("sym-") || /^[A-Z]{2,}/.test(t) ? t : t.charAt(0).toUpperCase() + t.slice(1),
       definition: d,
       sentence,
       confidence,
