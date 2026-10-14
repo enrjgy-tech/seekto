@@ -14,6 +14,12 @@ on:
       model:
         description: Whisper model
         default: Xenova/whisper-base
+      start:
+        description: Seconds into each recording to start at (0 with length 0 = the whole recording)
+        default: "0"
+      length:
+        description: Seconds to transcribe from there (0 = to the end). Short clips finish in minutes instead of half an hour
+        default: "0"
 
 permissions:
   contents: read
@@ -86,7 +92,10 @@ jobs:
       - name: Convert to 16 kHz mono
         run: |
           sudo apt-get install -y -qq ffmpeg > /dev/null
-          ffmpeg -loglevel error -i lecture.src -ac 1 -ar 16000 -c:a pcm_s16le lecture.wav
+          CUT=""
+          [ "${{ inputs.start }}" != "0" ] && CUT="$CUT -ss ${{ inputs.start }}"
+          [ "${{ inputs.length }}" != "0" ] && CUT="$CUT -t ${{ inputs.length }}"
+          ffmpeg -loglevel error $CUT -i lecture.src -ac 1 -ar 16000 -c:a pcm_s16le lecture.wav
           ls -l lecture.wav
       - name: Transcribe and run the engine
         run: |
