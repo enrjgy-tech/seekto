@@ -11,6 +11,16 @@ import { typeLabel } from "./calendar.js";
 import { t } from "./i18n.js";
 import { mode } from "./profile.js";
 
+const LECTURE_CHARS = 2500;
+
+// One cue per sentence, so the study view can pick lines (pasted text has no times).
+function lectureCues(text) {
+  return (text.replace(/\s+/g, " ").match(/[^.!?]+[.!?]+["')]*|[^.!?]+$/g) || [])
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map((s, i) => ({ start: i, text: s }));
+}
+
 export function openPaste() {
   const sheet = openOverlay("");
   sheet.innerHTML = html`
@@ -31,16 +41,19 @@ export function openPaste() {
     const topic = detectTopic(text);
     const createdAt = fromISO(day).setHours(12);
     const work = mode() === "work";
+    // A whole transcript (about a page or more) is a lecture: it gets study notes, and only
+    // definitions you keep become questions. Short notes stay your own text.
+    const lecture = text.length >= LECTURE_CHARS;
     const note = {
       id: uid("note"),
-      kind: "typed",
+      kind: lecture ? "import" : "typed",
       createdAt,
       date: day,
       title: work ? `${t("Meeting")}: ${topic}` : subject === "General" ? topic : `${subject}: ${topic}`,
       subject: work ? "Meeting" : subject,
       topic,
       text,
-      cues: [],
+      cues: lecture ? lectureCues(text) : [],
       marks: [],
       mine: [],
       ...(work ? { mode: "work" } : {}),
@@ -48,18 +61,19 @@ export function openPaste() {
     await addDates(note);
     await saveNote(note);
     const events = state.events.filter((e) => e.noteId === note.id);
-    const asks = makeQuiz([{ title: note.title, topic, text }]).length;
+    const asks = lecture ? 0 : makeQuiz([{ title: note.title, topic, text }]).length;
     $("#pasteOut", sheet).innerHTML = html`
       <section class="panel" style="gap:10px">
         <b>${events.length === 1 ? t("1 date added to your calendar") : t("{n} dates added to your calendar", { n: events.length })}${asks ? ` · ${asks === 1 ? t("1 question for your practice test") : t("{n} questions for your practice test", { n: asks })}` : ""}</b>
         ${raw(events.length ? `<div class="agenda">${events.map((e) => html`<div class="event"><span class="when">${friendlyDate(e.date)}</span><span>${e.title}</span><span class="kind ${e.type}">${typeLabel(e.type)}</span></div>`).join("")}</div>` : html`<p class="note-small">${t('No dates found. Seekto looks for things like "the quiz is on Friday" or "due October 20".')}</p>`)}
         <div class="row">
-          <button class="btn" data-quiz>${t("Take the practice test")}</button>
+          ${raw(lecture ? html`<button class="btn" data-open>${t("Open the study notes")}</button>` : html`<button class="btn" data-quiz>${t("Take the practice test")}</button>`)}
           ${raw(events.length ? html`<button class="btn ghost" data-remind>${t("Remind me about these")}</button>` : "")}
-          <button class="btn ghost" data-open>${t("Open the note")}</button>
+          ${raw(lecture ? "" : html`<button class="btn ghost" data-open>${t("Open the note")}</button>`)}
         </div>
+        ${raw(lecture ? html`<p class="note-small">${t("This looks like a whole lecture, so Seekto made study notes. Keep the definitions that are real and they become your practice test.")}</p>` : "")}
       </section>`;
-    $("[data-quiz]", sheet).addEventListener("click", () => openQuiz({ notes: [note], title: topic }));
+    $("[data-quiz]", sheet)?.addEventListener("click", () => openQuiz({ notes: [note], title: topic }));
     $("[data-remind]", sheet)?.addEventListener("click", () =>
       download(
         "seekto-reminders.ics",

@@ -132,6 +132,25 @@ try {
   await p.waitForSelector("#pasteOut .event");
   check(/1 date added/.test(await p.textContent("#pasteOut")), "pasted notes put a date on the calendar");
 
+  // 3b. A pasted lecture gets study notes, and nothing becomes a question until it is kept
+  await p.reload();
+  await p.click("[data-paste]");
+  const lecture = Array.from(
+    { length: 40 },
+    (_, i) =>
+      `Today we talk about the nucleus number ${i}. A node is a place where the wave function is zero. So that is that.`,
+  ).join(" ");
+  await p.fill("#pasteText", lecture);
+  await p.click("#pasteGo");
+  await p.waitForSelector("#pasteOut [data-open]");
+  check(
+    !(await p.locator("#pasteOut [data-quiz]").count()),
+    "a pasted lecture makes no test until definitions are kept",
+  );
+  await p.click("#pasteOut [data-open]");
+  await p.waitForSelector(".study-line");
+  check((await p.locator(".study-line").count()) > 0, "a pasted lecture opens study notes");
+
   // 4. Spanish interface
   const es = await browser.newContext({ locale: "es-ES" });
   const e = await es.newPage();

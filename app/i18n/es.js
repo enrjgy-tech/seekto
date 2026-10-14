@@ -414,6 +414,9 @@ export default {
   "Open the assistant": "Abrir el asistente",
   "Open the class notes": "Abrir las notas de la clase",
   "Open the meeting": "Abrir la reunión",
+  "Open the study notes": "Abrir los apuntes de estudio",
+  "This looks like a whole lecture, so Seekto made study notes. Keep the definitions that are real and they become your practice test.":
+    "Esto parece una clase entera, así que Seekto hizo apuntes de estudio. Guarda las definiciones correctas y serán tu prueba de práctica.",
   "Open the note": "Abrir la nota",
   "Opening the recorder.": "Abriendo la grabadora.",
   "Opening the shared test…": "Abriendo el examen compartido…",
