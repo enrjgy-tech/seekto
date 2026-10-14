@@ -286,7 +286,7 @@ const TERM_NOT_NP = new RegExp(
 // "Economics at its core": a possessive pronoun inside a phrase means it's a clause, not a term
 const TERM_POSSESSIVE = /\s(?:its|their|our|my|your)\s/i;
 const BAD_DEFINITION =
-  /^(?:that(?!\s+\p{L}+\s+(?:where|when|which|that|in which|you))|because|why|not|so|going|gonna|due|on|in|at|for|really|very|pretty|too|hard|easy|tough|fine|okay|ok|important|tricky|done|over|here|there|next|coming|up|out|back|cancelled|canceled|the part (?:everyone|people|you|that everyone|where you)|the one|the hard|the easy|the best|the worst|the same|the answer is|the reason (?:is|why)|the problem is|the point is|the thing is|the key is|the main thing|the last|the first|the next|the deadline|the due date|a big|a lot|a good|a bad|a great|a hard|a tough|a pain|a problem|a bit(?! like)|a little(?! bit like)|(?:my|your|our|his|her|their)\s+(?:homework|job|task|responsibility|problem|grade|turn|choice|call|fault)|yours|mine|worth|about(?!\s+\w+ing\b)|like|also|still|always|never|probably|definitely|el (?:próximo|lunes|martes|miércoles|jueves|viernes)|muy|importante|para|na|no|pra|o mais|a mais|isso|difícil|fácil|high|low|everywhere|something(?!\s+(?:that|which|created|made|used))|anything|well|awesome|amazing|fun|nice|cool|lovely|fantastic|brilliant|terrible|incredible|chapter|unit|page|section|one of (?:the|them|these|those)|part of|as if|as though|it's|it is|they're|there's|we're|i'm|you're|(?:different|identical|reliant|dependent|independent|proportional|sensitive|responsible|available|aware)\s+(?:in|to|from|of|for|on|with|than)|happy|unhappy|sad|willing|able|likely|unlikely|possible|impossible|probable|incredibly|extremely|quite|fairly|totally|absolutely|highly|especially|relatively|considered|regarded|said to|thought to|supposed to|an?\s+(?:\w+\s+)?example|(?:we|you|i|they)\s+(?:would|could|should|might|know|think|see)|(?:should|would|could|do|does|did|will|shall|may|might|must)\s+(?:you|we|i|they|he|she|it)|what happens (?:if|when)|what (?:drives|causes|makes|leads)|(?:reasonably|completely|widely|somehow|clearly|obviously|literally|certainly|definitely|currently|already|recently|barely|nearly|mostly|partly|directly)|told|only|(?:provided|based|used|located|condemned|assigned|required|designed|expected|determined|influenced|caused|followed|made|given|set|done|seen|taken|shown|found)\s+(?:by|to|in|under|as|for|with|from|at|on)|(?:\w+ed|driven|given|taken|shown|known|chosen|written)\s+by\b|being|been|having|interested in|credited with|(?:greater|less|more|fewer|bigger|smaller|higher|lower|equal)\s+than|how to\b|another\s+(?:part|piece|portion|section|step|chapter|bit|one)\b|higher|lower|bigger|smaller|harder|easier|worse|better|more|less|great|huge|super|insane|wild|crazy|key|crucial|central|tested|on the test|in the|at the)\b/iu;
+  /^(?:(?:the|a)\s+(?:link|connection|difference|relationship|distinction|gap|bridge|tradeoff|trade-off)\s+between|that(?!\s+\p{L}+\s+(?:where|when|which|that|in which|you))|because|why|not|so|going|gonna|due|on|in|at|for|really|very|pretty|too|hard|easy|tough|fine|okay|ok|important|tricky|done|over|here|there|next|coming|up|out|back|cancelled|canceled|the part (?:everyone|people|you|that everyone|where you)|the one|the hard|the easy|the best|the worst|the same|the answer is|the reason (?:is|why)|the problem is|the point is|the thing is|the key is|the main thing|the last|the first|the next|the deadline|the due date|a big|a lot|a good|a bad|a great|a hard|a tough|a pain|a problem|a bit(?! like)|a little(?! bit like)|(?:my|your|our|his|her|their)\s+(?:homework|job|task|responsibility|problem|grade|turn|choice|call|fault)|yours|mine|worth|about(?!\s+\w+ing\b)|like|also|still|always|never|probably|definitely|el (?:próximo|lunes|martes|miércoles|jueves|viernes)|muy|importante|para|na|no|pra|o mais|a mais|isso|difícil|fácil|high|low|everywhere|something(?!\s+(?:that|which|created|made|used))|anything|well|awesome|amazing|fun|nice|cool|lovely|fantastic|brilliant|terrible|incredible|chapter|unit|page|section|one of (?:the|them|these|those)|part of|as if|as though|it's|it is|they're|there's|we're|i'm|you're|(?:different|identical|reliant|dependent|independent|proportional|sensitive|responsible|available|aware)\s+(?:in|to|from|of|for|on|with|than)|happy|unhappy|sad|willing|able|likely|unlikely|possible|impossible|probable|incredibly|extremely|quite|fairly|totally|absolutely|highly|especially|relatively|considered|regarded|said to|thought to|supposed to|an?\s+(?:\w+\s+)?example|(?:we|you|i|they)\s+(?:would|could|should|might|know|think|see)|(?:should|would|could|do|does|did|will|shall|may|might|must)\s+(?:you|we|i|they|he|she|it)|what happens (?:if|when)|what (?:drives|causes|makes|leads)|(?:reasonably|completely|widely|somehow|clearly|obviously|literally|certainly|definitely|currently|already|recently|barely|nearly|mostly|partly|directly)|told|only|(?:provided|based|used|located|condemned|assigned|required|designed|expected|determined|influenced|caused|followed|made|given|set|done|seen|taken|shown|found)\s+(?:by|to|in|under|as|for|with|from|at|on)|(?:\w+ed|driven|given|taken|shown|known|chosen|written)\s+by\b|being|been|having|interested in|credited with|(?:greater|less|more|fewer|bigger|smaller|higher|lower|equal)\s+than|how to\b|another\s+(?:part|piece|portion|section|step|chapter|bit|one)\b|higher|lower|bigger|smaller|harder|easier|worse|better|more|less|great|huge|super|insane|wild|crazy|key|crucial|central|tested|on the test|in the|at the)\b/iu;
 const LEAD =
   /^(?:so|and|okay|ok|now|remember|basically|right|alright|all right|well|um|uh|hm+|oh|ah|eh|hã|ahn|then|also|anyway|look|listen|guys|everyone|everybody|okay everyone|entonces|bueno|recuerden|recuerda|o sea|básicamente|pues|a ver|ojo|oigan|mira|miren|chicos|chicas|muchachos|chavos|ahorita|vale|então|gente|pessoal|galera|tipo|bom|olha|lembrem|lembra|tá|beleza)[,]?\s+/iu;
 const FILLER =
@@ -332,6 +332,13 @@ function goodTerm(term) {
     ) ||
     /\b(?:way|ways|trick|reason|goal|plan|solution|answer|point)\b.*\bto\b/i.test(t) ||
     /^(?:way|part|reason|goal|solution|answer|plan|point|problem|issue|thing|trick)$/i.test(t)
+  )
+    return null;
+  // "the green protein" labels a part of a figure; "referred to casually" is a verb phrase, not a term
+  if (
+    /^(?:red|green|blue|yellow|orange|purple|black|white|pink|gray|grey|referred|called|known|considered|seen|used|said|supposed)\b/i.test(
+      t,
+    )
   )
     return null;
   if (PRONOUN.test(t) || NOT_TERM.test(t) || EVENTISH.test(t) || NUMBERISH.test(t)) return null;
@@ -985,6 +992,13 @@ export function findDefinitions(text, { minConfidence = 0, features = false, gat
     const s = list[i];
     const c = cleanSentence(s);
     const next = list[i + 1] && cleanSentence(list[i + 1]);
+    // "...another concept that we'll talk about in this course, which is signaling": an announcement of a topic
+    if (
+      /\b(?:we'll|we will|we're going to|we are going to|going to|i'll|i will)\s+(?:talk|cover|discuss|see|learn|study|get to|look|hear)\b.*,\s*which is\b/i.test(
+        c,
+      )
+    )
+      continue;
     // "What is an API? It's a contract ..." and "Okay, classical conditioning. That's learning by association."
     const mean =
       c.match(/^what do (?:i|we) mean by\s+(?:an?\s+(?!priori|posteriori|fortiori)|the\s+)?(.{2,40}?)\?$/i) ||
@@ -1039,9 +1053,14 @@ export function findDefinitions(text, { minConfidence = 0, features = false, gat
       i++;
       continue;
     }
-    const called = c.match(
-      /\b(?:is|are|it's|that's|have|has|get|got)\s+what(?:'s| is| are)\s+(?:called|known as)\s+(?:the\s+|an?\s+)?(.{2,40}?)[.!?]*$/i,
-    );
+    const called =
+      c.match(
+        /\b(?:is|are|it's|that's|have|has|get|got)\s+what(?:'s| is| are)\s+(?:called|known as)\s+(?:the\s+|an?\s+)?(.{2,40}?)[.!?]*$/i,
+      ) ||
+      // "I'll do so through something we call indifference curves." The meaning comes in the next sentences.
+      c.match(
+        /\b(?:something|things|stuff|a thing|an idea|a concept)\s+(?:we|i|you|people|they|economists|biologists|chemists|physicists|psychologists)\s+(?:call|refer to as)\s+(?:the\s+|an?\s+)?([\p{L}'’-]+(?:\s+[\p{L}'’-]+){0,2})[.!?]*$/iu,
+      );
     if (called) {
       const follow = [list[i + 1], list[i + 2]]
         .map(
@@ -1051,7 +1070,7 @@ export function findDefinitions(text, { minConfidence = 0, features = false, gat
               .replace(/^(?:in (?:this|that) case|here|so|then),?\s+/i, "")
               .replace(new RegExp(`^in (?:an?|the) ${called[1].replace(/[.*+?^${}()|[\]\\]/g, "\\$&")},\\s+`, "i"), ""),
         )
-        .find((x) => x && !/\b(?:called|we call|known as)\b/i.test(x));
+        .find((x) => x && !/\b(?:called|we call|known as)\b/i.test(x) && x.split(/\s+/).length >= 4);
       if (follow) push(called[1], follow, s, undefined, "called-next");
       continue;
     }
