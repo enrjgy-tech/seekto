@@ -1,5 +1,6 @@
 // Organize notes and turn them into study material, without any AI model:
 // subject and topic detection, definitions, quizzes, answer checking and exports.
+import { shapeDefinition, SHAPE_LEAD } from "./shapes.js";
 import { COMMON_WORDS } from "./common-words.js";
 import { sentences, findDates } from "./dates.js";
 import { tokens, STOP } from "./search.js";
@@ -317,6 +318,22 @@ function goodTerm(term) {
     .replace(/[,:;]+$/, "")
     .trim();
   if (t.length < 2 || t.length > 48 || t.includes(",")) return null;
+  // classroom manners are not vocabulary
+  if (
+    /^(?:thanks|thank you|sorry|please|okay|yes|yeah|no|nope|hello|hi|welcome|congratulations|great|awesome|excellent|perfect|good|cool|nice|sure|exactly|right|correct)$/i.test(
+      t,
+    )
+  )
+    return null;
+  // "The best way to learn is...", "The hardest part is...": a ranking or a plan, not vocabulary
+  if (
+    /^(?:best|worst|hardest|easiest|first|second|third|last|next|main|biggest|only|real|whole|good|better|other|important|key|one)\b/i.test(
+      t,
+    ) ||
+    /\b(?:way|ways|trick|reason|goal|plan|solution|answer|point)\b.*\bto\b/i.test(t) ||
+    /^(?:way|part|reason|goal|solution|answer|plan|point|problem|issue|thing|trick)$/i.test(t)
+  )
+    return null;
   if (PRONOUN.test(t) || NOT_TERM.test(t) || EVENTISH.test(t) || NUMBERISH.test(t)) return null;
   if (TERM_NOT_NP.test(t) || TERM_POSSESSIVE.test(t)) return null;
   // "Others say it", "Some people think": a clause, not a term
@@ -366,7 +383,19 @@ const VERBS =
 
 /** Pull one definition out of a cleaned sentence: [term, definition] or null. */
 function matchDefinition(c, next) {
+  // "Technically, X is Y": the lead-in word is not part of the term
+  if (SHAPE_LEAD.test(c)) {
+    const bare = matchDefinitionCore(c.replace(SHAPE_LEAD, "").replace(SHAPE_LEAD, ""), next);
+    if (bare) return bare;
+  }
+  return matchDefinitionCore(c, next);
+}
+
+function matchDefinitionCore(c, next) {
   let m;
+  const shaped = shapeDefinition(c);
+  // (a shape that finds nothing usable falls through to the older rules, which also read the next sentence)
+  if (shaped && goodTerm(shaped[0]) && goodDefinition(shaped[1])) return shaped;
   // "ROI, return on investment, is ..."
   if (
     (m = c.match(
@@ -448,7 +477,7 @@ function matchDefinition(c, next) {
   // "We call this opportunity cost" / "this is called X" / "known as X": the definition is next door
   if (
     (m = c.match(
-      /^(?:we call (?:this|that|it)|(?:this|that|it)(?: is|'s) called|(?:this|that) is known as|lo llamamos|esto se llama|isso se chama|a gente chama isso de)\s+(.{2,40}?)[,.!?]*(?:\s*right\?*)?$/i,
+      /^(?:and |so )?(?:we call (?:this|that|it)|(?:this|that|it)(?: is|'s) (?:exactly |just )?what (?:we|they|people|you) call|(?:this|that|it)(?: is|'s) called|(?:this|that) is known as|lo llamamos|esto se llama|isso se chama|a gente chama isso de)\s+(.{2,40}?)[,.!?]*(?:\s*right\?*)?$/i,
     )) &&
     next
   )
@@ -787,7 +816,12 @@ function meaningBefore(list, i, term) {
   for (let k = i - 1; k >= 0 && take.length < 2; k--) {
     const c = cleanSentence(list[k]);
     const n = c.split(/\s+/).length;
-    if (n < 4 || /\?$/.test(c) || /\b(?:called|known as|we call)\b/i.test(c)) {
+    if (
+      n < 4 ||
+      /\?$/.test(c) ||
+      /\b(?:called|known as|we call)\b/i.test(c) ||
+      /^(?:this|that|it) (?:is|was|'s) why\b|^because\b/i.test(c)
+    ) {
       if (take.length) break;
       continue;
     }
@@ -801,6 +835,30 @@ function meaningBefore(list, i, term) {
   if (after && after.split(/\s+/).length >= 4 && tw.some((w) => after.toLowerCase().includes(w)) && words < 50)
     take.push(after);
   return { definition: take.join(" "), sentence: [...take, list[i]].join(" ") };
+}
+
+/** The sentence after "What is X?" or a bare "X.": strip how people start an answer ("It's", "Well, it means",
+ * "Basically,", "As", "X is") and return what is left, or null when it does not read as an answer. */
+function answerOf(next, term = "") {
+  let a = next.trim();
+  const filler =
+    /^(?:well|so|okay|ok|right|um|uh|yeah|basically|essentially|simply|just|actually|really|and|but),?\s+/i;
+  let stripped = false;
+  while (filler.test(a)) {
+    a = a.replace(filler, "");
+    stripped = true;
+  }
+  const t = term.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const m =
+    a.match(
+      /^(?:it's|it is|that's|that is|they're|they are|those are|these are|this is|es|son|é|são|isso é|eso es)\s+(.{6,})$/i,
+    ) ||
+    a.match(/^(?:it|that|this|they)\s+(?:basically\s+)?(?:means|refers to|describes|denotes)\s+(.{6,})$/i) ||
+    a.match(/^(?:which is|as|meaning)\s+(.{6,})$/i) ||
+    (t && a.match(new RegExp(`^(?:an?\\s+|the\\s+)?${t}s?\\s+(?:is|are|means)\\s+(.{6,})$`, "i")));
+  // "What exactly is X? Basically, the value of ..." a bare noun phrase after a lead-in word
+  if (!m && stripped && /^(?:an?|the|when|where|how)\s\S+(?:\s+\S+){3,}$/i.test(a)) return a;
+  return m ? m[1] : null;
 }
 
 /** Find definitions in notes or a transcript: [{ term, definition, sentence }]. Works on how people talk,
@@ -904,19 +962,22 @@ export function findDefinitions(text, { minConfidence = 0, features = false, gat
       continue;
     }
     const q =
-      c.match(/^what(?:'s| is| are)\s+(?:an?\s+|the\s+)?(.{2,40}?)\?$/i) ||
+      c.match(
+        /^(?:so |and |okay,? )?what(?:'s| is| are| exactly is| exactly are)\s+(?:an?\s+|the\s+)?(.{2,40}?)\?$/i,
+      ) ||
+      c.match(/^(?:so |and |okay,? )?what (?:does|do|did) (?:an?\s+|the\s+)?(.{2,40}?) mean\?$/i) ||
+      c.match(/^(?:so |and |okay,? )?what(?: is|'s| are) meant by (?:an?\s+|the\s+)?(.{2,40}?)\?$/i) ||
+      c.match(
+        /^(?:so |and |okay,? )?how (?:do|would|can|should) (?:we|you|i) define (?:an?\s+|the\s+)?(.{2,40}?)\?$/i,
+      ) ||
       c.match(/^qu[ée]\s+es\s+(?:un|una|el|la)?\s*(.{2,40}?)\?$/i) ||
       c.match(/^o que (?:é|são)\s+(?:um|uma|o|a)?\s*(.{2,40}?)\?$/i);
     let frag = !q && c.match(/^([\p{L}][\p{L}' -]{1,40})[.:]$/u);
     if (frag && /\s(?:is|are|was|were|has|have|had)\s/i.test(frag[1])) frag = null;
     // "Textbook is April." is a short sentence, not a heading
-    const answer =
-      next &&
-      next.match(
-        /^(?:it's|it is|that's|that is|they're|they are|those are|these are|this is|es|son|é|são|isso é|eso es)\s+(?:basically\s+|básicamente\s+|basicamente\s+)?(.{6,})$/i,
-      );
+    const answer = next && answerOf(next, (q || frag)?.[1]);
     if ((q || (frag && frag[1].split(/\s+/).length <= 4)) && answer) {
-      push((q || frag)[1], answer[1], `${s} ${list[i + 1]}`, undefined, q ? "question" : "fragment");
+      push((q || frag)[1], answer, `${s} ${list[i + 1]}`, undefined, q ? "question" : "fragment");
       i++;
       continue;
     }
@@ -939,7 +1000,9 @@ export function findDefinitions(text, { minConfidence = 0, features = false, gat
       continue;
     }
     for (const [t, d] of inlineDefinitions(c, next)) push(t, d, s, undefined, "inline");
-    let m = matchDefinition(c, next);
+    let m = /^(?:and |so )?(?:this|that|it)(?: is|'s) (?:exactly |just )?what\s/i.test(c)
+      ? null
+      : matchDefinition(c, next);
     // "Dealers are mixing the fentanyl in", "The red protein is marking cells": something happening, not a meaning.
     // (A bare concept can be defined by what it does: "Encryption is scrambling data so only...")
     if (
@@ -950,6 +1013,12 @@ export function findDefinitions(text, { minConfidence = 0, features = false, gat
       m = null;
     // "And that's called the flat case." names what was just said: the meaning is the sentence or two before
     // (and the next sentence too, when it comes back to the term).
+    const whatMeans =
+      !m &&
+      c.match(
+        /^(?:and |so )?(?:this|that|it)(?: is|'s) (?:exactly |just )?what\s+(?:an?\s+|the\s+)?(.{2,40}?)\s+means[.!?]*$/i,
+      );
+    if (whatMeans) m = [whatMeans[1], "", undefined, "we-call-next"];
     if (m?.[3] === "we-call-next") {
       const back = meaningBefore(list, i, m[0]);
       if (back) {
