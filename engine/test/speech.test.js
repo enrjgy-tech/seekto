@@ -452,3 +452,12 @@ test("study notes: course words, key lines and headings from a lecture, without 
   // transcript tags are not speech
   assert.ok(!keyTerms("[MUSIC] [MUSIC] [MUSIC] the wave the wave").some((t) => t.term === "music"));
 });
+
+test("'that's called X' takes the meaning from the sentences before it", () => {
+  const text =
+    "Some atoms of hydrogen have an extra neutron, so they weigh more. It is still electrically neutral. That's called deuterium. Then we move on to the next topic and look at the table.";
+  const d = findDefinitions(text).find((x) => /deuterium/i.test(x.term));
+  assert.ok(d, "found");
+  assert.match(d.definition, /extra neutron/);
+  assert.doesNotMatch(d.definition, /next topic/);
+});

@@ -637,6 +637,24 @@ export function definitionFeatures(term, def, sentence, ctx) {
       )
         ? 1
         : 0,
+    // talk, not a definition: the meaning speaks of "I", "we're going to", "my", past events, or things on the board
+    defTalk: /\b(?:i|i'm|i'd|i've|i'll|my|we're|we'll|we've|we|our|you|your|us)\b/i.test(def) ? 1 : 0,
+    defPast: /\b(?:was|were|did|had|started|set up|went|said|mentioned|talked|showed|saw)\b/i.test(def) ? 1 : 0,
+    defHere:
+      /\b(?:here|this one|that one|over there|on the board|this slide|just said|mentioned|earlier|last time)\b/i.test(
+        def,
+      )
+        ? 1
+        : 0,
+    // a person or a place being described, not a concept: "Satoshi is the one who...", "Larry Summers is my advisor"
+    termPerson:
+      tw.length >= 1 &&
+      tw.length <= 3 &&
+      tw.every((w) => /^[A-Z][a-z]+$/.test(w)) &&
+      !termWords.some((w) => COMMON_WORDS.has(w))
+        ? 1
+        : 0,
+    termDeixis: /\b(?:here|this|that|these|those|new|other|another|same|next|first|second|big)\b/i.test(term) ? 1 : 0,
     termFirst: sentence
       .toLowerCase()
       .replace(/^[^\p{L}]+/u, "")
@@ -649,34 +667,39 @@ export function definitionFeatures(term, def, sentence, ctx) {
 const WEAK_RULES = new Set(["is", "thats", "fragment", "roi", "tells", "other"]);
 // Fitted by engine/bench/fit-definitions.py on judged definitions from real lectures.
 const DEFINITION_MODEL = {
-  bias: -3.9278,
+  bias: -5.6532,
   weights: {
-    marker: 0.4095,
-    termWords: -0.0554,
-    termUncommon: 0.1976,
-    termAllCommon: -0.4581,
-    termCount: 0.4369,
-    termOnce: 0.22,
-    termName: 0.0458,
-    termShort: 0.0,
-    termLen: 0.3437,
-    defWords: 0.2651,
-    defArticle: 0.5888,
-    defWhen: -0.2415,
-    defMathy: -0.0936,
-    defPronounStart: -0.0073,
-    defCommon: -0.1543,
-    defHasTerm: -0.2248,
-    defEndsMid: -0.2467,
-    defRepeat: 0.0,
-    sentenceLen: 0.4501,
-    termDet: 0.0915,
-    termNounSuffix: -0.1801,
-    termNamed: 0.3289,
-    defNounClause: 0.1472,
-    defIsFragment: -0.619,
-    markerStrong: 0.1327,
-    termFirst: -0.3019,
+    marker: 0.9985,
+    termWords: 0.0066,
+    termUncommon: 0.6629,
+    termAllCommon: -0.485,
+    termCount: 0.5636,
+    termOnce: -0.1862,
+    termName: -0.2177,
+    termShort: -0.2186,
+    termLen: 0.6978,
+    defWords: 0.2391,
+    defArticle: 1.0525,
+    defWhen: 0.1739,
+    defMathy: -0.5642,
+    defPronounStart: -0.1149,
+    defCommon: -0.035,
+    defHasTerm: -0.2712,
+    defEndsMid: 0.0904,
+    defRepeat: -0.0385,
+    sentenceLen: 0.203,
+    termDet: 0.2361,
+    termNounSuffix: -0.1929,
+    termNamed: 0.5505,
+    defNounClause: 0.4248,
+    defIsFragment: -0.7095,
+    markerStrong: 0.0183,
+    defTalk: -0.275,
+    defPast: -0.609,
+    defHere: -0.5454,
+    termPerson: -0.4238,
+    termDeixis: -0.4901,
+    termFirst: -0.0702,
   },
 };
 function definitionConfidence(term, def, sentence, ctx) {
@@ -731,10 +754,34 @@ export function explanationAfter(following, term, def) {
   return more;
 }
 
+/** For "that's called X": the one or two sentences before it say what X is. If the next sentence comes back
+ * to X, it belongs to the meaning too. Short fillers, questions and other naming lines are skipped. */
+function meaningBefore(list, i, term) {
+  const take = [];
+  let words = 0;
+  for (let k = i - 1; k >= 0 && take.length < 2; k--) {
+    const c = cleanSentence(list[k]);
+    const n = c.split(/\s+/).length;
+    if (n < 4 || /\?$/.test(c) || /\b(?:called|known as|we call)\b/i.test(c)) {
+      if (take.length) break;
+      continue;
+    }
+    if (words + n > 50) break;
+    take.unshift(c);
+    words += n;
+  }
+  if (!take.length) return null;
+  const after = list[i + 1] && cleanSentence(list[i + 1]);
+  const tw = contentWords(term);
+  if (after && after.split(/\s+/).length >= 4 && tw.some((w) => after.toLowerCase().includes(w)) && words < 50)
+    take.push(after);
+  return { definition: take.join(" "), sentence: [...take, list[i]].join(" ") };
+}
+
 /** Find definitions in notes or a transcript: [{ term, definition, sentence }]. Works on how people talk,
  * not only on "X is a Y": "so mitosis, basically, it's when ...", "we call this opportunity cost", "what is an API? It's ...".
  */
-export function findDefinitions(text, { minConfidence = 0, features = false } = {}) {
+export function findDefinitions(text, { minConfidence = 0, features = false, gate = true } = {}) {
   const out = [];
   const seen = new Set();
   // a closing quote ends a sentence too: '... "attentional resources." We can pay ...'
@@ -797,6 +844,7 @@ export function findDefinitions(text, { minConfidence = 0, features = false } = 
     // 23 lectures). Keep it only when X is course vocabulary and Y is a noun phrase; the other shapes
     // ("called X, which is", "what we call X", "X means") stand on their own.
     if (
+      gate &&
       ctx.long &&
       WEAK_RULES.has(rule) &&
       !(
@@ -875,6 +923,15 @@ export function findDefinitions(text, { minConfidence = 0, features = false } = 
       (/^(?:the|these|those|this|that|my|your|our|their)\s/i.test(c) || /\b(?:are|were)\s+[a-z]{3,}ing\b/i.test(c))
     )
       m = null;
+    // "And that's called the flat case." names what was just said: the meaning is the sentence or two before
+    // (and the next sentence too, when it comes back to the term).
+    if (m?.[3] === "we-call-next") {
+      const back = meaningBefore(list, i, m[0]);
+      if (back) {
+        push(m[0], back.definition, back.sentence, m[2], "named-back");
+        continue;
+      }
+    }
     if (m) push(m[0], m[1], s, m[2], m[3]);
     // "Positive analysis is the study of the way things are, while normative analysis is the study of the way things should be"
     const other = c.match(/,\s*(?:while|whereas)\s+([\p{L}][\p{L} -]{2,30}?)\s+(?:is|are)\s+(.{6,})$/iu);
