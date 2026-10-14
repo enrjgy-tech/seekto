@@ -286,7 +286,7 @@ const TERM_NOT_NP = new RegExp(
 // "Economics at its core": a possessive pronoun inside a phrase means it's a clause, not a term
 const TERM_POSSESSIVE = /\s(?:its|their|our|my|your)\s/i;
 const BAD_DEFINITION =
-  /^(?:(?:an?|the)\s+(?:concept|topic|idea|thing|term|word|notion|tool|method)\s+(?:that\s+)?(?:we'll|we will|we're going to|we are going to|i'll|i will|we\s+come|you'll|you will)\b|(?:the|a)\s+(?:link|connection|difference|relationship|distinction|gap|bridge|tradeoff|trade-off)\s+between|that(?!\s+\p{L}+\s+(?:where|when|which|that|in which|you))|because|why|not|so|going|gonna|due|on|in|at|for|really|very|pretty|too|hard|easy|tough|fine|okay|ok|important|tricky|done|over|here|there|next|coming|up|out|back|cancelled|canceled|the part (?:everyone|people|you|that everyone|where you)|the one|the hard|the easy|the best|the worst|the same|the answer is|the reason (?:is|why)|the problem is|the point is|the thing is|the key is|the main thing|the last|the first|the next|the deadline|the due date|a big|a lot|a good|a bad|a great|a hard|a tough|a pain|a problem|a bit(?! like)|a little(?! bit like)|(?:my|your|our|his|her|their)\s+(?:homework|job|task|responsibility|problem|grade|turn|choice|call|fault)|yours|mine|worth|about(?!\s+\w+ing\b)|like|also|still|always|never|probably|definitely|el (?:próximo|lunes|martes|miércoles|jueves|viernes)|muy|importante|para|na|no|pra|o mais|a mais|isso|difícil|fácil|high|low|everywhere|something(?!\s+(?:that|which|created|made|used))|anything|well|awesome|amazing|fun|nice|cool|lovely|fantastic|brilliant|terrible|incredible|chapter|unit|page|section|one of (?:the|them|these|those)|part of|as if|as though|it's|it is|they're|there's|we're|i'm|you're|(?:different|identical|reliant|dependent|independent|proportional|sensitive|responsible|available|aware)\s+(?:in|to|from|of|for|on|with|than)|happy|unhappy|sad|willing|able|likely|unlikely|possible|impossible|probable|incredibly|extremely|quite|fairly|totally|absolutely|highly|especially|relatively|considered|regarded|said to|thought to|supposed to|an?\s+(?:\w+\s+)?example|(?:we|you|i|they)\s+(?:would|could|should|might|know|think|see)|(?:should|would|could|do|does|did|will|shall|may|might|must)\s+(?:you|we|i|they|he|she|it)|what happens (?:if|when)|what (?:drives|causes|makes|leads)|(?:reasonably|completely|widely|somehow|clearly|obviously|literally|certainly|definitely|currently|already|recently|barely|nearly|mostly|partly|directly)|told|only|(?:provided|based|used|located|condemned|assigned|required|designed|expected|determined|influenced|caused|followed|made|given|set|done|seen|taken|shown|found)\s+(?:by|to|in|under|as|for|with|from|at|on)|(?:\w+ed|driven|given|taken|shown|known|chosen|written)\s+by\b|being|been|having|interested in|credited with|(?:greater|less|more|fewer|bigger|smaller|higher|lower|equal)\s+than|how to\b|another\s+(?:part|piece|portion|section|step|chapter|bit|one)\b|higher|lower|bigger|smaller|harder|easier|worse|better|more|less|great|huge|super|insane|wild|crazy|key|crucial|central|tested|on the test|in the|at the)\b/iu;
+  /^(?:(?:an?|the)\s+(?:concept|topic|idea|thing|term|word|notion|tool|method)\s+(?:that\s+)?(?:we'll|we will|we're going to|we are going to|i'll|i will|we\s+come|you'll|you will)\b|(?:the|a)\s+(?:link|connection|bridge|gap|tradeoff|trade-off)\s+between|that(?!\s+\p{L}+\s+(?:where|when|which|that|in which|you))|because|why|not|so|going|gonna|due|on|in|at|for|really|very|pretty|too|hard|easy|tough|fine|okay|ok|important|tricky|done|over|here|there|next|coming|up|out|back|cancelled|canceled|the part (?:everyone|people|you|that everyone|where you)|the one|the hard|the easy|the best|the worst|the same|the answer is|the reason (?:is|why)|the problem is|the point is|the thing is|the key is|the main thing|the last(?!\s+(?:step|stage|phase|layer|part|type|form|level)\b)|the first(?!\s+(?:step|stage|phase|law|part|type|layer|form|level|line|principle|rule)\b)|the next(?!\s+(?:step|stage|phase|layer|part|type|form|level)\b)|the deadline|the due date|a big(?![-\p{L}])|a lot|a good(?![-\p{L}]|\s+(?:or|and|that|which|used|for)\b)|a bad(?![-\p{L}])|a great(?![-\p{L}])|a hard(?![-\p{L}])|a tough(?![-\p{L}])|a pain|a problem(?![-\p{L}])|a bit(?! like)|a little(?! bit like)|(?:my|your|our|his|her|their)\s+(?:homework|job|task|responsibility|problem|grade|turn|choice|call|fault)|yours|mine|worth|about(?!\s+\w+ing\b)|like|also|still|always|never|probably|definitely|el (?:próximo|lunes|martes|miércoles|jueves|viernes)|muy|importante|para|na|no|pra|o mais|a mais|isso|difícil|fácil|high|low|everywhere|something(?!\s+(?:that|which|created|made|used))|anything|well|awesome|amazing|fun|nice|cool|lovely|fantastic|brilliant|terrible|incredible|chapter|unit|page|section|one of (?:the|them|these|those)|part of|as if|as though|it's|it is|they're|there's|we're|i'm|you're|(?:different|identical|reliant|dependent|independent|proportional|sensitive|responsible|available|aware)\s+(?:in|to|from|of|for|on|with|than)|happy|unhappy|sad|willing|able|likely|unlikely|possible|impossible|probable|incredibly|extremely|quite|fairly|totally|absolutely|highly|especially|relatively|considered|regarded|said to|thought to|supposed to|an?\s+(?:\w+\s+)?example|(?:we|you|i|they)\s+(?:would|could|should|might|know|think|see)|(?:should|would|could|do|does|did|will|shall|may|might|must)\s+(?:you|we|i|they|he|she|it)|what happens (?:if|when)|what (?:drives|causes|makes|leads)|(?:reasonably|completely|widely|somehow|clearly|obviously|literally|certainly|definitely|currently|already|recently|barely|nearly|mostly|partly|directly)|told|only|(?:provided|based|used|located|condemned|assigned|required|designed|expected|determined|influenced|caused|followed|made|given|set|done|seen|taken|shown|found)\s+(?:by|to|in|under|as|for|with|from|at|on)|(?:\w+ed|driven|given|taken|shown|known|chosen|written)\s+by\b|being|been|having|interested in|credited with|(?:greater|less|more|fewer|bigger|smaller|higher|lower|equal)\s+than|how to\b|another\s+(?:part|piece|portion|section|step|chapter|bit|one)\b|higher|lower|bigger|smaller|harder|easier|worse|better|more|less|great|huge|super|insane|wild|crazy|key|crucial|central|tested|on the test|in the|at the)\b/iu;
 const LEAD =
   /^(?:so|and|okay|ok|now|remember|basically|right|alright|all right|well|um|uh|hm+|oh|ah|eh|hã|ahn|then|also|anyway|look|listen|guys|everyone|everybody|okay everyone|entonces|bueno|recuerden|recuerda|o sea|básicamente|pues|a ver|ojo|oigan|mira|miren|chicos|chicas|muchachos|chavos|ahorita|vale|então|gente|pessoal|galera|tipo|bom|olha|lembrem|lembra|tá|beleza)[,]?\s+/iu;
 const FILLER =
@@ -406,7 +406,11 @@ function matchDefinition(c, next) {
     )
       return bare;
   }
-  return matchDefinitionCore(c, next);
+  const hit = matchDefinitionCore(c, next);
+  if (hit) return hit;
+  // "Gametangia (singular, gametangium) are structures ...", "...(called P700)": a short bracket is an aside
+  if (/\([^()]{1,60}\)/.test(c)) return matchDefinitionCore(c.replace(/\s*\([^()]{1,60}\)/g, ""), next);
+  return null;
 }
 
 function matchDefinitionCore(c, next) {
@@ -561,7 +565,9 @@ function matchDefinitionCore(c, next) {
   if (
     (m = c.match(
       /^(.{2,48}?)\s+(tells (?:you|us)|lets (?:you|us)|allows (?:you|us) to|describes|measures|represents|denotes)\s+(.{6,})$/i,
-    ))
+    )) &&
+    // "Elasticity is a concept that measures ...": the sentence already has an "X is a ..." shape; that rule reads it properly
+    !/\b(?:is|are|was|were)\b/i.test(m[1])
   )
     return [m[1], `${m[2]} ${m[3]}`, undefined, "tells"];
   if (
@@ -771,6 +777,7 @@ export function definitionFeatures(term, def, sentence, ctx) {
   };
 }
 // Rules whose matches need extra evidence in a long transcript (see findDefinitions).
+const WRITTEN_ONLY = new Set(["appos-gloss"]);
 const WEAK_RULES = new Set(["is", "thats", "fragment", "roi", "tells", "other"]);
 // Fitted by engine/bench/fit-definitions.py on judged definitions from real lectures.
 const DEFINITION_MODEL = {
@@ -945,7 +952,12 @@ export function findDefinitions(text, { minConfidence = 0, features = false, gat
     }
     return list.slice(i + 1, i + 1 + n);
   };
+  // Spoken text (a transcript) carries fillers and "I/you/we"; written text (a textbook, notes) does not.
+  const speechy =
+    /\b(?:um+|uh+|you know|i mean|kinda|gonna|wanna|okay so|alright so|sort of like)\b/i.test(text) ||
+    (text.match(/\b(?:i|you|we)\b/gi) || []).length / Math.max(1, text.split(/\s+/).length) > 0.07;
   const ctx = {
+    speechy,
     long: list.length >= 25,
     count: (term) => {
       const t = term.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -976,6 +988,8 @@ export function findDefinitions(text, { minConfidence = 0, features = false, gat
     },
   };
   const push = (term, def, sentence, keepCase, rule = "other") => {
+    // an appositive gloss ("the bile, a digestive juice that ...") reads well in a textbook but is just a pause in speech
+    if (WRITTEN_ONLY.has(rule)) return;
     const implied = /^(?:sym|fact)-/.test(rule) || rule === "np-called-term";
     const t = implied && rule.startsWith("sym-") ? term.trim() : goodTerm(term);
     const d = implied ? t && def.replace(/[.!?]+$/, "").trim() : t && goodDefinition(def);

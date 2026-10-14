@@ -10,7 +10,7 @@ const MEASURE =
 const D = "(?<meaning>.{6,})";
 const END = "[.!?]*$";
 // the term may be followed by a comma, bracket or dash clause: "is called splicing ([link])", "are termed heterotrophs (\"other feeders\"), because ..."
-const TAIL = "(?:\\s*(?:[,;(—–]|\\s-\\s).*)?[.!?]*$";
+const TAIL = "(?:\\s*(?:[,;:(—–]|\\s-\\s).*|\\s+(?:and|which|that|where|whereas|because|so)\\b.*)?[.!?]*$";
 const AS_BEFORE = "(?:so |and |okay,? |well,? |now,? |right,? )?";
 const SAY =
   "(?:we|i|you|they|people|scientists|mathematicians|economists|psychologists|biologists|chemists|physicists|engineers|programmers)";
@@ -225,6 +225,14 @@ const ROWS = [
     "when-have-means",
     `^(?:and |so |now |but )?(?:when|if|once)\\s+(?:people|you|we|someone|a person|cells|they|an? \\p{L}+)\\s+(?:have|has|are|get|show|carry)\\s+(?:an? |the )?${T},\\s+(?:it|that|this)\\s+means\\s+(?:they|you|it|that|we)(?:'re| are| have| has|'ve)?\\s+(?<meaning>.{8,})${END}`,
   ],
+  [
+    "adj-which-means",
+    `^(?:.{0,80}?\\b(?:is|are|was|were)\\s+)(?<term>[\\p{L}-]{5,}),\\s+which\\s+(?:means|refers to|is)\\s+(?:that\\s+)?(?<meaning>.{8,})${END}`,
+  ],
+  [
+    "appos-gloss",
+    `^(?:.{0,70}?\\b)?(?:the|a|an|its|their|this|these|those|of|in|by|to|from|with|as|for)\\s+(?<term>[\\p{L}-]{4,}(?:\\s[\\p{L}-]{3,})?),\\s+(?<meaning>(?:an?|the)\\s+[^,;]{10,}?)(?:[,;]|\\s+(?:that|which)\\s|[.!?]*$)`,
+  ],
   ["is-what-means", `^(?<meaning>.{12,}?)\\s+is what ${T}\\s+(?:means|is)${END}`, "meaning-first"],
 ];
 const NOT_TERM_HEAD =
@@ -293,6 +301,15 @@ export function shapeDefinition(sentence) {
     )
       continue;
     if (/^(?:to|how)\s/i.test(meaning) && /^(?:solution|plan|point|answer|trick|key|idea|goal)$/i.test(term)) continue;
+    // an appositive names a common noun and glosses it with a noun phrase, not a clause ("In reality, the film clip is ...")
+    if (
+      name === "appos-gloss" &&
+      (/^[A-Z]/.test(term) ||
+        /\b(?:is|are|was|were|can|could|will|would|has|have|had|does|do|did|starts?|keeps?|loved|went|look|looks|'s|'re|isn't|won't)\b/i.test(
+          meaning.split(/\s+/).slice(0, 4).join(" "),
+        ))
+    )
+      continue;
     return [term, meaning, undefined, name];
   }
   return null;

@@ -163,3 +163,7 @@ Real definitions found: 6 of 19 (about 32% recall). Not 86, not 90.
 Afterwards (tuned on wave 8, so not blind): "we call this X" now reads its meaning from earlier sentences; a plain-space
 "we call this X Y" no longer splits the term; "a concept we'll use" is not a meaning; "through this concept called X" and
 generic words ("thing", "concept") are not meanings of "called"; "When people have a heterozygous, it means they …".
+
+### DEFT textbook-text check (numbers only; corpus kept out of the repo)
+
+Sentence-level, default confidence cut. Dev (held out): precision 64.8%, recall 37.1%, F1 47.2%. Train odd half: F1 about 53. An appositive-gloss rule lifted dev F1 about 1 point but cost precision on lecture audio, so it is disabled. This is far below 85/90; not claimed.
