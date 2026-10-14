@@ -1,0 +1,64 @@
+name: Fetch text
+
+# Manual only. Downloads the plain text of Wikipedia articles (CC BY-SA, used for measurement only,
+# never committed) so the definition finder can be tested on written text. The text comes back
+# compressed in the run's annotations. See engine/bench/README.md.
+on:
+  workflow_dispatch:
+    inputs:
+      titles:
+        description: Article titles separated by "|"
+        required: true
+      chars:
+        description: Characters to keep from each article
+        default: "12000"
+
+permissions:
+  contents: read
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.m.outputs.matrix }}
+    steps:
+      - id: m
+        env:
+          TITLES: ${{ inputs.titles }}
+        run: |
+          echo "matrix=$(printf '%s' "$TITLES" | tr '|' '\n' | jq -R . | jq -sc '[range(0; length; 8) as $i | .[$i:$i+8] | join("|")]')" >> "$GITHUB_OUTPUT"
+  fetch:
+    needs: plan
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        group: ${{ fromJson(needs.plan.outputs.matrix) }}
+    steps:
+      - name: Download
+        env:
+          GROUP: ${{ matrix.group }}
+          CHARS: ${{ inputs.chars }}
+        run: |
+          node -e '
+            const fs = require("fs");
+            (async () => {
+              const out = {};
+              for (const title of process.env.GROUP.split("|")) {
+                const u = "https://en.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext=1&redirects=1&format=json&titles=" + encodeURIComponent(title);
+                const r = await fetch(u, { headers: { "User-Agent": "seekto-measurement/1.0 (github.com/enrjgy-tech/seekto)" } });
+                const j = await r.json();
+                const p = Object.values(j.query.pages)[0];
+                out[title] = (p.extract || "").replace(/\n== (?:See also|References|External links|Further reading|Notes|Sources|Bibliography)[\s\S]*$/, "").slice(0, Number(process.env.CHARS));
+              }
+              fs.writeFileSync("texts.json", JSON.stringify(out));
+            })();
+          '
+          gzip -9 -c texts.json | base64 -w0 > t.b64
+          ls -l texts.json t.b64
+      - name: Annotations
+        run: |
+          node -e '
+            const t = require("fs").readFileSync("t.b64", "utf8");
+            for (let n = 0; n * 3500 < t.length && n < 40; n++) console.log("::notice title=text " + (n + 1) + "::" + t.slice(n * 3500, (n + 1) * 3500));
+          '
