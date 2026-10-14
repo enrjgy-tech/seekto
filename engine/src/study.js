@@ -1071,7 +1071,7 @@ export function findDefinitions(text, { minConfidence = 0, features = false, gat
     const theseCalled =
       !m &&
       c.match(
-        /^(?:and |so |by the way,? )?(?:those|these|they)(?: are|'re)(?: also| often| sometimes| usually)*\s+(?:called|known as|termed|named)\s+(?:the |a |an )?(.{2,40}?)[.!?]*$/i,
+        /^(?:and |so |by the way,? |now )?(?:those|these|they|it|that|this)(?:'re| are| is|'s)?(?: also| often| sometimes| usually| actually| just)*\s+(?:called|known as|termed|named)\s+(?:the |a |an )?(.{2,40}?)[.!?]*$/i,
       );
     if (theseCalled) m = [theseCalled[1], "", undefined, "we-call-next"];
     if (m?.[3] === "we-call-next") {

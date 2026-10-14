@@ -121,3 +121,14 @@ constant"), `fact-passive` ("The president is elected for four years"), `fact-la
 checks and get a confidence floor (0.6 symbols, 0.45 facts) because the word-level model was never trained on them.
 On the 50 judged lectures they fire 8 times; about 7 looked right on reading (one-letter term examples: S, R, V).
 This is a read of lectures I had already seen, not a blind score.
+
+### Blind wave 6 (16 MIT OCW clips, 7 minutes, judged by reading raw text before any fix)
+
+Hand-judged real definitions: 29. Candidates offered: 24, of which 11 were right (about 46% precision).
+Real definitions found: 11 of 29 (about 38% recall). Not 90.
+Afterwards (tuned on wave 6, so not blind): "it's/these are known as X" now takes its meaning from earlier
+sentences (it finds "crossing over", but the meaning chosen is the wrong sentence); new shape
+"what we call X, which is D" (the natural-rate line is found).
+Known misses: "marginal product of labor … we defined as", "atomic radius … is defined by", "pseudo-uridine",
+"metacentric chromosome", "parental gametes", "associative agnosia" (ASR-garbled), "manufactured objects",
+"operant or instrumental conditioning".

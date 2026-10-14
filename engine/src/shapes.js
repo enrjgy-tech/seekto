@@ -189,6 +189,10 @@ const ROWS = [
     "meaning-first",
   ],
   ["we-define-symbol", `^${AS_BEFORE}${SAY} define ${T}(?:,\\s+[\\p{L}]{1,12})?\\s+as\\s+${D}${END}`],
+  [
+    "what-we-call-which",
+    `^(?:and |so )?(?:(?:that's|that is|this is|it's|it is) )?(?:what|something) ${SAY} (?:call|mean by|refer to as) ${T},?\\s+(?:which|that) (?:is|are|means) ${D}${END}`,
+  ],
   ["is-what-means", `^(?<meaning>.{12,}?)\\s+is what ${T}\\s+(?:means|is)${END}`, "meaning-first"],
 ];
 const NOT_TERM_HEAD =
