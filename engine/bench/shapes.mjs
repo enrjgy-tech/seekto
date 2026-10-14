@@ -206,6 +206,14 @@ add(
 );
 add("used-to", "vp", "{X} is a way to {Y}.", "{X} is a method to {Y}.", "{X} is used to {Y}.");
 // negatives: sentences that look like these shapes but define nothing
+// wave 5 (blind): shapes found in real lecture text
+add(
+  "wave5",
+  "np",
+  "The slope is what we call {X}, which we define as {Y}.",
+  "It's {Y} known as {X}.",
+  "We define {X}, delta as {Y}.",
+);
 const NEG = [
   "The meeting is on Friday in the main hall.",
   "I think it is going to be a long day.",

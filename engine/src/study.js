@@ -327,7 +327,7 @@ function goodTerm(term) {
     return null;
   // "The best way to learn is...", "The hardest part is...": a ranking or a plan, not vocabulary
   if (
-    /^(?:best|worst|hardest|easiest|first|second|third|last|next|main|biggest|only|real|whole|good|better|other|important|key|one)\b/i.test(
+    /^(?:favorite|favourite|least|most|best|worst|hardest|easiest|first|second|third|last|next|main|biggest|only|real|whole|good|better|other|important|key|one)\b/i.test(
       t,
     ) ||
     /\b(?:way|ways|trick|reason|goal|plan|solution|answer|point)\b.*\bto\b/i.test(t) ||
@@ -387,6 +387,17 @@ function matchDefinition(c, next) {
   if (SHAPE_LEAD.test(c)) {
     const bare = matchDefinitionCore(c.replace(SHAPE_LEAD, "").replace(SHAPE_LEAD, ""), next);
     if (bare) return bare;
+  }
+  // "Your opportunity set is ...": a possessive in front is not part of the term
+  if (/^(?:your|our|their)\s/i.test(c)) {
+    const bare = matchDefinitionCore(c.replace(/^(?:your|our|their)\s+/i, ""), next);
+    if (
+      bare &&
+      /^(?:the|a|an)\s+(?:set|collection|amount|number|measure|rate|ratio|process|group|function|kind|type|sum|total|range|line|curve)\b/i.test(
+        bare[1],
+      )
+    )
+      return bare;
   }
   return matchDefinitionCore(c, next);
 }
@@ -1042,6 +1053,12 @@ export function findDefinitions(text, { minConfidence = 0, features = false, gat
         /^(?:and |so )?(?:this|that|it)(?: is|'s) (?:exactly |just )?what\s+(?:an?\s+|the\s+)?(.{2,40}?)\s+means[.!?]*$/i,
       );
     if (whatMeans) m = [whatMeans[1], "", undefined, "we-call-next"];
+    const theseCalled =
+      !m &&
+      c.match(
+        /^(?:and |so |by the way,? )?(?:those|these|they)(?: are|'re)(?: also| often| sometimes| usually)*\s+(?:called|known as|termed|named)\s+(?:the |a |an )?(.{2,40}?)[.!?]*$/i,
+      );
+    if (theseCalled) m = [theseCalled[1], "", undefined, "we-call-next"];
     if (m?.[3] === "we-call-next") {
       const back = meaningBefore(list, i, m[0]);
       if (back) {

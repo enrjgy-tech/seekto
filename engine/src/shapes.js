@@ -144,6 +144,20 @@ const ROWS = [
     "it-means-youre",
     `^(?<meaning>(?:when|if|once)\\s+(?:you|we|it)\\s+(?:have|has|see|get|write|say)\\s+.{2,40}?),\\s+(?:it|that|this)\\s+means\\s+(?:you're|you are|it's|it is|we're|we are)\\s+${T}(?:,\\s+(?:because|since|as)\\s+.{8,}?)?${END}`,
   ],
+  [
+    "is-what-we-call-define",
+    `^.{3,}?\\s+(?:is|are)\\s+(?:what|how) ${SAY} call ${T},\\s+(?:which|that)\\s+${SAY}\\s+(?:define|describe)\\s+(?:it\\s+)?as,?\\s+(?:we define .{3,40}?\\s+as\\s+)?${D}${END}`,
+  ],
+  [
+    "what-we-call-dash",
+    `^.{0,60}?\\b(?:what|something|things) ${SAY} call ${T}\\s*(?:(?:--|—|–),?\\s*(?:that |which )?|,\\s*(?:that|which) )${D}${END}`,
+  ],
+  [
+    "its-a-known-as",
+    `^(?:it's|it is|this is|that's|that is|these are|those are|they are|they're)\\s+(?<meaning>(?:an?|the)\\s+.{4,}?)\\s+(?:known as|called|named|termed)\\s+${T}${END}`,
+    "meaning-first",
+  ],
+  ["we-define-symbol", `^${AS_BEFORE}${SAY} define ${T}(?:,\\s+[\\p{L}]{1,12})?\\s+as\\s+${D}${END}`],
   ["is-what-means", `^(?<meaning>.{12,}?)\\s+is what ${T}\\s+(?:means|is)${END}`, "meaning-first"],
 ];
 const NOT_TERM_HEAD =

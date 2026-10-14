@@ -101,3 +101,13 @@ CI runs `node engine/bench/run.mjs --check`, which fails if a change lowers any 
 - Holidays and school calendars ("the Monday after Thanksgiving", "after half term").
 - Hedged plans ("I think the quiz might be Friday") are treated as real.
 - French and other languages: not yet.
+
+### Blind wave 5 (17 MIT OCW clips, 7 minutes each, judged by reading the raw text before any fix)
+
+Hand-judged real definitions: about 14. At the default cut the finder offered 12 definitions; about 6 were right
+(precision about 43%) and about 6 of the 14 real ones were found (recall about 43%). Not 90.
+Misses fixed afterwards (so these now count as tuned, not blind): "is what we call X, which we define as …",
+"we define X, epsilon as …", "It's a … known as X", "Your opportunity set is …" (possessive in front, only for
+set/rate/measure-type meanings; a wider strip made "Your parents are rich" and "Our instructor is" false hits).
+Still missed: "S stands for Svedberg" (one-letter term), "also often called the main group elements" (meaning
+only in earlier sentences), "we call setters the two after that", the dash-restart "what we call discount rates--".
