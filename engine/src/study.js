@@ -920,7 +920,6 @@ export function findDefinitions(text, { minConfidence = 0, features = false, gat
     if (!t || !d) return;
     const key = t.toLowerCase();
     if (seen.has(key)) return;
-    seen.add(key);
     const { confidence, why, features: feat } = definitionConfidence(t, d, sentence, ctx);
     if (confidence < minConfidence) return;
     // In a whole lecture, a bare "X is Y" is usually talk, not a definition (16% real when judged by hand on
@@ -937,6 +936,8 @@ export function findDefinitions(text, { minConfidence = 0, features = false, gat
       )
     )
       return;
+    // (marked only once it is kept: a weak guess the gate drops must not block a better reading of the same term)
+    seen.add(key);
     out.push({
       term: keepCase || /^[A-Z]{2,}/.test(t) ? t : t.charAt(0).toUpperCase() + t.slice(1),
       definition: d,
@@ -975,7 +976,15 @@ export function findDefinitions(text, { minConfidence = 0, features = false, gat
     let frag = !q && c.match(/^([\p{L}][\p{L}' -]{1,40})[.:]$/u);
     if (frag && /\s(?:is|are|was|were|has|have|had)\s/i.test(frag[1])) frag = null;
     // "Textbook is April." is a short sentence, not a heading
-    const answer = next && answerOf(next, (q || frag)?.[1]);
+    let answer = next && answerOf(next, (q || frag)?.[1]);
+    // "Synergy." then "Synergy means that ...": the next sentence is a definition on its own, read it normally
+    if (
+      answer &&
+      !q &&
+      next &&
+      new RegExp(`^${(frag?.[1] || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s+(?:is|are|means)\\b`, "i").test(next)
+    )
+      answer = null;
     if ((q || (frag && frag[1].split(/\s+/).length <= 4)) && answer) {
       push((q || frag)[1], answer, `${s} ${list[i + 1]}`, undefined, q ? "question" : "fragment");
       i++;
@@ -983,6 +992,18 @@ export function findDefinitions(text, { minConfidence = 0, features = false, gat
     }
     // "The other extreme is what's called the command economy." The next sentence says what it is
     // (skipping a repeat of the same line, which Whisper sometimes makes).
+    // "This radiation is in fact called bremsstrahlung." then "That literally means braking radiation."
+    const gloss = next?.match(/^(?:that|which|it|this)\s+(?:literally |basically |just |really )?means\s+(.{4,})$/i);
+    const glossed =
+      gloss &&
+      c.match(
+        /^(?:and |so )?(?:this|that|it|these|those)\b.*?\b(?:is|are)\s+(?:in fact |also |actually |just )?(?:called|known as)\s+(?:an?\s+|the\s+)?(.{2,40}?)[.!?]*$/i,
+      );
+    if (glossed) {
+      push(glossed[1], `literally: ${gloss[1].replace(/[.!?]+$/, "")}`, `${s} ${list[i + 1]}`, undefined, "gloss");
+      i++;
+      continue;
+    }
     const called = c.match(
       /\b(?:is|are|it's|that's|have|has|get|got)\s+what(?:'s| is| are)\s+(?:called|known as)\s+(?:the\s+|an?\s+)?(.{2,40}?)[.!?]*$/i,
     );

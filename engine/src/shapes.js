@@ -35,7 +35,10 @@ const ROWS = [
     `^(?:it's|it is|that's|that is|this is) (?:exactly |just )?(?:what|how) (?:${SAY}|people) (?:call|mean by|refer to as|term|label) ${T}\\s*[:,–—-]\\s*(?:which is |that is )?${D}${END}`,
   ],
   ["whats-called", `^what(?:'s| is| are) (?:called|known as|termed|named) ${T}\\s+(?:is|are|means?)\\s+${D}${END}`],
-  ["what-i-mean", `^what (?:i|we) (?:mean|meant) by ${T}\\s+(?:is|are|means?)\\s+${D}${END}`],
+  [
+    "what-i-mean",
+    `^what (?:i|we) (?:mean|meant) by (?:(?:them|it|this|that|these|those) being )?${T}\\s+(?:is|are|means?)\\s+(?:that\\s+)?${D}${END}`,
+  ],
   ["by-we-mean", `^by ${T},?\\s+(?:${SAY}) (?:just |simply |only |really )?(?:mean|meant|refer to)\\s+${D}${END}`],
   [
     "when-i-say",
@@ -129,6 +132,14 @@ const ROWS = [
     "is-used-to",
     `^${T}\\s+(?:is|are)\\s+(?<meaning>(?:used|what we use|how we|what you use|how you|a tool|a method|a technique|a way) (?:to|for|of|that)\\s.{6,})${END}`,
   ],
+  [
+    "which-aside",
+    `(?:^|[\\s,])(?:about|at|with|have|has|had|got|of|for|call|consider|introduce|define|between)\\s+(?:an?\\s+|the\\s+)?(?<term>[\\p{L}][\\p{L}'’-]*(?:\\s+[\\p{L}'’-]+){0,2}),\\s*which\\s+(?:is|are)\\s+(?:basically |just |essentially )?(?<meaning>(?:defined as|known as|called|the (?:amount|number|set|process|study|measure|ratio|rate|sum|total|idea|concept|way|name|value|price|quantity|ability|degree|collection|part|type|kind|form)(?: of)?|an? (?:measure|type|kind|form|set|process|method|way|term|word|name|number|rate)(?: of)?)\\s.{4,}?)(?=[.?!]|$)`,
+  ],
+  [
+    "that-means",
+    `\\b(?:know|knew|knowing|say|said|remember|recall|learned|noted?|see|seen) that\\s+${T}\\s+means\\s+(?<meaning>.+?)(?=\\s+and\\s+[\\p{L}]+\\s+means|[.!?]*$)`,
+  ],
   ["is-what-means", `^(?<meaning>.{12,}?)\\s+is what ${T}\\s+(?:means|is)${END}`, "meaning-first"],
 ];
 const NOT_TERM_HEAD =
@@ -177,11 +188,14 @@ export function shapeDefinition(sentence) {
     // a meaning that starts with "this" or "what he did" points at something said elsewhere; it is not a meaning
     if (
       order === "meaning-first" &&
-      /^(?:so |and |but |basically,? )*(?:what|this|that|it|he|she|they|these|those|there|here|which|we|i|you)\b/i.test(
+      /^(?:so |and |but |basically,? )*(?:(?:what|it|he|she|they|there|here|which|we|i|you)\b|(?:this|that|these|those)\s+(?:is|was|are|were|'s)\b)/i.test(
         meaning,
       )
     )
       continue;
+    if (/^(?:what-we-call|what-i-mean|by-we-mean|when-i-say)$/.test(name))
+      meaning = meaning.replace(/^that\s+(?:basically\s+)?/i, "");
+    term = term.replace(/^(?:them|it|this|that|these|those) being\s+/i, "");
     if (order === "verb") term = term.replace(/^to\s+/i, "");
     if (/\b(?:is|are|was|were|what|which|that|how|when|where|who|do|does|did|if)\b/i.test(term)) continue;
     if (!term || PRON.test(term) || NOT_TERM_HEAD.test(term) || term.split(/\s+/).length > 4) continue;
