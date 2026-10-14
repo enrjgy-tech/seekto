@@ -1055,7 +1055,7 @@ export function findDefinitions(text, { minConfidence = 0, features = false, gat
     }
     const called =
       c.match(
-        /\b(?:is|are|it's|that's|have|has|get|got)\s+what(?:'s| is| are)\s+(?:called|known as)\s+(?:the\s+|an?\s+)?(.{2,40}?)[.!?]*$/i,
+        /\b(?:is|are|it's|that's|have|has|get|got)\s+what(?:'s| is| are)\s+(?:called|known as)\s+(?:the\s+|an?\s+)?([\p{L}'’-]+(?:\s+[\p{L}'’-]+){0,3}?)(?:,\s.*)?[.!?]*$/iu,
       ) ||
       // "I'll do so through something we call indifference curves." The meaning comes in the next sentences.
       c.match(

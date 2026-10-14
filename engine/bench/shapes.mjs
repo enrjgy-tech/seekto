@@ -213,6 +213,7 @@ add(
   "The slope is what we call {X}, which we define as {Y}.",
   "It's {Y} known as {X}.",
   "We define {X}, delta as {Y}.",
+  "What {X} is, is {Y}.",
 );
 const NEG = [
   "The meeting is on Friday in the main hall.",

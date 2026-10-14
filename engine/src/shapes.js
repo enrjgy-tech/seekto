@@ -201,6 +201,19 @@ const ROWS = [
     "when-i-write",
     `^(?:when|if|whenever)\\s+(?:I|we|you|they|someone|a doctor|a nurse|the \\p{L}+)\\s+(?:write|writes|see|sees|use|uses|put|puts|type|types|read|reads)\\s+${T}(?:\\s+(?:on|in|at|after|before|next to)\\s+[^,]{2,30})?,\\s+(?:that|it|this)\\s+(?:means|stands for|is short for)\\s+${D}${END}`,
   ],
+  [
+    "what-x-is-is",
+    `^(?:so |and |okay,? |well,? )?what ${T}\\s+(?:is|are),?\\s+(?:is|are)\\s+(?:it's |that |it is |they're )?${D}${END}`,
+  ],
+  [
+    "alias-is",
+    `^(?:so |and |okay,? |well,? )?${T}\\s+(?:or|also called|aka|a\\.k\\.a\\.)\\s+(?:the )?[A-Z]{2,6},?\\s+(?:is|are)\\s+${D}${END}`,
+  ],
+  [
+    "type-known-as",
+    `^(?:.{0,80}?[\\s,])?(?<meaning>an?\\s+(?:type|kind|form|class|group|region|part|sort|piece)\\s+of\\s+[\\p{L}-]+(?:\\s+[\\p{L}-]+)?)\\s+(?:known as|called|named|termed)\\s+${T}(?=\\s+(?:lie|lies|live|lives|exist|exists|are|is|form|forms|occur|occurs|reside|resides|that|which|where|in)\\b|[.,;!?]|$).*$`,
+    "meaning-first",
+  ],
   ["is-what-means", `^(?<meaning>.{12,}?)\\s+is what ${T}\\s+(?:means|is)${END}`, "meaning-first"],
 ];
 const NOT_TERM_HEAD =
@@ -259,7 +272,15 @@ export function shapeDefinition(sentence) {
     term = term.replace(/^(?:them|it|this|that|these|those) being\s+/i, "");
     if (order === "verb") term = term.replace(/^to\s+/i, "");
     if (/\b(?:is|are|was|were|what|which|that|how|when|where|who|do|does|did|if)\b/i.test(term)) continue;
-    if (!term || PRON.test(term) || NOT_TERM_HEAD.test(term) || term.split(/\s+/).length > 4) continue;
+    if (
+      !term ||
+      PRON.test(term) ||
+      (NOT_TERM_HEAD.test(term) &&
+        (term.split(/\s+/).length === 1 ||
+          /^\S+\s+(?:one|two|three|four|five|six|seven|eight|nine|ten|\d+|[a-c])$/i.test(term))) ||
+      term.split(/\s+/).length > 4
+    )
+      continue;
     if (/^(?:to|how)\s/i.test(meaning) && /^(?:solution|plan|point|answer|trick|key|idea|goal)$/i.test(term)) continue;
     return [term, meaning, undefined, name];
   }

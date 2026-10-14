@@ -132,3 +132,14 @@ sentences (it finds "crossing over", but the meaning chosen is the wrong sentenc
 Known misses: "marginal product of labor … we defined as", "atomic radius … is defined by", "pseudo-uridine",
 "metacentric chromosome", "parental gametes", "associative agnosia" (ASR-garbled), "manufactured objects",
 "operant or instrumental conditioning".
+
+### Blind wave 7 (19 MIT OCW clips, 5 minutes each at 10:00, judged by reading raw text before any fix)
+
+Hand-judged real definitions: 29. Candidates offered: 16, of which 10 were right (about 62% precision).
+Real definitions found: 9 of 29 (about 31% recall). Not 90, not 86.
+Afterwards (tuned on wave 7, so not blind): "is what's known as X, with respect to …" (term followed by a comma),
+"What an action potential is, is …", "A type of cell known as X", multi-word terms that start with a note-like
+word ("action potential" was rejected because "action" is a label word).
+Known misses: "which is called the principal quantum number", "that's called the fracture point" (the meaning
+is in a first-person sentence before), "X also known as arguments", "pH equals minus log…", "This K is called Kw",
+"a function has a body, which is…", "what I would define as adult stem cells", sticky end / blunt end.
