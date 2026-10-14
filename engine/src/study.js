@@ -696,6 +696,41 @@ function definitionConfidence(term, def, sentence, ctx) {
   };
 }
 
+const CONTINUES =
+  /^\W*(?:it|this|that|they|these|those|which|so|and|because|but|then|here|when|if|in other words|basically|meaning|for example|for instance|think of|such as)\b/i;
+const SHIFT =
+  /^\W*(?:let'?s|now let'?s|next|moving on|so what|what about|any questions|okay,? so let'?s|all right|alright|the next|the second|second|third|first)\b/i;
+const contentWords = (str) =>
+  str
+    .toLowerCase()
+    .split(/[^\p{L}']+/u)
+    .filter((w) => w.length >= 4 && !COMMON_WORDS.has(w));
+
+/** After a definition, keep reading while the talk stays on the same topic (it mentions the term or carries on
+ * with "it / this / which / for example"), and stop at a topic change, a question or a new heading. At most
+ * three sentences and about 60 words, so the explanation is complete but still a note. */
+export function explanationAfter(following, term, def) {
+  const tw = contentWords(term);
+  const dw = new Set(contentWords(def));
+  const more = [];
+  let words = 0;
+  for (const raw of following) {
+    const n = cleanSentence(raw);
+    if (!n || /\?$/.test(n) || SHIFT.test(n)) break;
+    const lower = n.toLowerCase();
+    if (lower.includes(def.toLowerCase().slice(0, 30)) || def.toLowerCase().includes(lower.slice(0, 30))) continue;
+    const mentions = tw.some((w) => lower.includes(w));
+    const shared = contentWords(n).filter((w) => dw.has(w)).length;
+    if (!(mentions || shared >= 2 || (CONTINUES.test(n) && shared >= 1))) break;
+    const len = n.split(/\s+/).length;
+    if (len < 4 || words + len > 60) break;
+    more.push(n);
+    words += len;
+    if (more.length === 3) break;
+  }
+  return more;
+}
+
 /** Find definitions in notes or a transcript: [{ term, definition, sentence }]. Works on how people talk,
  * not only on "X is a Y": "so mitosis, basically, it's when ...", "we call this opportunity cost", "what is an API? It's ...".
  */
@@ -705,6 +740,20 @@ export function findDefinitions(text, { minConfidence = 0, features = false } = 
   // a closing quote ends a sentence too: '... "attentional resources." We can pay ...'
   const list = sentences(text).flatMap((x) => x.split(/(?<=[.?!]["”])\s+(?=[A-Z])/));
   const lower = text.toLowerCase();
+  const index = new Map();
+  list.forEach((x, i) => index.has(x) || index.set(x, i));
+  const following = (sentence, n) => {
+    let i = index.get(sentence);
+    if (i === undefined) i = list.findIndex((x) => sentence.startsWith(x));
+    if (i < 0) return [];
+    // a definition found across two or three sentences ends with the last of them
+    let rest = sentence.slice(list[i].length).trim();
+    while (rest && list[i + 1] && rest.startsWith(list[i + 1])) {
+      rest = rest.slice(list[i + 1].length).trim();
+      i++;
+    }
+    return list.slice(i + 1, i + 1 + n);
+  };
   const ctx = {
     long: list.length >= 25,
     count: (term) => {
@@ -763,6 +812,7 @@ export function findDefinitions(text, { minConfidence = 0, features = false } = 
       sentence,
       confidence,
       why,
+      more: explanationAfter(following(sentence, 6), t, d),
       ...(features ? { features: feat, rule } : {}),
     });
   };
