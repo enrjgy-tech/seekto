@@ -155,3 +155,11 @@ dev precision 64.8%, recall 37.8%, F1 47.8%. For comparison, the best machine-le
 reached F1 0.878 on the competition test set (sentence-level, different split).
 Misses by cue (train, before the change): explicit naming cues 42% found, "is/are" without a/the 34%,
 parenthetical glosses 6%, appositives 0%, no cue 7%.
+
+### Blind wave 8 (20 MIT OCW clips, 5 minutes each at 15:00, judged by reading raw text before any fix)
+
+Hand-judged real definitions: 19. Candidates offered: 15, of which 6 were right (40% precision).
+Real definitions found: 6 of 19 (about 32% recall). Not 86, not 90.
+Afterwards (tuned on wave 8, so not blind): "we call this X" now reads its meaning from earlier sentences; a plain-space
+"we call this X Y" no longer splits the term; "a concept we'll use" is not a meaning; "through this concept called X" and
+generic words ("thing", "concept") are not meanings of "called"; "When people have a heterozygous, it means they …".

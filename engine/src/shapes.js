@@ -23,7 +23,7 @@ const ROWS = [
   // forward naming
   [
     "we-call-colon",
-    `^${AS_BEFORE}${SAY}(?:'ll| will| can| could)? call (?:this|that|it|these|those|them)?\\s*${T}\\s*(?:[,:;–—-]|\\s)\\s*(?:which is |that is |meaning |that means |and that is |and that's )?${D}${END}`,
+    `^${AS_BEFORE}${SAY}(?:'ll| will| can| could)? call (?:this|that|it|these|those|them)?\\s*${T}(?:\\s*[,:;–—-]\\s*|\\s+(?=(?:which|that|meaning|it|is|are|a|an|the|when|where|what|how|they|we|you)\\b))(?:which is |that is |meaning |that means |and that is |and that's )?${D}${END}`,
     "forward",
     /^(?:we|i|you)\b.*\bcall (?:this|that|it)\b/i,
   ],
@@ -220,6 +220,10 @@ const ROWS = [
     "np-called-term",
     `^(?:.{0,90}?[\\s,])??(?<meaning>(?!(?:also|sometimes|commonly|collectively|often|usually|popularly|generally)\\b)(?:(?:an?|the|some|these|those|certain|special|specialized|small|large)\\s+)?(?:[\\p{L}0-9–-]+\\s+){0,3}?[\\p{L}-]{3,})\\s*,?\\s+(?:also |sometimes |commonly |collectively |often |usually |popularly |generally )*(?:called|termed|known as|referred to as|named|dubbed)\\s+${T}(?=\\s*[,;.(—–:]|\\s+(?:which|that|and|or|is|are|was|were|because|from|in|can|will|has|have|allow|allows|work|works)\\b|$).*$`,
     "meaning-first",
+  ],
+  [
+    "when-have-means",
+    `^(?:and |so |now |but )?(?:when|if|once)\\s+(?:people|you|we|someone|a person|cells|they|an? \\p{L}+)\\s+(?:have|has|are|get|show|carry)\\s+(?:an? |the )?${T},\\s+(?:it|that|this)\\s+means\\s+(?:they|you|it|that|we)(?:'re| are| have| has|'ve)?\\s+(?<meaning>.{8,})${END}`,
   ],
   ["is-what-means", `^(?<meaning>.{12,}?)\\s+is what ${T}\\s+(?:means|is)${END}`, "meaning-first"],
 ];
