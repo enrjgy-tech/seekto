@@ -453,28 +453,50 @@ function matchDefinition(c, next) {
     next
   )
     return [m[1], next, undefined, "we-call-next"];
+  // The meaning first, then the name: "Procedure attributes are better known as methods",
+  // "The ratio of products to reactants at equilibrium is the definition of the equilibrium constant".
+  if (
+    (m = c.match(
+      /^(.{12,160}?)\s+(?:is|are)\s+(?:also\s+|better\s+|often\s+|commonly\s+|sometimes\s+)?(?:called|known as|termed|referred to as)\s+(?:an?\s+|the\s+)?([\p{L}][\p{L}' -]{1,38}?)[.!?]*$/iu,
+    )) &&
+    !/^(?:this|that|it|these|those|which|what)\b/i.test(m[1])
+  )
+    return [m[2], m[1], undefined, "named-by"];
+  if (
+    (m = c.match(
+      /^(?:and |so |because )?(.{12,160}?)\s+(?:is|are)\s+the\s+definition\s+of\s+(?:an?\s+|the\s+)?([\p{L}][\p{L}' -]{1,38}?)[.!?]*$/iu,
+    ))
+  )
+    return [m[2], m[1], undefined, "definition-of"];
   // "X is/are/was ...", "X means/refers to/stands for ..."
   if (
     (m = c.match(
-      /^(.{2,48}?)\s+(?:means|refers to|is defined as|stands for|is called|significa|significan|se refiere a|se define como|quiere decir|quer dizer|se refere a|é definid[oa] como)\s+(.{6,})$/i,
+      /^(.{2,48}?)\s+(?:means|refers to|is defined as|stands for|significa|significan|se refiere a|se define como|quiere decir|quer dizer|se refere a|é definid[oa] como)\s+(.{6,})$/i,
     ))
   )
     return [m[1], m[2], undefined, "means"];
   if (
     (m = c.match(
-      /^(.{2,48}?)\s+(tells (?:you|us)|lets (?:you|us)|allows (?:you|us) to|describes|measures)\s+(.{6,})$/i,
+      /^(.{2,48}?)\s+(tells (?:you|us)|lets (?:you|us)|allows (?:you|us) to|describes|measures|represents|denotes)\s+(.{6,})$/i,
     ))
   )
     return [m[1], `${m[2]} ${m[3]}`, undefined, "tells"];
   if (
     (m = c.match(
-      /^(.{2,48}?)\s+(?:is|are|was|were|es|son|era|fue|é|são|foi|era)\s+(?:basically|just|simply|really|specifically|essentially|actually|kind of|sort of|básicamente|simplemente|basicamente|simplesmente)?\s*(.{6,})$/iu,
+      /^(.{2,48}?)\s+(?:(?:is|are)\s+(?:going to|gonna)\s+be|is|are|was|were|es|son|era|fue|é|são|foi|era)\s+(?:basically|just|simply|really|specifically|essentially|actually|kind of|sort of|básicamente|simplemente|basicamente|simplesmente)?\s*(.{6,})$/iu,
     ))
   ) {
     // "Where the points meet is the market equilibrium": the clause describes, the short noun phrase is the term
     const named = /^where\b/i.test(m[1]) && m[2].match(/^the\s+(.{3,30})$/i);
     if (named && named[1].split(/\s+/).length <= 3)
       return [named[1].replace(/[.!?]+$/, ""), m[1], undefined, "where-is"];
+    // "is going to be" opens a definition only when what follows describes ("data and procedures that belong to the class"),
+    // not a calculation ("the area is going to be pi r squared").
+    if (
+      /\b(?:is|are)\s+(?:going to|gonna)\s+be\b/i.test(c) &&
+      !(/\b(?:that|which|where|who|when)\b/i.test(m[2]) && !/\d/.test(m[2]))
+    )
+      return null;
     return [m[1], m[2], undefined, "is"];
   }
   // "A catalyst speeds up a reaction ..."
@@ -598,6 +620,8 @@ export function definitionFeatures(term, def, sentence, ctx) {
     .toLowerCase()
     .replace(/[^\p{L}]/gu, "");
   return {
+    // whole lectures talk a lot around a definition; notes and short clips are mostly the definition itself
+    long: ctx.long ? 1 : 0,
     marker: MARKER.test(sentence) ? 1 : 0,
     termWords: Math.min(tw.length, 4),
     termUncommon: termWords.length ? uncommon.length / termWords.length : 0,
@@ -667,39 +691,40 @@ export function definitionFeatures(term, def, sentence, ctx) {
 const WEAK_RULES = new Set(["is", "thats", "fragment", "roi", "tells", "other"]);
 // Fitted by engine/bench/fit-definitions.py on judged definitions from real lectures.
 const DEFINITION_MODEL = {
-  bias: -5.6532,
+  bias: -2.4647,
   weights: {
-    marker: 0.9985,
-    termWords: 0.0066,
-    termUncommon: 0.6629,
-    termAllCommon: -0.485,
-    termCount: 0.5636,
-    termOnce: -0.1862,
-    termName: -0.2177,
-    termShort: -0.2186,
-    termLen: 0.6978,
-    defWords: 0.2391,
-    defArticle: 1.0525,
-    defWhen: 0.1739,
-    defMathy: -0.5642,
-    defPronounStart: -0.1149,
-    defCommon: -0.035,
-    defHasTerm: -0.2712,
-    defEndsMid: 0.0904,
-    defRepeat: -0.0385,
-    sentenceLen: 0.203,
-    termDet: 0.2361,
-    termNounSuffix: -0.1929,
-    termNamed: 0.5505,
-    defNounClause: 0.4248,
-    defIsFragment: -0.7095,
-    markerStrong: 0.0183,
-    defTalk: -0.275,
-    defPast: -0.609,
-    defHere: -0.5454,
-    termPerson: -0.4238,
-    termDeixis: -0.4901,
-    termFirst: -0.0702,
+    defArticle: 0.7844,
+    defCommon: -0.1017,
+    defEndsMid: 0.1457,
+    defHasTerm: -0.2205,
+    defHere: -0.6575,
+    defIsFragment: -0.6508,
+    defMathy: -0.6337,
+    defNounClause: 0.2038,
+    defPast: -0.6469,
+    defPronounStart: -0.1351,
+    defRepeat: -0.0621,
+    defTalk: -0.353,
+    defWhen: 0.4055,
+    defWords: 0.3953,
+    long: -1.8769,
+    marker: 0.938,
+    markerStrong: -0.2224,
+    sentenceLen: 0.1657,
+    termAllCommon: -0.3703,
+    termCount: 0.3003,
+    termDeixis: -0.5148,
+    termDet: 0.3054,
+    termFirst: 0.1978,
+    termLen: 0.541,
+    termName: -0.075,
+    termNamed: 0.452,
+    termNounSuffix: -0.1498,
+    termOnce: -0.3228,
+    termPerson: -0.4408,
+    termShort: -0.2438,
+    termUncommon: 0.588,
+    termWords: -0.2147,
   },
 };
 function definitionConfidence(term, def, sentence, ctx) {

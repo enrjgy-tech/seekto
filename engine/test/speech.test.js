@@ -461,3 +461,21 @@ test("'that's called X' takes the meaning from the sentences before it", () => {
   assert.match(d.definition, /extra neutron/);
   assert.doesNotMatch(d.definition, /next topic/);
 });
+
+test("the meaning can come first: 'X is called Y', 'X is the definition of Y'", () => {
+  const a = findDefinitions("The study of the universe in the large is called cosmology. Okay.");
+  assert.equal(a[0]?.term, "Cosmology");
+  assert.match(a[0].definition, /study of the universe/);
+  const b = findDefinitions(
+    "The ratio of products to reactants in equilibrium is the definition of the equilibrium constant. Okay.",
+  );
+  assert.equal(b[0]?.term, "Equilibrium constant");
+});
+
+test("'is going to be' is a definition only when it describes, not when it calculates", () => {
+  assert.equal(findDefinitions("And the area is going to be pi r squared. Okay.").length, 0);
+  assert.equal(
+    findDefinitions("Attributes are going to be data and procedures that belong to the class. Okay.")[0]?.term,
+    "Attributes",
+  );
+});
