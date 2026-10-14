@@ -412,6 +412,29 @@ function matchDefinition(c, next) {
 function matchDefinitionCore(c, next) {
   let m;
   const shaped = shapeDefinition(c);
+  // "an organ called a radula", "Karyokinesis, also known as mitosis": the plain noun before "called" is the meaning
+  if (shaped?.[3] === "np-called-term") {
+    const mean = shaped[1].trim();
+    const ok =
+      goodTerm(shaped[0]) &&
+      !/^(?:there(?:'s| is| are)|here(?:'s| is| are))\b/i.test(c) &&
+      !/^(?:it|this|that|these|those|which|what|one|ones|and|or|but|is|are|was|were|be|been|we|they|you|i|he|she)$/i.test(
+        mean,
+      ) &&
+      !/\b(?:is|are|was|were|and|or|but|of|to|in|on|at|for|with|by|has|have|had|been|being|not|really|very|just|also|even|still|only|ever|never|always)$/i.test(
+        mean,
+      ) &&
+      // "a thing out there called utils": a generic noun says nothing about the term
+      !/\b(?:things?|stuff|something|someone|anything|anyone|guy|guys|man|woman|person|people|place|one|ones)(?:\s+(?:out there|over there|here|there))?$/i.test(
+        mean,
+      ) &&
+      // a single plain word is only a meaning when it is introduced as an alias: "Karyokinesis, also known as mitosis"
+      (mean.split(/\s+/).length > 1 ||
+        /\b(?:also|sometimes|commonly|collectively|often|usually)\s+(?:called|known as|termed|referred to as)\b/i.test(
+          c,
+        ));
+    return ok ? shaped : null;
+  }
   // (a shape that finds nothing usable falls through to the older rules, which also read the next sentence)
   if (shaped && goodTerm(shaped[0]) && goodDefinition(shaped[1])) return shaped;
   // a symbol ("S stands for Svedberg") or an implied fact ("The president is elected for four years")
@@ -424,6 +447,7 @@ function matchDefinitionCore(c, next) {
   )
     return shaped;
   if (shaped && /^fact-/.test(shaped[3]) && goodTerm(shaped[0])) return shaped;
+
   // "ROI, return on investment, is ..."
   if (
     (m = c.match(
@@ -950,7 +974,7 @@ export function findDefinitions(text, { minConfidence = 0, features = false, gat
     },
   };
   const push = (term, def, sentence, keepCase, rule = "other") => {
-    const implied = /^(?:sym|fact)-/.test(rule);
+    const implied = /^(?:sym|fact)-/.test(rule) || rule === "np-called-term";
     const t = implied && rule.startsWith("sym-") ? term.trim() : goodTerm(term);
     const d = implied ? t && def.replace(/[.!?]+$/, "").trim() : t && goodDefinition(def);
     if (!t || !d) return;

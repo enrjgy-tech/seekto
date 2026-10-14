@@ -143,3 +143,15 @@ word ("action potential" was rejected because "action" is a label word).
 Known misses: "which is called the principal quantum number", "that's called the fracture point" (the meaning
 is in a first-person sentence before), "X also known as arguments", "pH equals minus log…", "This K is called Kw",
 "a function has a body, which is…", "what I would define as adult stem cells", sticky end / blunt end.
+
+### DEFT textbook corpus (written text, CC BY-NC-SA 4.0; kept outside the repo, used only to measure)
+
+Sentence-level "does this sentence contain a definition" on adobe-research/deft_corpus (dev split, 861 sentences, 283 with
+a definition; train split used for study). The files are word-tokenized, so the scorer puts the punctuation back first.
+Honest baseline before any DEFT-driven change: precision 63.9%, recall 32.5%, F1 43.1% (dev, scored once, not tuned on).
+That is far below our own bench (recall 77%), which had been tuned on its own sentences.
+After adding "NOUN called/known as/termed X" and letting the term be followed by a comma or bracket clause:
+dev precision 64.8%, recall 37.8%, F1 47.8%. For comparison, the best machine-learning systems in SemEval-2020 Task 6
+reached F1 0.878 on the competition test set (sentence-level, different split).
+Misses by cue (train, before the change): explicit naming cues 42% found, "is/are" without a/the 34%,
+parenthetical glosses 6%, appositives 0%, no cue 7%.

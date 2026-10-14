@@ -9,6 +9,8 @@ const MEASURE =
   "(?:rate|constant|amount|force|energy|price|quantity|quotient|coefficient|charge|mass|velocity|temperature|pressure|volume|concentration|radius|angle|distance|time|length|width|height|speed|probability|variance|mean|total|cost|demand|supply|elasticity|income|wage|interest|growth|frequency|wavelength|momentum|acceleration|current|voltage|resistance|capacity|density|weight|work|power|entropy|enthalpy|elasticity|slope|intercept|variable|parameter|function|number of)";
 const D = "(?<meaning>.{6,})";
 const END = "[.!?]*$";
+// the term may be followed by a comma, bracket or dash clause: "is called splicing ([link])", "are termed heterotrophs (\"other feeders\"), because ..."
+const TAIL = "(?:\\s*(?:[,;(—–]|\\s-\\s).*)?[.!?]*$";
 const AS_BEFORE = "(?:so |and |okay,? |well,? |now,? |right,? )?";
 const SAY =
   "(?:we|i|you|they|people|scientists|mathematicians|economists|psychologists|biologists|chemists|physicists|engineers|programmers)";
@@ -111,7 +113,7 @@ const ROWS = [
   // meaning first
   [
     "named-by-also",
-    `^(?<meaning>.{12,160}?),?\\s+(?:which |that )?(?:is|are)\\s+(?:also |better |often |commonly |sometimes |usually )?(?:called|known as|termed|referred to as|named|labeled|labelled)\\s+${T}${END}`,
+    `^(?<meaning>.{12,160}?),?\\s+(?:which |that )?(?:is|are)\\s+(?:also |better |often |commonly |sometimes |usually )?(?:called|known as|termed|referred to as|named|labeled|labelled)\\s+${T}${TAIL}`,
     "meaning-first",
   ],
   [
@@ -212,6 +214,11 @@ const ROWS = [
   [
     "type-known-as",
     `^(?:.{0,80}?[\\s,])?(?<meaning>an?\\s+(?:type|kind|form|class|group|region|part|sort|piece)\\s+of\\s+[\\p{L}-]+(?:\\s+[\\p{L}-]+)?)\\s+(?:known as|called|named|termed)\\s+${T}(?=\\s+(?:lie|lies|live|lives|exist|exists|are|is|form|forms|occur|occurs|reside|resides|that|which|where|in)\\b|[.,;!?]|$).*$`,
+    "meaning-first",
+  ],
+  [
+    "np-called-term",
+    `^(?:.{0,90}?[\\s,])??(?<meaning>(?!(?:also|sometimes|commonly|collectively|often|usually|popularly|generally)\\b)(?:(?:an?|the|some|these|those|certain|special|specialized|small|large)\\s+)?(?:[\\p{L}0-9–-]+\\s+){0,3}?[\\p{L}-]{3,})\\s*,?\\s+(?:also |sometimes |commonly |collectively |often |usually |popularly |generally )*(?:called|termed|known as|referred to as|named|dubbed)\\s+${T}(?=\\s*[,;.(—–:]|\\s+(?:which|that|and|or|is|are|was|were|because|from|in|can|will|has|have|allow|allows|work|works)\\b|$).*$`,
     "meaning-first",
   ],
   ["is-what-means", `^(?<meaning>.{12,}?)\\s+is what ${T}\\s+(?:means|is)${END}`, "meaning-first"],
