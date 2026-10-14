@@ -140,6 +140,10 @@ const ROWS = [
     "that-means",
     `\\b(?:know|knew|knowing|say|said|remember|recall|learned|noted?|see|seen) that\\s+${T}\\s+means\\s+(?<meaning>.+?)(?=\\s+and\\s+[\\p{L}]+\\s+means|[.!?]*$)`,
   ],
+  [
+    "it-means-youre",
+    `^(?<meaning>(?:when|if|once)\\s+(?:you|we|it)\\s+(?:have|has|see|get|write|say)\\s+.{2,40}?),\\s+(?:it|that|this)\\s+means\\s+(?:you're|you are|it's|it is|we're|we are)\\s+${T}(?:,\\s+(?:because|since|as)\\s+.{8,}?)?${END}`,
+  ],
   ["is-what-means", `^(?<meaning>.{12,}?)\\s+is what ${T}\\s+(?:means|is)${END}`, "meaning-first"],
 ];
 const NOT_TERM_HEAD =

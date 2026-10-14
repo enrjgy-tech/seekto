@@ -993,7 +993,9 @@ export function findDefinitions(text, { minConfidence = 0, features = false, gat
     // "The other extreme is what's called the command economy." The next sentence says what it is
     // (skipping a repeat of the same line, which Whisper sometimes makes).
     // "This radiation is in fact called bremsstrahlung." then "That literally means braking radiation."
-    const gloss = next?.match(/^(?:that|which|it|this)\s+(?:literally |basically |just |really )?means\s+(.{4,})$/i);
+    const gloss = next?.match(
+      /^(?:and |so )?(?:that|which|it|this)\s+(?:literally |basically |just |really )?means\s+(.{4,})$/i,
+    );
     const glossed =
       gloss &&
       c.match(
