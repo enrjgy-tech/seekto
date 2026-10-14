@@ -889,7 +889,14 @@ export function findDefinitions(text, { minConfidence = 0, features = false, gat
   const out = [];
   const seen = new Set();
   // a closing quote ends a sentence too: '... "attentional resources." We can pay ...'
-  const list = sentences(text).flatMap((x) => x.split(/(?<=[.?!]["”])\s+(?=[A-Z])/));
+  const list = sentences(text)
+    .flatMap((x) => x.split(/(?<=[.?!]["”])\s+(?=[A-Z])/))
+    // "A sonnet is a poem, and the volta is the turn, where ...": two definitions in one sentence
+    .flatMap((x) =>
+      x.split(
+        /,\s+and\s+(?=(?:the|a|an)\s+[\p{L}'’-]+(?:\s+[\p{L}'’-]+){0,2}\s+(?:is|are)\s+(?:the|a|an|when|what)\b)/iu,
+      ),
+    );
   const lower = text.toLowerCase();
   const index = new Map();
   list.forEach((x, i) => index.has(x) || index.set(x, i));

@@ -116,7 +116,7 @@ const ROWS = [
   ],
   [
     "called-aside",
-    `^(?<meaning>(?:\\S+\\s+){4,}?\\S+?),\\s+(?:which (?:${SAY}) call|which is (?:called|known as)|also called|also known as|called|known as|termed)\\s+${T}\\s*(?:,|$)`,
+    `^(?<meaning>(?:\\S+\\s+){4,}?\\S+?),\\s+(?:which (?:${SAY}) call|which is (?:called|known as)|also called|also known as|called|known as|termed)\\s+${T}\\s*(?:,|[.!?]*$)`,
     "meaning-first",
   ],
   [
@@ -192,6 +192,14 @@ const ROWS = [
   [
     "what-we-call-which",
     `^(?:and |so )?(?:(?:that's|that is|this is|it's|it is) )?(?:what|something) ${SAY} (?:call|mean by|refer to as) ${T},?\\s+(?:which|that) (?:is|are|means) ${D}${END}`,
+  ],
+  [
+    "fact-law-says",
+    `^(?<term>(?:the |a |an )?[\\p{L}'’-]+(?:\\s+[\\p{L}'’-]+){0,3}?\\s+(?:law|principle|rule|theorem|imperative|hypothesis|equation|lemma|axiom|postulate|conjecture|paradox|inequality|razor|criterion|doctrine|theory|formula|effect))(?:,[^,]{3,50},)?\\s+(?:says|states|tells us|asserts|holds)\\s+(?:that\\s+)?${D}${END}`,
+  ],
+  [
+    "when-i-write",
+    `^(?:when|if|whenever)\\s+(?:I|we|you|they|someone|a doctor|a nurse|the \\p{L}+)\\s+(?:write|writes|see|sees|use|uses|put|puts|type|types|read|reads)\\s+${T}(?:\\s+(?:on|in|at|after|before|next to)\\s+[^,]{2,30})?,\\s+(?:that|it|this)\\s+(?:means|stands for|is short for)\\s+${D}${END}`,
   ],
   ["is-what-means", `^(?<meaning>.{12,}?)\\s+is what ${T}\\s+(?:means|is)${END}`, "meaning-first"],
 ];
